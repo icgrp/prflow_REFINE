@@ -2,10 +2,10 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 import re
 import json
-from p23_pblock import pblock_xclbin_dict
+from pr_flow.p23_pblock import pblock_page_dict, pblock_xclbin_dict
 
 class runtime(gen_basic):
   def __init__(self, prflow_params):
@@ -157,7 +157,7 @@ class runtime(gen_basic):
       src_port = int(src_output.replace('Output_',''))+int(self.prflow_params['output_port_base'])-1
       dest_page = int(page_assign_dict[dest_operator])
       dest_port = int(dest_input.replace('Input_',''))+int(self.prflow_params['input_port_base'])-1
-      print src_page,src_port,'->',dest_page,dest_port 
+      print(src_page,src_port,'->',dest_page,dest_port) 
       src_page_packet =                   (src_page  << self.page_addr_offset)
       src_page_packet = src_page_packet + (       0  << self.port_offset)
       src_page_packet = src_page_packet + (src_port  << self.config_port_offset)
@@ -268,7 +268,7 @@ class runtime(gen_basic):
     return operators_impl_list
 
   # prepare the run_app.sh for embedded system
-  def gen_sd_run_app_sh(self, operators, overlay_n, syn_directory):
+  def gen_sd_run_app_sh(self, operators, overlay_n, syn_directory, frequency):
     tmp_list = ['#!/bin/bash -e', \
                 'date', \
                 'if [ ! -f __static_loaded__ ]; then', \
@@ -310,7 +310,7 @@ class runtime(gen_basic):
       tmp_list[6] = tmp_list[6] + " " + str(operator_impl) + ".xclbin" # ./app.exe A.xclbin B.xclbin ...
 
     self.shell.re_mkdir(self.bit_dir+'/sd_card')
-    self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/xrt.ini', self.bit_dir)
+    self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+"/"+frequency+"MHz"+'/xrt.ini', self.bit_dir)
     # self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/load.exe', self.bit_dir+'/sd_card')
 
     # self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/dynamic_region.xclbin', self.bit_dir+'/sd_card')
@@ -387,7 +387,7 @@ class runtime(gen_basic):
 
 
  
-  def run(self, operators):
+  def run(self, operators, frequency="200"):
     # mk work directory
     if self.prflow_params['gen_runtime']==True:
       self.shell.mkdir(self.bit_dir)
@@ -411,5 +411,5 @@ class runtime(gen_basic):
     self.gen_runtime_sh()
 
     # generate the run_app.sh for embedded platform
-    self.gen_sd_run_app_sh(operators, overlay_n, self.syn_dir)
+    self.gen_sd_run_app_sh(operators, overlay_n, self.syn_dir, frequency)
 

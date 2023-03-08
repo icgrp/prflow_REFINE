@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_hls'] == True:
     hls_inst = hls.hls(prflow_params)
-    hls_inst.run(operator, monitor_on = monitor_on)
+    hls_inst.run(operator, monitor_on = monitor_on, frequency = freq)
 
   if prflow_params['gen_syn'] == True:
     syn_inst = syn.syn(prflow_params)
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_runtime'] == True:
     runtime_inst = runtime.runtime(prflow_params)
-    runtime_inst.run(operator)
+    runtime_inst.run(operator, frequency = freq)
 
   if prflow_params['gen_monolithic'] == True:
     mono_inst = monolithic.monolithic(prflow_params)

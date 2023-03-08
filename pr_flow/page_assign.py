@@ -2,11 +2,11 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 import re
 import json
-from p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MARGIN_double_dict, LUT_MARGIN_quad_dict, \
-                       BRAM_MARGIN_single_dict, BRAM_MARGIN_double_dict, BRAM_MARGIN_quad_dict
+from pr_flow.p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MARGIN_double_dict, LUT_MARGIN_quad_dict, \
+                               BRAM_MARGIN_single_dict, BRAM_MARGIN_double_dict, BRAM_MARGIN_quad_dict
 
 
 class page_assign(gen_basic):
@@ -262,7 +262,7 @@ class page_assign(gen_basic):
 
     lower_bound = target_part * subtree_size
     upper_bound = (target_part + 1) * subtree_size # not included
-    valid_page_nums = range(lower_bound, upper_bound)
+    valid_page_nums = list(range(lower_bound, upper_bound))
     if 0 in valid_page_nums or 1 in valid_page_nums:
       valid_page_nums.remove(0)
       valid_page_nums.remove(1)

@@ -18,8 +18,8 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
-from hls       import hls
+from pr_flow.gen_basic import gen_basic
+from pr_flow.hls import hls
 
 class overlay(gen_basic):
   def __init__(self, prflow_params):

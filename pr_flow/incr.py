@@ -1,5 +1,5 @@
 import os, re, json, time
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 import filecmp
 
 class incr(gen_basic):

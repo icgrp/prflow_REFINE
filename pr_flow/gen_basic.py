@@ -5,8 +5,8 @@ import os
 import subprocess
 import xml.etree.ElementTree
 import re
-import commands
-from p23_pblock import pblock_page_dict
+# import commands
+from pr_flow.p23_pblock import pblock_page_dict
 
 
 
@@ -62,7 +62,7 @@ class _shell:
       file_in.close()
       os.system('mv '+filename+'tmp '+filename)
     except:
-      print "Modification for "+filename+" failed!"
+      print("Modification for "+filename+" failed!")
 
   def my_sed(self, filename, modification_dict):
   # change the string(key of modification_dict) to
@@ -81,7 +81,7 @@ class _shell:
       file_in.close()
       os.system('mv '+filename+'tmp '+filename)
     except:
-      print "Modification for "+filename+" failed!"
+      print("Modification for "+filename+" failed!")
 
 
   def add_lines(self, filename, anchor, lines_list):
@@ -98,7 +98,7 @@ class _shell:
       file_in.close()
       os.system('mv '+filename+'tmp '+filename)
     except:
-      print "Adding more line in "+filename+" failed!"
+      print("Adding more line in "+filename+" failed!")
 
   def write_lines(self, filename, lines_list, executable=False, write_or_add='w'):
     try:
@@ -109,7 +109,7 @@ class _shell:
       if executable == True:
          os.system('chmod +x ' + filename)
     except:
-      print "Writing "+filename+" failed!"
+      print("Writing "+filename+" failed!")
 
   def re_mkdir(self, dir_name):
      os.system('rm -rf ' + dir_name)
@@ -844,7 +844,7 @@ class _tcl:
       ''])
 
   def return_syn2bits_tcl_list(self, jobs=8, prj_dir='./prj/', prj_name = 'floorplan_static'):
-    threads_num = commands.getoutput("nproc")
+    threads_num = subprocess.getoutput("nproc")
     return ([
       'open_project '+prj_dir+prj_name+'.xpr',
       'reset_run synth_1',
@@ -958,7 +958,7 @@ class _tcl:
     for root, dirs, files in os.walk(file_dir):                                 
       return files  
 
-  def return_hls_tcl_list(self, fun_name, path='../..'):
+  def return_hls_tcl_list(self, fun_name, path='../..', clk_user="5.0"):
     lines_list = []
     lines_list.append('set logFileId [open ./runLog' + fun_name + '.log "w"]')
     lines_list.append('set_param general.maxThreads ' + self.prflow_params['maxThreads'] + ' ')
@@ -969,7 +969,8 @@ class _tcl:
     lines_list.append('add_files '+path+'/input_src/' + self.prflow_params['benchmark_name'] + '/host/typedefs.h')
     lines_list.append('open_solution "' +fun_name +'"')                     
     lines_list.append('set_part {'+self.prflow_params['part']+'}')          
-    lines_list.append('create_clock -period '+self.prflow_params['clk_user']+' -name default')
+    # lines_list.append('create_clock -period '+self.prflow_params['clk_user']+' -name default')
+    lines_list.append('create_clock -period '+ clk_user +' -name default')
     lines_list.append('#source "./Rendering_hls/colorFB/directives.tcl"')   
     lines_list.append('#csim_design')                                       
     lines_list.append('csynth_design')                                      
@@ -1256,15 +1257,15 @@ class gen_basic:
   ######################################################################################################################################################
   # help functions start
   def print_params(self):
-    print self.prflow_params
+    print(self.prflow_params)
 
   def print_list(self, in_list):
     for num, value in enumerate(in_list):
-      print str(num)+'\t'+str(value)
+      print(str(num)+'\t'+str(value))
 
   def print_dict(self, in_dict):
     for key, value in sorted(in_dict.items()):
-      print str(key).ljust(30)+'->'+str(value)
+      print(str(key).ljust(30)+'->'+str(value))
 
   def has_pattern(self, in_str, pattern_str):
     if in_str.replace(pattern_str, '') == in_str:

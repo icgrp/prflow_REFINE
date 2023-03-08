@@ -2,11 +2,11 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 import re
-import syn
+import pr_flow.syn 
 import json
-from p23_pblock import pblock_page_dict
+from pr_flow.p23_pblock import pblock_page_dict
 
 class impl(gen_basic):
 
@@ -170,7 +170,7 @@ class impl(gen_basic):
   def run(self, operator_impl, syn_dcp, monitor_on=False, frequency="200"):
     # mk work directory
     if self.prflow_params['gen_impl']==True:
-      print "gen_impl"
+      print("gen_impl")
       self.shell.mkdir(self.pr_dir)
       self.shell.mkdir(self.bit_dir)
     

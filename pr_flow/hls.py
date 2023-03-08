@@ -19,7 +19,7 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 
 
 
@@ -30,7 +30,7 @@ class hls(gen_basic):
       return files  
 
   # create one directory for each page 
-  def create_page(self, fun_name, hls_path, src_path, syn_tcl_file, monitor_on):
+  def create_page(self, fun_name, hls_path, src_path, syn_tcl_file, monitor_on, frequency):
     map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'map_target')
     self.shell.re_mkdir(hls_path+'/'+fun_name+'_prj')
     self.shell.re_mkdir(hls_path+'/'+fun_name+'_prj/'+fun_name)
@@ -46,11 +46,12 @@ class hls(gen_basic):
                                                                                                    ), True)
 
     # copy the script to monitor mem usage and the number of running cores
-    self.shell.cp_dir('./common/script_src/monitor_hls.sh', hls_path+"/monitor.sh")
-    self.shell.cp_dir('./common/script_src/parse_htop.py', hls_path)
+    # self.shell.cp_dir('./common/script_src/monitor_hls.sh', hls_path+"/monitor.sh")
+    # self.shell.cp_dir('./common/script_src/parse_htop.py', hls_path)
        
     self.shell.write_lines(hls_path+'/'+fun_name+'_prj/hls.app', self.tcl.return_hls_prj_list(fun_name))
-    self.shell.write_lines(hls_path+'/'+fun_name+'_prj/'+fun_name+'/script.tcl', self.tcl.return_hls_tcl_list(fun_name, src_path))
+    clk_user = str(round(1000 / int(frequency), 1))
+    self.shell.write_lines(hls_path+'/'+fun_name+'_prj/'+fun_name+'/script.tcl', self.tcl.return_hls_tcl_list(fun_name, src_path, clk_user=clk_user))
     if map_target == 'HW':
       # if the map target is Hardware, we need to compile the c code through vivado_hls 
       self.shell.write_lines(hls_path+'/run_'+fun_name+'.sh', self.shell.return_run_hls_sh_list(self.prflow_params['Xilinx_dir'], 
@@ -65,7 +66,7 @@ class hls(gen_basic):
       self.shell.write_lines(hls_path+'/run_'+fun_name+'.sh', self.shell.return_empty_sh_list(), True)
       self.shell.write_lines(hls_path+'/runLog'+fun_name+'.log', ['hls: 0 senconds'], False)
 
-  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False):
+  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False, frequency="200"):
     if path == None:
       hls_path = self.hls_dir
     else:
@@ -74,7 +75,7 @@ class hls(gen_basic):
     self.shell.mkdir(hls_path)
     
     # create ip directories for all the pages
-    self.create_page(operator, hls_path, src_path, syn_tcl_file, monitor_on)
+    self.create_page(operator, hls_path, src_path, syn_tcl_file, monitor_on, frequency)
     
  
 

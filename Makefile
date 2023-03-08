@@ -1,7 +1,7 @@
 ############################################################################################
 
 #prj_name=digit_reg_par_40
-prj_name=digit_reg_par_80
+prj_name?=digit_reg_par_80
 
 #prj_name=optical_flow_64_single
 #prj_name=optical_flow_64_final
@@ -48,24 +48,24 @@ operators_runtime_target=$(ws_bit)/sd_card/app.exe
 # endif
 
 # freq may need to be Makefile input
-# freq=350
+freq?=200
 
 all: $(operators_runtime_target)
 
 runtime:$(operators_runtime_target) # NOTE: operators
 $(operators_runtime_target):./input_src/$(prj_name)/host/host.cpp $(operators_xclbin_targets) ./pr_flow/runtime.py
-	python2 pr_flow.py $(prj_name) -runtime -op '$(operators)'
+	python pr_flow.py $(prj_name) -runtime -op '$(operators)' -freq=$(freq)
 	cp $(operators_xclbin_targets) $(ws_bit)/sd_card
 	cd $(ws_bit)/$(prj_name)/host && ./gen_runtime.sh
 	
 xclbin: $(operators_xclbin_targets) # NOTE: operators_impl
 $(operators_xclbin_targets):$(ws_bit)/%.xclbin:$(ws_bit)/%.bit
-	python2 pr_flow.py $(prj_name) -xclbin -op $(basename $(notdir $@)) -freq=$(freq)
+	python pr_flow.py $(prj_name) -xclbin -op $(basename $(notdir $@)) -freq=$(freq)
 	cd $(ws_bit) && ./main_$(basename $(notdir $@)).sh $(operators_impl)
 
 bits:$(operators_bit_targets) # NOTE: operators_impl
 $(operators_bit_targets):$(ws_bit)/%.bit:$(ws_overlay)/__overlay_is_ready__ $(ws_syn)/%/pblock.json $(ws_syn)/%/page_netlist.dcp
-	python2 pr_flow.py $(prj_name) -impl -op $(basename $(notdir $@)) -freq=$(freq)
+	python pr_flow.py $(prj_name) -impl -op $(basename $(notdir $@)) -freq=$(freq)
 	cd $(ws_impl)/$(basename $(notdir $@)) && ./main.sh $(operators_impl)
 
 sync:$(operators_pblocks) 
@@ -79,38 +79,38 @@ $(operators_pblocks):$(ws_syn)/%/pblock.json: | pg_assign
 
 pg_assign:$(ws_syn)/pblock_assignment.json
 $(ws_syn)/pblock_assignment.json: $(operators_syn_targets) $(operators_dir)/pblock_operators_list.json
-	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python2 pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
+	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
 
 # Synthesis
 syn:$(operators_syn_targets)
 # Out-of-Context Synthesis from Verilog to post-synthesis DCP
 $(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/runLog%.log $(ws_overlay)/__overlay_is_ready__ ./pr_flow/syn.py
-	python2 pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<)))
+	python pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<)))
 	cd $(ws_syn)/$(subst runLog,,$(basename $(notdir $<))) && ./main.sh $(operators)
 
 # HLS
 hls: $(operators_hls_targets)
 # High-Level-Synthesis from C to Verilog
 $(operators_hls_targets):$(ws_hls)/runLog%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h ./pr_flow/hls.py
-	python2 pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<))
+	python pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<)) -freq=$(freq)
 	cd $(ws_hls) && ./main_$(basename $(notdir $<)).sh $(operators)
 
 bft_n=23
 overlay: $(ws_overlay)/__overlay_is_ready__
 $(ws_overlay)/__overlay_is_ready__:
-	python2 pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
+	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
 	cd ./workspace/F001_overlay && ./main.sh
 
 .PHONY: report 
 report: 
-	 python2 ./pr_flow.py $(prj_name) -op '$(basename $(notdir $(operators_bit_targets)))' -rpt
+	 python ./pr_flow.py $(prj_name) -op '$(basename $(notdir $(operators_bit_targets)))' -rpt
 
 # When pre-stocking overlays,
 # if bft_n==23: p2~p23 
 # if bft_n==10, p2~p10
 # if bft_n==12, p2~p12
 overlay_only:
-	python2 pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
+	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
 	cd ./workspace/F001_overlay && ./main.sh
 
 
@@ -130,7 +130,7 @@ clear_impl:
 # Incremental compile
 # prj_name=optical_flow_incr
 incr:
-	python2 pr_flow.py $(prj_name) -incr -op '$(operators)'
+	python pr_flow.py $(prj_name) -incr -op '$(operators)'
 run_on_fpga:
 	if [ ! -f ./input_src/$(prj_name)/operators/__test_done__ ]; then cd $(ws_bit) && ./run_on_fpga.sh; fi
 

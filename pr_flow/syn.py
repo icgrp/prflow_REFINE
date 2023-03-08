@@ -17,7 +17,7 @@
 
 import os  
 import subprocess
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 
 class syn(gen_basic):
 
@@ -106,9 +106,9 @@ class syn(gen_basic):
       self.prepare_HW(operator, page_num, input_num, output_num)
 
     inst_mem_bits = self.return_bit_size(inst_mem_size-1)-2
-    print 'inst_mem_bits', inst_mem_bits
+    print('inst_mem_bits', inst_mem_bits)
     LENGTH = '0x'+hex(int(inst_mem_size)).replace('0x', '').zfill(8)
-    print LENGTH
+    print(LENGTH)
     # create a riscv dirctory
     self.shell.cp_dir('./common/riscv_src/riscv/*', self.syn_dir+'/'+operator)
     self.shell.replace_lines(self.syn_dir+'/'+operator+'/run.sh', {'RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX=': 'RISCV_GNU_TOOLCHAIN_INSTALL_PREFIX='+self.prflow_params['riscv_dir']}) 
@@ -217,7 +217,7 @@ class syn(gen_basic):
     elif self.prflow_params['overlay_type'] == 'hipr':
       addr_width_dict = {}
       for i in range(1, 8):  addr_width_dict['Output_'+str(i)] = self.prflow_params['bram_addr_bits']
-      print addr_width_dict
+      print(addr_width_dict)
       for arg in  operator_arg_dict[operator]:
         port_depth_exist, depth = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', arg+'_depth')
         if port_depth_exist: addr_width_dict[arg] = depth

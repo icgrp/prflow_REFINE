@@ -7,7 +7,7 @@ import re
 import math
 import subprocess
 import json
-from gen_basic import gen_basic
+from pr_flow.gen_basic import gen_basic
 
 class report(gen_basic):
 
@@ -100,7 +100,7 @@ class report(gen_basic):
         time_report_dict[fun_name] = " {: <30}{: <10}{: <15}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <16}{: <8}"\
                                         .format(fun_name, map_target, pblock_name, page_num, t_hls, t_syn, t_rdchk, t_opt, t_place, t_popt, t_route, t_bitgen, t_total_max_syn, t_total)
       except:
-        print "Something is wrong with "+file_name
+        print("Something is wrong with "+file_name)
 
     time_report_file = open('./workspace/report/time_report_'+benchmark_name+'.csv', 'w')
     top_row_str = 'operator,target,pblock,page,hls,syn,rdchk,opt,place,popt,route,bitgen,total\n'
@@ -110,9 +110,9 @@ class report(gen_basic):
       value_list = value.split()
       value_csv = ','.join(value_list)
       time_report_file.write(value_csv+'\n')  
-    print '\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'hls',' ' * 3,'syn',' ' * 3,'rdchk',' ' * 1,'opt',' ' * 3,\
-          'place',' ' * 1,'popt',' ' * 2,'route',' ' * 1,'bitgen  total(max_syn)  total'
-    print '-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+    print('\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'hls',' ' * 3,'syn',' ' * 3,'rdchk',' ' * 1,'opt',' ' * 3,\
+          'place',' ' * 1,'popt',' ' * 2,'route',' ' * 1,'bitgen  total(max_syn)  total')
+    print('-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------')
     self.print_dict(time_report_dict)
 
   def gen_resource_report(self, benchmark_name, operators_list):
@@ -161,9 +161,9 @@ class report(gen_basic):
       value_list = value.split()
       value_csv = ','.join(value_list)
       resource_report_file.write(value_csv+'\n')  
-    print '\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'LUTs',' ' * 2, 'FFs',' ' * 3, 'BRAM18s DSPs'
+    print('\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'LUTs',' ' * 2, 'FFs',' ' * 3, 'BRAM18s DSPs')
     # print '\n                               operator                  \ttarget\tpblock\t\tpage\tLUTs\tFFs\tBRAM18s\tDSPs'
-    print '----------------------------------------------------------------------------------------------------------------------------'
+    print('----------------------------------------------------------------------------------------------------------------------------')
     self.print_dict(resource_report_dict)
 
   def gen_timing_report(self, benchmark_name, operators_list):
@@ -215,9 +215,9 @@ class report(gen_basic):
       value_list = value.split()
       value_csv = ','.join(value_list)
       timing_report_file.write(value_csv+'\n')  
-    print '\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'slack'
+    print('\n                               operator',' ' * 22, 'target',' ' * 2, 'pblock',' ' * 7, 'page',' ' * 2, 'slack')
     # print '\n                               operator                  \ttarget\tpblock\t\tpage\tslack'
-    print '-----------------------------------------------------------------------------------------------------'
+    print('-----------------------------------------------------------------------------------------------------')
     self.print_dict(timing_report_dict)
 
  
@@ -230,5 +230,5 @@ class report(gen_basic):
       self.gen_resource_report(benchmark_name, operators_list)
       self.gen_compile_time_report(benchmark_name, operators_list)
     self.gen_timing_report(benchmark_name, operators_list)
-    print 'You can find the comile time report and resource report under: ./workspace/report' 
+    print('You can find the comile time report and resource report under: ./workspace/report')
 
