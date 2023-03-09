@@ -8,7 +8,6 @@ import json
 from pr_flow.p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MARGIN_double_dict, LUT_MARGIN_quad_dict, \
                                BRAM_MARGIN_single_dict, BRAM_MARGIN_double_dict, BRAM_MARGIN_quad_dict
 
-
 class page_assign(gen_basic):
   def __init__(self, prflow_params):
     gen_basic.__init__(self, prflow_params)
@@ -81,8 +80,10 @@ class page_assign(gen_basic):
     for key_a in operator_var_dict:
       operator = key_a
       src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'debug_port')
-      map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'map_target')
+      debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+\
+                                                          '/operators/'+key_a+'.h', 'debug_port')
+      map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+\
+                                                               '/operators/'+key_a+'.h', 'map_target')
       if debug_exist:
         src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
         output_num = self.return_io_num('Output_', src_list)
@@ -112,6 +113,8 @@ class page_assign(gen_basic):
     return connection_list
 
 
+  ## New stuff begins
+
   def get_nparts(self, num_nodes):
     if(num_nodes < 6):
       return 3
@@ -132,14 +135,23 @@ class page_assign(gen_basic):
 
     connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict)
     # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
+    # connection_list = list(connection_list)
+    # connection_list.sort() # deterministic
     # print(connection_list)
     connection_list_new = []
     for connection in connection_list:
       sender, receiver = connection.split("->")
       sender = sender.split(".")[0]
       receiver = receiver.split(".")[0]
-      connection_list_new.append([sender,receiver])
-    # print(connection_list_new)
+      small_list = [sender, receiver]
+      small_list.sort() # to remove duplicates
+      small_tup = (small_list[0], small_list[1])
+      connection_list_new.append(small_tup)
+    print(connection_list_new)
+    connection_list_new = list(set(connection_list_new))
+    connection_list_new.sort() # deterministic
+    print(connection_list_new)
+
     operators_dma = ["DMA"] + operators.split()
     # print(operators_dma)
 
@@ -148,9 +160,14 @@ class page_assign(gen_basic):
     # print(num_nodes)
     # print(num_edges)
 
+    # Debugging purpose
+    with open("./_graph_dir/" + self.prflow_params['benchmark_name'] + "_operators.txt", "w") as f_op:
+      for op in operators_dma:
+        f_op.write(str(op) + '\n')
+
     with open("./_graph_dir/" + self.prflow_params['benchmark_name'] + "_graphfile", "w") as f_graph:
       f_graph.write(str(num_nodes) + " " + str(num_edges) + " 011\n")
-      for op in operators_dma:
+      for op in operators_dma: # graphfile is in same order as operators_dma
         # print("op: " + op)
         # print(operators_dma.index(op) + 1)
         node_weight = node_weight_dict[op]
@@ -173,7 +190,7 @@ class page_assign(gen_basic):
   def get_page_size(self, pblock_name):
     return len(pblock_page_dict[pblock_name])
 
-
+  # Not used
   def get_pblock_list(self, size):
     pblock_list = []
     for pblock in pblock_page_dict.keys():
@@ -181,14 +198,14 @@ class page_assign(gen_basic):
         pblock_list.append(pblock)
     return pblock_list
 
-
+  # Outdated
   def get_pblock_assign_dict(self, node_weight_dict, page_valid_dict, operators_dma):
     pblock_assign_dict = {}
     for op in operators_dma:
       if op != "DMA":
         node_weight = node_weight_dict[op]
         pages_used = [page for page in page_valid_dict if page_valid_dict[page] == op]
-        possible_pblock_list = self.get_pblock_list(int(node_weight))
+        possible_pblock_list = self.get_pblock_list(int(node_weight)) # all pblocks in the same size
         # print(op)
         # print(pages_used)
         # print(possible_pblock_list)
@@ -232,23 +249,28 @@ class page_assign(gen_basic):
     return ops_in_part
 
   # Among all ops in the same target_part, start from the larger op first
-  def sort_ops_in_part(self, ops_in_part, node_weight_dict):
+  def sort_ops_in_part(self, ops_in_part, util_dict):
     sorted_ops_in_part = []
-    # Add quad first
-    for op in ops_in_part:
-      node_weight = node_weight_dict[op]
-      if(node_weight == "4"):
+    for op, value in sorted(util_dict.items(), key=lambda x:x[1][1], reverse=True): # sorted by criteria
+      if op in ops_in_part:
         sorted_ops_in_part.append(op)
-    # Add double next
-    for op in ops_in_part:
-      node_weight = node_weight_dict[op]
-      if(node_weight == "2"):
-        sorted_ops_in_part.append(op)
-    # Add single last
-    for op in ops_in_part:
-      node_weight = node_weight_dict[op]
-      if(node_weight == "1"):
-        sorted_ops_in_part.append(op)
+    # # Add quad first
+    # for op in ops_in_part:
+    #   node_weight = node_weight_dict[op]
+    #   if(node_weight == "4"):
+    #     sorted_ops_in_part.append(op)
+    # # Add double next
+    # for op in ops_in_part:
+    #   node_weight = node_weight_dict[op]
+    #   if(node_weight == "2"):
+    #     sorted_ops_in_part.append(op)
+    # # Add single last
+    # for op in ops_in_part:
+    #   node_weight = node_weight_dict[op]
+    #   if(node_weight == "1"):
+    #     sorted_ops_in_part.append(op)
+    if "DMA" in ops_in_part:
+      sorted_ops_in_part.append("DMA")
     return sorted_ops_in_part
 
   # Returns valid page numbers for the target_part
@@ -259,45 +281,84 @@ class page_assign(gen_basic):
       subtree_size = 4
     elif(nparts == 3):
       subtree_size = 8
-
     lower_bound = target_part * subtree_size
     upper_bound = (target_part + 1) * subtree_size # not included
     valid_page_nums = list(range(lower_bound, upper_bound))
     if 0 in valid_page_nums or 1 in valid_page_nums:
       valid_page_nums.remove(0)
       valid_page_nums.remove(1)
-    return [str(page) for page in valid_page_nums]
+    return [page for page in valid_page_nums]
+    # return [str(page) for page in valid_page_nums]
+
+  # Returns a pblock given page_num and pblock_size(node_weight)
+  def get_pblock_from_idx_and_size(self, idx, node_weight):
+    for pblock, indices in pblock_page_dict.items():
+      if str(idx) in indices and len(indices) == int(node_weight):
+        return pblock
 
 
-  def gen_page_assign_dict(self, parts, operators_dma, node_weight_dict, nparts):
+
+  def gen_page_assign_dict(self, parts, operators_dma, node_weight_dict, util_dict, overlay_util_dict, nparts, frequency):
     page_valid_dict = {'2': None, '3': None, '4': None, '5': None, '6': None, '7': None, '8': None, 
         '9': None, '10': None, '11': None, '12': None, '13': None, '14': None, '15': None, '16': None, 
         '17': None, '18': None, '19': None, '20': None, '21': None, '22': None, '23': None}
-
+    print(parts)
+    pblock_assign_dict = {}
     for target_part in range(nparts): # starting from part_num == 0
       ops_in_part = self.get_ops_in_part(parts, operators_dma, str(target_part))
+      print(ops_in_part)
+      sorted_ops_in_part = self.sort_ops_in_part(ops_in_part, util_dict) # sort in resource usage
+      print(sorted_ops_in_part)
       # print(ops_in_part)
-      sorted_ops_in_part = self.sort_ops_in_part(ops_in_part, node_weight_dict)
-      assert(len(sorted_ops_in_part) == len(ops_in_part))
       # print(sorted_ops_in_part)
       valid_page_nums = self.get_valid_page_nums(target_part, nparts)
+      print("nparts: " + str(nparts))
       # print(valid_page_nums)
+      if len(valid_page_nums) == 0:
+        lower_bound = -1 # don't care
+        upper_bound = -1 # don't care
+      else:
+        lower_bound = min(valid_page_nums)
+        upper_bound = max(valid_page_nums) + 1
+      # print(sorted_ops_in_part)
+      # print(ops_in_part)
+      print("lower_bound: " + str(lower_bound))
+      print("upper_bound: " + str(upper_bound))
+      # print("page_valid_dict:")
+      # print(page_valid_dict)
       for op in sorted_ops_in_part:
         if op != "DMA":
           node_weight = node_weight_dict[op]
-          for i in range(int(node_weight)):
-            page_num = valid_page_nums[0]
-            valid_page_nums.remove(page_num)
-            page_valid_dict[page_num] = op
+          op_resource_tuple = util_dict[op][0]
+          for i in range(lower_bound, upper_bound, int(node_weight)):
+            # possible_pblock_list = self.get_pblock_list(int(node_weight))
+            # selected_pblock = None
+            # for pblock in possible_pblock_list:
+            #   if str(i) in pblock_page_dict[pblock] and page_valid_dict[str(i)] is None:
+            #     selected_pblock = pblock
+            selected_pblock = None
+            pblock = self.get_pblock_from_idx_and_size(i, node_weight)
+            # print(pblock)
+            # print(page_valid_dict)
+            # print(i)
+
+            if(page_valid_dict[str(i)] is None and pblock is not None): # available
+              selected_pblock = pblock
+              overlay_resource_tuple = overlay_util_dict[selected_pblock]
+              if self.is_fit(op_resource_tuple, overlay_resource_tuple, selected_pblock, frequency):
+                # print(op)
+                for page_num in range(i, i + int(node_weight)):
+                  page_valid_dict[str(page_num)] = op # mark the page as invalid
+                pblock_assign_dict[op] = selected_pblock
+                break # no need to go through next pblock candidate
         else:
           pass
           # print("DMA")
-
     # print(page_valid_dict)
-    pblock_assign_dict = self.get_pblock_assign_dict(node_weight_dict, page_valid_dict, operators_dma)
-    # print(pblock_assign_dict)
+    # pblock_assign_dict = self.get_pblock_assign_dict(node_weight_dict, page_valid_dict, operators_dma)
+    print(pblock_assign_dict)
     page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
-    # print(page_assign_dict)
+    print(page_assign_dict)
     return page_assign_dict, pblock_assign_dict
 
 
@@ -316,37 +377,42 @@ class page_assign(gen_basic):
         infile.write(part + "\n")
 
 
-  def assign_3(self, partitioned_file, operators_dma, node_weight_dict):
+  def assign_3(self, partitioned_file, operators_dma, node_weight_dict, util_dict, overlay_util_dict, frequency):
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
       parts = [part.strip() for part in parts]
     print(operators_dma)
-    print(parts)
+    # print(parts)
 
     DMA_idx = operators_dma.index("DMA")
     DMA_part = parts[DMA_idx]
     if(DMA_part == '0'):
       # print(parts)
-      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                       node_weight_dict, util_dict, overlay_util_dict, 
+                                                                       3, frequency)
       return page_assign_dict, pblock_assign_dict
     elif(DMA_part == '1'):
-      parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
+      parts = self.change_part('0','-1',parts) # 0 -> -1, invalid, temp
       parts = self.change_part('1','0',parts)
-      parts = self.change_part('2','1',parts)
-      parts = self.change_part('-1','2',parts) # -1->2, change to valid part
+      parts = self.change_part('-1','1',parts) # -1->1, change to valid part
       # print(parts)
-      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                       node_weight_dict, util_dict, overlay_util_dict, 
+                                                                       3, frequency)
       return page_assign_dict, pblock_assign_dict
     else: # DMA_part == '2'
       parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
       parts = self.change_part('2','0',parts)
       parts = self.change_part('-1','2',parts) # -1->2, change to valid part
       # print(parts)
-      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+      page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                       node_weight_dict, util_dict, overlay_util_dict, 
+                                                                       3, frequency)
       return page_assign_dict, pblock_assign_dict
 
 
-  def assign_6(self, partitioned_file, operators_dma, node_weight_dict):
+  def assign_6(self, partitioned_file, operators_dma, node_weight_dict, util_dict, overlay_util_dict, frequency):
 
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
@@ -359,29 +425,35 @@ class page_assign(gen_basic):
     if(DMA_part in ['0','1','2']):
       if(DMA_part == '0'):
         # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, util_dict, overlay_util_dict, 
+                                                                         6, frequency)
         return page_assign_dict, pblock_assign_dict
-      elif(DMA_part == '1'):
-        parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
+      elif(DMA_part == '1'): # 1 <-> 0
+        parts = self.change_part('0','-1',parts) # 0 -> -1, invalid, temp
         parts = self.change_part('1','0',parts)
-        parts = self.change_part('2','1',parts)
-        parts = self.change_part('-1','2',parts) # -1->2, change to valid part
-        # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+        parts = self.change_part('-1','1',parts) # -1->1, change to valid part
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, util_dict, overlay_util_dict, 
+                                                                         6, frequency)
         return page_assign_dict, pblock_assign_dict
-      else: # DMA_part == '2'
-        parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
+      else: # DMA_part == '2', 2 <-> 0
+        parts = self.change_part('0','-1',parts) # 0 -> -1, invalid, temp
         parts = self.change_part('2','0',parts)
-        parts = self.change_part('-1','2',parts) # -1->2, change to valid part
+        parts = self.change_part('-1','2',parts) # -1 -> 2, change to valid part
         # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 6)
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, overlay_util_dict, util_dict, 
+                                                                         6, frequency)
         return page_assign_dict, pblock_assign_dict
     else:
       self.reverse_partitioned_list(partitioned_file, 6-1)
-      self.assign_6(partitioned_file, operators_dma, node_weight_dict)
-
+      page_assign_dict, pblock_assign_dict = self.assign_6(partitioned_file, operators_dma, 
+                                                           node_weight_dict, util_dict, overlay_util_dict, 
+                                                           frequency)
+      return page_assign_dict, pblock_assign_dict
     
-  def assign_12(self, partitioned_file, operators_dma, node_weight_dict):
+  def assign_12(self, partitioned_file, operators_dma, node_weight_dict, util_dict, overlay_util_dict, frequency):
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
       parts = [part.strip() for part in parts]
@@ -393,22 +465,27 @@ class page_assign(gen_basic):
     if(DMA_part in ['0','1','2','3','4','5']):
       if(DMA_part == '0'):
         # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 12)
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, util_dict, overlay_util_dict, 
+                                                                         12, frequency)
         return page_assign_dict, pblock_assign_dict
-      elif(DMA_part == '1'):
-        parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
+      elif(DMA_part == '1'): # 1 <-> 0
+        parts = self.change_part('0','-1',parts) # 0 -> -1, invalid, temp
         parts = self.change_part('1','0',parts)
-        parts = self.change_part('2','1',parts)
-        parts = self.change_part('-1','2',parts) # -1->2, change to valid part
+        parts = self.change_part('-1','1',parts) # -1 -> 1, change to valid part          
         # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 12)
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, util_dict, overlay_util_dict, 
+                                                                         12, frequency)
         return page_assign_dict, pblock_assign_dict
-      elif(DMA_part == '2'): # DMA_part == '2'
-        parts = self.change_part('0','-1',parts) # 0->-1, invalid, temp
+      elif(DMA_part == '2'): # 2 <-> 0
+        parts = self.change_part('0','-1',parts) # 0 -> -1, invalid, temp
         parts = self.change_part('2','0',parts)
-        parts = self.change_part('-1','2',parts) # -1->2, change to valid part
+        parts = self.change_part('-1','2',parts) # -1 -> 2, change to valid part
         # print(parts)
-        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, node_weight_dict, 12)
+        page_assign_dict, pblock_assign_dict = self.gen_page_assign_dict(parts, operators_dma, 
+                                                                         node_weight_dict, util_dict, overlay_util_dict, 
+                                                                         12, frequency)
         return page_assign_dict, pblock_assign_dict
       else: # DMA_part == 3 ~ 5, reverse part number 0~5 only
         with open(partitioned_file, "r") as infile:
@@ -418,25 +495,39 @@ class page_assign(gen_basic):
         for part in parts:
           if int(part) < 6:
             new_part = (5 - int(part))
+          else:
+            new_part = int(part)
           new_parts.append(str(new_part))
         with open(partitioned_file, "w") as infile:
           for part in new_parts:
             infile.write(part + "\n")
-        self.assign_12(partitioned_file, operators_dma)
+        page_assign_dict, pblock_assign_dict = self.assign_12(partitioned_file, operators_dma, 
+                                                              node_weight_dict, util_dict, overlay_util_dict, 
+                                                              frequency)
+        return page_assign_dict, pblock_assign_dict
     else: # DMA_part == 6 ~ 11
       self.reverse_partitioned_list(partitioned_file, 12-1)
-      self.assign_12(partitioned_file, operators_dma, node_weight_dict)
+      page_assign_dict, pblock_assign_dict = self.assign_12(partitioned_file, operators_dma, 
+                                                            node_weight_dict, util_dict, overlay_util_dict, 
+                                                            frequency)
+      return page_assign_dict, pblock_assign_dict
 
 
-  def assign(self, nparts, operators_dma, node_weight_dict, partitioned_file):
+  def assign(self, nparts, operators_dma, node_weight_dict, util_dict, overlay_util_dict, partitioned_file, frequency):
     if(nparts == 3):
-      page_assign_dict, pblock_assign_dict = self.assign_3(partitioned_file, operators_dma, node_weight_dict)
+      page_assign_dict, pblock_assign_dict = self.assign_3(partitioned_file, operators_dma, 
+                                                           node_weight_dict, util_dict, overlay_util_dict, 
+                                                           frequency)
     elif(nparts == 6):
-      page_assign_dict, pblock_assign_dict = self.assign_6(partitioned_file, operators_dma, node_weight_dict)
+      page_assign_dict, pblock_assign_dict = self.assign_6(partitioned_file, operators_dma, 
+                                                           node_weight_dict, util_dict, overlay_util_dict, 
+                                                           frequency)
     elif(nparts == 12):
-      page_assign_dict, pblock_assign_dict = self.assign_12(partitioned_file, operators_dma, node_weight_dict)
+      page_assign_dict, pblock_assign_dict = self.assign_12(partitioned_file, operators_dma, 
+                                                            node_weight_dict, util_dict, overlay_util_dict, 
+                                                            frequency)
     else:
-      print("Invalid nparts value")
+      raise Exception("Invalid nparts value")
     return page_assign_dict, pblock_assign_dict
 
 
@@ -611,9 +702,15 @@ class page_assign(gen_basic):
 
 
   def is_assigned_all(self, pblock_assign_dict, pblock_operators_list):
+    # Check all assigned
     for pblock_op in pblock_operators_list:
       if(pblock_op not in pblock_assign_dict):
         return False
+    # Check duplicate
+    for op, pblock in pblock_assign_dict.items():
+      for test_op, test_pblock in pblock_assign_dict.items():
+        if (op != test_op and pblock == test_pblock):
+          return False
     return True
 
 
@@ -641,15 +738,16 @@ class page_assign(gen_basic):
       if(num_op <= 4 and not pblock_op in pblock_assign_dict):
         self.update_assignment(overlay_util_dict_quad, pblock_op, op_resource_tuple, page_valid_dict, pblock_assign_dict, frequency)
 
-    # print(pblock_assign_dict)
     # print(pblock_operators_list)
     if(not self.is_assigned_all(pblock_assign_dict, pblock_operators_list)):
       raise Exception("Operators do not fit in any of the pre-generated NoC overlay")
-    
+    # print("## pblock_assign_dict with greedy algorithm")
+    # print(pblock_assign_dict)
+    # print("")    
     node_weight_dict = {"DMA": "2"}
     for op, pblock in pblock_assign_dict.items():
       node_weight_dict[op] = str(self.get_page_size(pblock))
-    return node_weight_dict
+    return node_weight_dict, pblock_assign_dict
 
 
   def run(self, operators, bft_n, frequency="200"):
@@ -684,22 +782,43 @@ class page_assign(gen_basic):
     # print(overlay_util_dict_double)
     # print(overlay_util_dict_quad)
 
-    node_weight_dict = self.gen_node_weight_dict(util_dict, overlay_util_dict_single, 
-                                                            overlay_util_dict_double, 
-                                                            overlay_util_dict_quad, pblock_operators_list, frequency)
+    node_weight_dict, pblock_assign_dict_greedy = self.gen_node_weight_dict(util_dict, overlay_util_dict_single, 
+                                                                            overlay_util_dict_double, 
+                                                                            overlay_util_dict_quad, pblock_operators_list, frequency)
 
     print(node_weight_dict)
     # with open(self.prflow_params['benchmark_name'] + "_node_weight_dict.json", "r") as infile:
     #   node_weight_dict = json.load(infile)
 
+    os.system('mkdir -p _graph_dir')
+    # print("operators")
+    # print(operators)
     nparts, graphfile, operators_dma = self.gen_graphfile(operators, node_weight_dict) # generate graphfile
-    os.system('gpmetis -ptype=rb ' + graphfile + " " + str(nparts)) # call Metis
-    os.system('mv ' + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts) + "./graph_dir/")
-    partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts)
-    page_assign_dict, pblock_assign_dict = self.assign(nparts, operators_dma, node_weight_dict, partitioned_file) # page assign
+    # print(graphfile)
 
-    if(not self.is_assigned_all(pblock_assign_dict, pblock_operators_list)):
-      raise Exception("TODO: what should we do if metis's output doesn't result in valid assignment?")
+    os.system('gpmetis -ptype=rb ' + graphfile + " " + str(nparts)) # call Metis
+    # os.system('mv ' + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts) + " ./graph_dir/")
+    partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts)
+    page_assign_dict, pblock_assign_dict = self.assign(nparts, operators_dma, 
+                                                       node_weight_dict, util_dict, overlay_util_dict,
+                                                       partitioned_file, frequency)
+
+    # if(not self.is_assigned_all(pblock_assign_dict, pblock_operators_list)):
+    #   raise Exception("TODO: what should we do if metis's output doesn't result in valid assignment?")
+    while(not self.is_assigned_all(pblock_assign_dict, pblock_operators_list)):
+      if(nparts == 3):
+        raise Exception("TODO: what should we do if metis's output doesn't result in valid assignment?")
+        # TODO: just assign with greedy algo to avoid Exception?
+        # pblock_assign_dict = pblock_assign_dict_greedy
+        # page_assign_dict = self.get_page_assign_dict(pblock_assign_dict_greedy)
+      else:
+        nparts = nparts//2
+        os.system('gpmetis -ptype=rb ' + graphfile + " " + str(nparts)) # call Metis
+        # os.system('mv ' + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts) + " ./graph_dir/")
+        partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "_graphfile" + ".part." + str(nparts)
+        page_assign_dict, pblock_assign_dict = self.assign(nparts, operators_dma, 
+                                                           node_weight_dict, util_dict, overlay_util_dict,
+                                                           partitioned_file, frequency)        
 
     print("## page_assign_dict")
     print(page_assign_dict)
@@ -718,12 +837,12 @@ class page_assign(gen_basic):
         for op in ops:
             pblock_name = pblock_assign_dict[op_impl]
             page_num = page_assign_dict[op]
-            # IMPORTANT!, changes pblock.json only when the contents have been changed
+            # IMPORTANT!, update pblock.json only when the contents have been changed
             if(os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
                 with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
                     (overlay_n_old, pblock_name_old, page_num_old) = json.load(infile)
                 if(overlay_n != overlay_n_old or pblock_name != pblock_name_old or page_num != page_num_old):
-                    with open('./' + op + '/pblock.json', 'w') as outfile:
+                    with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
                         json.dump((overlay_n, pblock_name, page_num), outfile)
             else: # first time
                 with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
