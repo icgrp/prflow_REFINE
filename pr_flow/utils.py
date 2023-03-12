@@ -20,7 +20,7 @@ def load_prflow_params(filename):
   for child in specs: prflow_params[child.get('name')] = child.get('value')
   for child in clock: prflow_params[child.get('name')] = child.get('period')
 
-  print (filename.replace('configure/', 'configure/'+prflow_params['board']+'/'))
+  # print (filename.replace('configure/', 'configure/'+prflow_params['board']+'/'))
   board_root = root = xml.etree.ElementTree.parse(filename.replace('configure/', 'configure/'+prflow_params['board']+'/')).getroot()
   specs = board_root.findall('spec')
   for child in specs: prflow_params[child.get('name')] = child.get('value')

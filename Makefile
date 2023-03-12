@@ -3,13 +3,13 @@
 #prj_name=digit_reg_par_40
 prj_name?=digit_reg_par_80
 
-#prj_name=optical_flow_64_single
-#prj_name=optical_flow_64_final
-#prj_name=optical_flow_96_single
-#prj_name=optical_flow_96_final
+# prj_name=optical_flow_64_single
+# prj_name=optical_flow_64_final
+# prj_name=optical_flow_96_single
+# prj_name=optical_flow_96_final
 #prj_name=optical_flow_incr
 
-#prj_name=rendering_par_1
+# prj_name=rendering_par_1
 # prj_name=rendering_par_2
 
 #prj_name=spam_filter_par_32
@@ -37,15 +37,12 @@ operators_pblocks=$(foreach n, $(operators), $(ws_syn)/$(n)/pblock.json)
 # WIP: operators_impl is necessary only when there exists multiple operators in one PR 
 operators_impl=$(shell python ./pr_flow/parse_op_list.py -prj $(prj_name))
 
-operators_bit_targets=$(foreach n, $(operators_impl), $(ws_bit)/$(n).bit)
+# operators_bit_targets=$(foreach n, $(operators_impl), $(ws_bit)/$(n).bit)
+operators_bit_targets=$(foreach n, $(operators_impl), $(ws_impl)/$(n)/_impl_result.txt)
 operators_xclbin_targets=$(foreach n, $(operators_impl), $(ws_bit)/$(n).xclbin)
 operators_runtime_target=$(ws_bit)/sd_card/app.exe
 
 
-# overlay_type=hipr
-# ifeq ($(overlay_type),hipr)
-# overlay_suffix=_$(prj_name)
-# endif
 
 # freq may need to be Makefile input
 freq?=200
@@ -57,28 +54,41 @@ $(operators_runtime_target):./input_src/$(prj_name)/host/host.cpp $(operators_xc
 	python pr_flow.py $(prj_name) -runtime -op '$(operators)' -freq=$(freq)
 	cp $(operators_xclbin_targets) $(ws_bit)/sd_card
 	cd $(ws_bit)/$(prj_name)/host && ./gen_runtime.sh
+
 	
 xclbin: $(operators_xclbin_targets) # NOTE: operators_impl
-$(operators_xclbin_targets):$(ws_bit)/%.xclbin:$(ws_bit)/%.bit
+$(operators_xclbin_targets): sync_impl
 	python pr_flow.py $(prj_name) -xclbin -op $(basename $(notdir $@)) -freq=$(freq)
 	cd $(ws_bit) && ./main_$(basename $(notdir $@)).sh $(operators_impl)
 
+# Wait untill all implementation runs are finished, TODO: may need to remove impl_result.txt?
+sync_impl: $(operators_bit_targets) 
+	@if [ "$(shell python pr_flow.py $(prj_name) -c -op '$(operators_impl)')" = "Success" ]; then\
+		echo "------------------------------------";\
+		echo "## All partial bitstreams are ready!";\
+		echo "------------------------------------";\
+	else\
+		echo "------------------------------------";\
+		echo "## Some runs failed ;-(";\
+		echo "------------------------------------";\
+# 		make incr --no-print-directory && make bits -j$(nproc) --no-print-directory && make sync_impl --no-print-directory;\
+	fi
+
+incr:
+	echo "nothing for now"
+
 bits:$(operators_bit_targets) # NOTE: operators_impl
-$(operators_bit_targets):$(ws_bit)/%.bit:$(ws_overlay)/__overlay_is_ready__ $(ws_syn)/%/pblock.json $(ws_syn)/%/page_netlist.dcp
-	python pr_flow.py $(prj_name) -impl -op $(basename $(notdir $@)) -freq=$(freq)
-	cd $(ws_impl)/$(basename $(notdir $@)) && ./main.sh $(operators_impl)
+$(operators_bit_targets):$(ws_impl)/%/_impl_result.txt:$(ws_overlay)/__overlay_is_ready__ $(ws_syn)/%/pblock.json $(ws_syn)/%/page_netlist.dcp
+	python pr_flow.py $(prj_name) -impl -op $(notdir $(subst /_impl_result.txt,,$@)) -freq=$(freq)
+	# After Implementation, write success/fail results and based on the results
+	cd $(ws_impl)/$(notdir $(subst /_impl_result.txt,,$@)) && ./main.sh $(operators_impl) &&\
+	 python write_result.py || python write_result.py --fail
 
-sync:$(operators_pblocks) 
-$(operators_pblocks):$(ws_syn)/%/pblock.json: | pg_assign
-
-# Page assignment starts after all synth jobs finished
-# pg_assign:$(ws_syn)/pblock_assignment.json
-# $(ws_syn)/pblock_assignment.json: $(operators_syn_targets) ./common/script_src/nested_pg_assign.py $(operators_dir)/pblock_operators_list.json
-# 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then cd $(ws_syn) && python nested_pg_assign.py -prj $(prj_name); fi
-# # 	cd $(ws_syn) && python nested_pg_assign.py -prj $(prj_name)
+sync_pg_assign:$(operators_pblocks) 
+$(operators_pblocks):$(ws_syn)/%/pblock.json: pg_assign
 
 pg_assign:$(ws_syn)/pblock_assignment.json
-$(ws_syn)/pblock_assignment.json: $(operators_syn_targets) $(operators_dir)/pblock_operators_list.json
+$(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/pblock_operators_list.json
 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
 
 # Synthesis
@@ -103,7 +113,9 @@ $(ws_overlay)/__overlay_is_ready__:
 
 .PHONY: report 
 report: 
-	 python ./pr_flow.py $(prj_name) -op '$(basename $(notdir $(operators_bit_targets)))' -rpt
+	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /_impl_result.txt,,$(operators_bit_targets))) ' -rpt
+
+
 
 # When pre-stocking overlays,
 # if bft_n==23: p2~p23 
@@ -129,18 +141,18 @@ clear_impl:
 
 # Incremental compile
 # prj_name=optical_flow_incr
-incr:
-	python pr_flow.py $(prj_name) -incr -op '$(operators)'
-run_on_fpga:
-	if [ ! -f ./input_src/$(prj_name)/operators/__test_done__ ]; then cd $(ws_bit) && ./run_on_fpga.sh; fi
+# incr:
+# 	python pr_flow.py $(prj_name) -incr -op '$(operators)'
+# run_on_fpga:
+# 	if [ ! -f ./input_src/$(prj_name)/operators/__test_done__ ]; then cd $(ws_bit) && ./run_on_fpga.sh; fi
 
-test_dir=$(wildcard ./input_src/$(prj_name)/operators/test_*)
-done_signals=$(foreach d, $(test_dir), $(d)/__done__)
-revert_to_init:
-	rm -rf $(done_signals)
-	rm -rf ./input_src/$(prj_name)/operators/__test_done__
-	rm -rf ./input_src/$(prj_name)/operators/_best/
-	rm -f ./input_src/$(prj_name)/operators/best_result.txt
-	rm -rf ./input_src/$(prj_name)/operators/*.cpp ./input_src/$(prj_name)/operators/*.h ./input_src/$(prj_name)/operators/*.json
-	cp ./input_src/$(prj_name)/operators/_original/* ./input_src/$(prj_name)/operators/
-	mv ./input_src/$(prj_name)/operators/top.cpp ./input_src/$(prj_name)/host/top.cpp
+# test_dir=$(wildcard ./input_src/$(prj_name)/operators/test_*)
+# done_signals=$(foreach d, $(test_dir), $(d)/__done__)
+# revert_to_init:
+# 	rm -rf $(done_signals)
+# 	rm -rf ./input_src/$(prj_name)/operators/__test_done__
+# 	rm -rf ./input_src/$(prj_name)/operators/_best/
+# 	rm -f ./input_src/$(prj_name)/operators/best_result.txt
+# 	rm -rf ./input_src/$(prj_name)/operators/*.cpp ./input_src/$(prj_name)/operators/*.h ./input_src/$(prj_name)/operators/*.json
+# 	cp ./input_src/$(prj_name)/operators/_original/* ./input_src/$(prj_name)/operators/
+# 	mv ./input_src/$(prj_name)/operators/top.cpp ./input_src/$(prj_name)/host/top.cpp

@@ -117,16 +117,19 @@ class impl(gen_basic):
     #                                    '/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_oct.dcp"'
 
     if self.prflow_params['overlay_type'] == 'hipr':
-      tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/mono_inst/'+operator_impl+'_inst } [get_files $page_dcp]'
+      tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/mono_inst/'+\
+                                    operator_impl+'_inst } [get_files $page_dcp]'
       tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/mono_inst/'+operator_impl+'_inst"'
-      tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'+self.prflow_params['board']\
-                                  +'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
+      tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'+\
+                                    self.prflow_params['board']'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
     else:
       if(self.get_page_size(pblock_name) == 1): # don't need leaf_dcp
         tmp_dict['add_files $leaf_dcp'] = ''
-        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' + page_inst + '} [get_files $user_logic_dcp_0]'
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+                                      page_inst + '} [get_files $user_logic_dcp_0]'
       else:
-        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+page_inst + '} [get_files $leaf_dcp]\n'
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst + '} [get_files $leaf_dcp]\n'
         for i in range(num_op):
           tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
                                       + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']\
@@ -137,8 +140,9 @@ class impl(gen_basic):
                                   +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/' + pblock_name + '.dcp"'
 
 
-    self.shell.cp_dir('./common/script_src/monitor_impl.sh', self.pr_dir+'/monitor.sh') # syn and impl are type 2
-    self.shell.cp_dir('./common/script_src/parse_htop.py', self.pr_dir)
+    # self.shell.cp_dir('./common/script_src/monitor_impl.sh', self.pr_dir+'/monitor.sh') # syn and impl are type 2
+    # self.shell.cp_dir('./common/script_src/parse_htop.py', self.pr_dir)
+    self.shell.cp_dir('./common/script_src/write_result.py', self.pr_dir+'/'+operator_impl)
 
     self.shell.cp_dir('./common/constraints/'+self.prflow_params['board']+'/*', self.pr_dir+'/'+operator_impl)
     self.shell.mkdir(self.pr_dir+'/'+operator_impl+'/output')
@@ -174,21 +178,14 @@ class impl(gen_basic):
       self.shell.mkdir(self.pr_dir)
       self.shell.mkdir(self.bit_dir)
     
-    # generate shell files for qsub run and local run
-    #self.create_shell_file() 
-
-    # create ip directories for all the pages
-    # page_num_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator_impl+'.h', 'page_num')
-    # print(self.syn_dir)
-
 
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
     with open(pblock_ops_dir + '/pblock_operators_list.json', 'r') as infile:
       pblock_operators_list = json.load(infile)
     for pblock_op in pblock_operators_list:
       if(operator_impl in pblock_op.split()):
-        pblock_op_impl = pblock_op # replace representiative op to multiple pblock_op, e.g.:"coloringFB_bot_m" to "coloringFB_bot_m coloringFB_top_m"
-
+        # replace representiative op to multiple pblock_op, e.g.:"coloringFB_bot_m" to "coloringFB_bot_m coloringFB_top_m"
+        pblock_op_impl = pblock_op 
 
     if('test_single_' in self.prflow_params['benchmark_name'] or\
         'test_double_' in self.prflow_params['benchmark_name'] or\
