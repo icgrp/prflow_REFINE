@@ -1,7 +1,8 @@
 ############################################################################################
 
+# prj_name=digit_rec_test
 #prj_name=digit_reg_par_40
-prj_name?=digit_reg_par_80
+# prj_name?=digit_reg_par_80
 
 # prj_name=optical_flow_64_single
 # prj_name=optical_flow_64_final
@@ -26,6 +27,7 @@ ws_syn=$(ws)/F003_syn_$(prj_name)
 ws_impl=$(ws)/F004_impl_$(prj_name)
 ws_bit=$(ws)/F005_bits_$(prj_name)
 
+host_dir=./input_src/$(prj_name)/host
 operators_dir=./input_src/$(prj_name)/operators
 operators_src=$(wildcard $(operators_dir)/*.cpp)
 
@@ -45,7 +47,7 @@ operators_runtime_target=$(ws_bit)/sd_card/app.exe
 
 
 # freq may need to be Makefile input
-freq?=200
+freq?=400
 
 all: $(operators_runtime_target)
 
@@ -101,7 +103,7 @@ $(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/runLog%.log $(ws
 # HLS
 hls: $(operators_hls_targets)
 # High-Level-Synthesis from C to Verilog
-$(operators_hls_targets):$(ws_hls)/runLog%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h ./pr_flow/hls.py
+$(operators_hls_targets):$(ws_hls)/runLog%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h $(host_dir)/typedefs.h ./pr_flow/hls.py
 	python pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<)) -freq=$(freq)
 	cd $(ws_hls) && ./main_$(basename $(notdir $<)).sh $(operators)
 

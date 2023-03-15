@@ -19,7 +19,11 @@ def main():
         else:
             pblock_op = pblock_op.split()[0] # only the first operator as representative op
             operators_impl = operators_impl + " " + pblock_op            
-    print(operators_impl)
+    operators_impl_sorted = '' # for debugging
+    operators_impl = sorted(operators_impl.split())
+    for op in operators_impl:
+        operators_impl_sorted = operators_impl_sorted + " " + op
+    print(operators_impl_sorted)
 
 
 if __name__ == '__main__':

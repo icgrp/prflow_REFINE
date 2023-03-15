@@ -124,10 +124,10 @@ class overlay(gen_basic):
     # lines_list.append('mv *.rpt ./ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/'+'overlay_p'+str(bft_n)+'/')
     # lines_list.append('cd ./ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/'+'overlay_p'+str(bft_n))
     lines_list.append('cd overlay_p'+str(bft_n))
-    lines_list.append('cp ../util_scripts/get_blocked_resources.py .')
+    lines_list.append('cp ../util_scripts/get_blocked_resources_abs_shell.py .')
     lines_list.append('cp ../util_scripts/parse_ovly_util.py .')
     lines_list.append('cp ../util_scripts/blocked_analysis.py .')
-    lines_list.append('python get_blocked_resources.py')
+    lines_list.append('python get_blocked_resources_abs_shell.py')
     lines_list.append('python parse_ovly_util.py')
     lines_list.append('python blocked_analysis.py')
 

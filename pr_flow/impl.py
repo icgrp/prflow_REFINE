@@ -121,7 +121,7 @@ class impl(gen_basic):
                                     operator_impl+'_inst } [get_files $page_dcp]'
       tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/mono_inst/'+operator_impl+'_inst"'
       tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'+\
-                                    self.prflow_params['board']'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
+                                    self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
     else:
       if(self.get_page_size(pblock_name) == 1): # don't need leaf_dcp
         tmp_dict['add_files $leaf_dcp'] = ''

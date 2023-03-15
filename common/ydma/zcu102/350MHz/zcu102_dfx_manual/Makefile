@@ -25,6 +25,7 @@ all_pblocks=$(lowest_pblocks) $(non_lowest_pblocks)
 child_abs_shells=$(foreach p, $(lowest_pblocks), ./checkpoint/$(p).dcp)
 parent_abs_shells=$(foreach p, $(non_lowest_pblocks), ./checkpoint/$(p).dcp)
 abs_analysis_rpts=$(foreach p, $(all_pblocks), ./checkpoint/abs_analysis/$(p).rpt)
+blocked_rsrcs=$(foreach p, $(all_pblocks), ./checkpoint/blocked_dir/$(p)/hd_visual/blockedBelsOutputs.tcl)
 
 all: ../__overlay_this_freq_is_ready__
 
@@ -33,16 +34,26 @@ all: ../__overlay_this_freq_is_ready__
 	touch ../../../../__overlay_is_ready__ # at least one overlay is ready
 
 
-all_nested: gen_abs_shells pr_recombine_dynamic pr_recombine gen_leaf_dcps gen_abs_analysis_rpts
+all_nested: gen_abs_shells pr_recombine_dynamic pr_recombine gen_leaf_dcps gen_abs_analysis_rpts blocked_resources
 
 
 #####################
 # Nested DFX starts #
 #####################
 
+blocked_resources: $(blocked_rsrcs)
+$(blocked_rsrcs): $(gen_abs_analysis_rpts)
+	mkdir -p $(subst /hd_visual/blockedBelsOutputs.tcl,,$@)
+	cd $(subst /hd_visual/blockedBelsOutputs.tcl,,$@) && \
+	../../../shell/run_tcl.sh \
+	../../../tcl/blocked_resources_analysis/$(notdir $(subst /hd_visual/blockedBelsOutputs.tcl,,$@))_impl.tcl \
+	> ../../logs/blocked_$(notdir $(subst /hd_visual/blockedBelsOutputs.tcl,,$@))_impl.log
+
+
 gen_abs_analysis_rpts: $(abs_analysis_rpts)
-$(abs_analysis_rpts):./checkpoint/abs_analysis/%.rpt: ./overlay_p23/%.dcp ./tcl/abs_analysis/abs_analysis_%.tcl
+$(abs_analysis_rpts):./checkpoint/abs_analysis/%.rpt: ./checkpoint/%.dcp ./tcl/abs_analysis/abs_analysis_%.tcl
 	./shell/run_tcl.sh ./tcl/abs_analysis/abs_analysis_$(basename $(notdir $(@))).tcl > ./checkpoint/logs/abs_analysis_$(basename $(notdir $(@))).log
+
 
 ##
 ## pr_recombine and generate abs shell for parent lvl dfx
@@ -56,6 +67,7 @@ pr_recombine_dynamic: ./checkpoint/dynamic_region.bit
 pr_recombine: $(parent_abs_shells)
 $(parent_abs_shells):./checkpoint/%.dcp: $(final_route_design)
 	./shell/run_tcl.sh ./tcl/nested/pr_recombine_$(subst _subdivide,,$(basename $(notdir $@))).tcl > ./checkpoint/logs/pr_recombine_$(subst _subdivide,,$(basename $(notdir $@))).log
+
 
 ##
 ## abs shell for the lowest lvl dfx
