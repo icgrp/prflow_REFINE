@@ -103,7 +103,7 @@ class syn(gen_basic):
       return
 
     if riscv_bit == 'empty':
-      self.prepare_HW(operator, page_num, input_num, output_num)
+      self.prepare_HW(operator, page_num, input_num, output_num, frequency)
 
     inst_mem_bits = self.return_bit_size(inst_mem_size-1)-2
     print('inst_mem_bits', inst_mem_bits)
@@ -170,7 +170,17 @@ class syn(gen_basic):
  
 
 
-  def prepare_HW(self, operator, page_num, monitor_on):
+  def prepare_HW(self, operator, page_num, monitor_on, frequency):
+    # Update target clock
+    clk_period = '{:.1f}'.format(1000 / int(frequency))
+    with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
+      filedata = infile.readlines()
+    assert(len(filedata) == 1)
+    filedata = filedata[0]
+    filedata = filedata.replace('TARGET_CLK', clk_period)
+    with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
+      outfile.write(filedata)
+
     # If the map target is Hardware, we need to prepare the HDL files and scripts to compile it.
     self.shell.mkdir(self.syn_dir+'/'+operator+'/src')
     file_list = [ 'Config_Controls.v', 'write_queue.v',        'rise_detect.v',         'read_queue.v',     'converge_ctrl.v',
@@ -185,9 +195,15 @@ class syn(gen_basic):
 
     # prepare the tcl files for out-of-context compilation
     if self.prflow_params['overlay_type'] == 'psnoc':
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, ['./leaf.v'], rpt_name='utilization.rpt'))
+      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
+                                                                                                          ['./leaf.v'], 
+                                                                                                          rpt_name='utilization.rpt', 
+                                                                                                          frequency=frequency))
     elif self.prflow_params['overlay_type'] == 'hipr':
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, [], top_name=operator+'_top', rpt_name='utilization.rpt'))
+      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
+                                                                                                          [], 
+                                                                                                          top_name=operator+'_top', 
+                                                                                                          rpt_name='utilization.rpt'))
     else:
       self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, ['./leaf.v']))
 
@@ -233,7 +249,10 @@ class syn(gen_basic):
  
 
     # Prepare the shell script to run vivado
-    self.shell.write_lines(self.syn_dir+'/'+operator+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 'syn_page.tcl', self.prflow_params['back_end'], monitor_on), True)
+    self.shell.write_lines(self.syn_dir+'/'+operator+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 
+                                                                                              'syn_page.tcl', 
+                                                                                              self.prflow_params['back_end'], 
+                                                                                              monitor_on), True)
 
   # update OVERLAY_DIR in pg_assign.py
   def update_pg_assign(self, directory, dest_dir):
@@ -248,7 +267,7 @@ class syn(gen_basic):
 
 
   # create one directory for each page 
-  def create_page(self, operator, monitor_on):
+  def create_page(self, operator, monitor_on, frequency):
     self.shell.re_mkdir(self.syn_dir+'/'+operator)
 
     # map_target_exist, map_target = self.pragma.return_pragma(self.hls_dir+'/'+operator+'_prj/operator/'+operator+'.h', 'map_target')
@@ -277,10 +296,10 @@ class syn(gen_basic):
     # self.update_pg_assign(self.syn_dir, dest_dir) # don't need anymore
     # copy resource data for the board
     self.shell.cp_dir('./common/script_src/resource_' + self.prflow_params['board'] + '.txt', self.syn_dir + '/resource.txt')
-
+    self.shell.cp_dir('./common/script_src/syn.xdc', self.syn_dir + '/' + operator + '/syn.xdc')
 
     # Not using RISC-V
-    self.prepare_HW(operator, page_num, monitor_on)
+    self.prepare_HW(operator, page_num, monitor_on, frequency)
     # if map_target == 'HW': 
     #   self.prepare_HW(operator, page_num, monitor_on)
     # else:
@@ -290,10 +309,10 @@ class syn(gen_basic):
     #   self.prepare_RISCV(operator, page_num, input_num, output_num)
 
 
-  def run(self, operator, monitor_on=False):
+  def run(self, operator, monitor_on=False, frequency="200"):
     # mk work directory
     self.shell.mkdir(self.syn_dir)
     # create ip directories for the operator
-    self.create_page(operator, monitor_on)
+    self.create_page(operator, monitor_on, frequency)
 
      

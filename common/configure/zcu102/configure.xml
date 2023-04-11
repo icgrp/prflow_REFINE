@@ -2,9 +2,9 @@
 <configuration>
   <!--specifications for pr_flow tool-->
   <spec name = "PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_dfx_202110_1" />
-  <spec name = "ROOTFS"              value = "/opt/platforms/xilinx_zcu102_base_dfx_202110_1/sw/xilinx_zcu102_base_dfx_202110_1/xrt/filesystem" />
+  <spec name = "ROOTFS"              value = "/opt/platforms/xilinx-zynqmp-common-v2021.1" />
+  <spec name = "sdk_dir"             value = "/opt/platforms/xilinx-zynqmp-common-v2021.1/environment-setup-cortexa72-cortexa53-xilinx-linux" />
   <spec name = "PLATFORM"            value = "xilinx_zcu102_base_dfx_202110_1" />
-  <spec name = "sdk_dir"             value = "/opt/platforms/xilinx-zynqmp-common-v2021.1/ir/environment-setup-cortexa72-cortexa53-xilinx-linux" />
 
   <spec name = "board"               value = "zcu102" />
   <spec name = "device"              value = "xczcu9_0" />

@@ -908,9 +908,12 @@ class _tcl:
       
     return lines_list
 
-  def return_syn_page_tcl_list(self, fun_name,  file_list, top_name='leaf', hls_src=None, dcp_name='page_netlist.dcp', rpt_name=''):
+  def return_syn_page_tcl_list(self, fun_name,  file_list, top_name='leaf', hls_src=None, dcp_name='page_netlist.dcp', rpt_name='',frequency='200'):
     #lines_list = ['create_project floorplan_static ./prj -part '+self.prflow_params['part']]
     lines_list = []
+
+    # clk_period = '{:.1f}'.format(1000 / int(frequency))
+
     for file_name in file_list:
       lines_list.append('add_files -norecurse '+file_name)
  
@@ -938,11 +941,16 @@ class _tcl:
       '    add_files -norecurse $item',
       '  }',
       '}',
+      # 'create_clock -period ' + str(clk_period) +' -name clk [get_ports clk]', # add target clock
       'set_param general.maxThreads  8',
       'set_property XPM_LIBRARIES {XPM_CDC XPM_MEMORY XPM_FIFO} [current_project]',
       'set logFileId [open ./runLog_'+fun_name+'.log "w"]',
       'set start_time [clock seconds]',
       'set_param general.maxThreads  8 ',
+      'add_files -fileset constrs_1 -norecurse syn.xdc',
+      # 'set_property USED_IN_SYNTHESIS true [get_files syn.xdc]',
+      # 'set_property USED_IN_IMPLEMENTATION false [get_files syn.xdc]',
+      'set_property USED_IN {synthesis out_of_context} [get_files syn.xdc]',
       'synth_design -top '+top_name+' -part '+self.prflow_params['part']+' -mode out_of_context'])
     lines_list.append('write_checkpoint -force '+dcp_name)
     lines_list.extend([
@@ -950,6 +958,8 @@ class _tcl:
       'set total_seconds [expr $end_time - $start_time]',
       'puts $logFileId "syn: $total_seconds seconds"',
       'report_utilization -hierarchical > '+rpt_name,
+      # 'report_timing_summary > timing.rpt',
+      'report_design_analysis -complexity -timing > design_analysis.rpt',
       ''])
      
     return lines_list

@@ -6,3 +6,7 @@ pr_flow/__pycache__
 workspace
 
 _graph_dir
+
+vivad*.jou
+vivad*.log
+.Xil/

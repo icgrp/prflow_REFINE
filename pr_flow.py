@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_syn'] == True:
     syn_inst = syn.syn(prflow_params)
-    syn_inst.run(operator, monitor_on = monitor_on)
+    syn_inst.run(operator, monitor_on = monitor_on, frequency = freq)
 
   if prflow_params['gen_impl'] == True:
     impl_inst = impl.impl(prflow_params)

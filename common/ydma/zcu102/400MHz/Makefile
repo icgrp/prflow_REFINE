@@ -46,7 +46,7 @@ package/sd_card.img: app.exe ${kl_name}.xclbin xrt.ini run_app.sh
 	v++ -p -t hw --config ../../src/zcu102_dfx.cfg ./${kl_name}.xclbin \
 		--package.out_dir package \
 		--package.rootfs ${ROOTFS}/rootfs.ext4 \
-		--package.sd_file ${ROOTFS}/../image/Image \
+		--package.sd_file ${ROOTFS}/Image \
 		--package.sd_file ${kl_name}.xclbin \
 		--package.sd_file xrt.ini \
 		--package.sd_file app.exe \

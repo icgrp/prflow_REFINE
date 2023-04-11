@@ -42,7 +42,7 @@ all_nested: gen_abs_shells pr_recombine_dynamic pr_recombine gen_leaf_dcps gen_a
 #####################
 
 blocked_resources: $(blocked_rsrcs)
-$(blocked_rsrcs): $(gen_abs_analysis_rpts)
+$(blocked_rsrcs): $(abs_analysis_rpts) $(child_abs_shells) $(parent_abs_shells)
 	mkdir -p $(subst /hd_visual/blockedBelsOutputs.tcl,,$@)
 	cd $(subst /hd_visual/blockedBelsOutputs.tcl,,$@) && \
 	../../../shell/run_tcl.sh \
