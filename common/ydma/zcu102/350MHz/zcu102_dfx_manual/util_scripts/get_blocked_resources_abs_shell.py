@@ -263,6 +263,14 @@ def main():
     #         print(pblock_resource_dict[pblock_name][resource_type])
 
 
+    # STEP 0 ############################################################################################################
+    for pblock_name in pblock_resource_dict: 
+        # Only care about blockedBelsOutputs.tcl from the pblock's abstrach shell
+        blocked_file = './blocked_dir/' + pblock_name + '/hd_visual/blockedBelsOutputs.tcl'
+        if(not os.path.isdir(blocked_file)): # if file doesn't exists, just create empty one for the sake of code's consistency
+            os.system("touch " + blocked_file)
+
+
     # STEP 1 ############################################################################################################
     blocked_resource_dict = {}
     for pblock_name in pblock_resource_dict:
