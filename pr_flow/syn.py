@@ -228,7 +228,8 @@ class syn(gen_basic):
                                                            output_num,
                                                            operator_arg_dict[operator],
                                                            operator_width_dict[operator],
-                                                           True),
+                                                           for_syn=True,
+                                                           is_riscv=False),
                            False)
     elif self.prflow_params['overlay_type'] == 'hipr':
       addr_width_dict = {}

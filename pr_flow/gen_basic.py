@@ -538,7 +538,7 @@ class _verilog:
       lines_list.append('    wire vld_interface2user_'+str(i)+'_user;')
       lines_list.append('    wire ack_user2interface_'+str(i)+'_user;')
  
-      if int(WIDTH) != 32 and is_riscv == False:    
+      if int(WIDTH) != 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
          lines_list.append('    read_queue#(')
          lines_list.append('      .IN_WIDTH(32),')
          lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
@@ -581,7 +581,7 @@ class _verilog:
       lines_list.append('    wire vld_user2interface_'+str(i)+'_user;')
       lines_list.append('    wire ack_interface2user_'+str(i)+'_user;')
 
-      if int(WIDTH) != 32 and is_riscv == False:    
+      if int(WIDTH) != 32 and (int(WIDTH) % 32 == 0) and is_riscv == False:    
          lines_list.append('    write_queue#(')
          lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
          lines_list.append('      .OUT_WIDTH(32)')
