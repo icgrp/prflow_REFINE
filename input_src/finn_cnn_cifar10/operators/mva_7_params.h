@@ -1,4 +1,4 @@
-const BinaryWeights<32,1,8192> mav_7_weights = {{{ap_uint<32>("0xf765f089", 16), ap_uint<32>("0xd8c45684", 16),
+const BinaryWeights<32,1,8192> mva_7_weights = {{{ap_uint<32>("0xf765f089", 16), ap_uint<32>("0xd8c45684", 16),
    ap_uint<32>("0x30c5c23e", 16), ap_uint<32>("0xf34b8d6b", 16),
    ap_uint<32>("0x37bd40c1", 16), ap_uint<32>("0xd5a9cf7f", 16),
    ap_uint<32>("0xa456e0d6", 16), ap_uint<32>("0x607e320d", 16),

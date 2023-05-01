@@ -92,11 +92,11 @@ void mva_7(hls::stream<ap_uint<32>> &in0,
 #pragma HLS INTERFACE axis register port=in0
 #pragma HLS INTERFACE axis register port=out
 #include "mva_7_params.h"
-#pragma HLS ARRAY_PARTITION variable=mav_7_weights.m_weights complete dim=1
+#pragma HLS ARRAY_PARTITION variable=mva_7_weights.m_weights complete dim=1
 #pragma HLS ARRAY_PARTITION variable=mva_7_thresh.m_thresholds complete dim=1
 #pragma HLS ARRAY_PARTITION variable=mva_7_thresh.m_thresholds complete dim=3
 Matrix_Vector_Activate_Batch<MW1_mva_7, MH1_mva_7, SIMD1_mva_7, PE1_mva_7, 1, Recast<XnorMul>, Slice<ap_uint<1>>, Identity>
-                (in0, out, mav_7_weights, mva_7_thresh, numReps_mva_7, ap_resource_lut());
+                (in0, out, mva_7_weights, mva_7_thresh, numReps_mva_7, ap_resource_lut());
 }
 
 // -------------------------------------------------------------------------------------------------
