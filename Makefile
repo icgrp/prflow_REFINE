@@ -1,7 +1,7 @@
 ############################################################################################
 
 # prj_name=digit_rec_test
-#prj_name=digit_reg_par_40
+# prj_name=digit_reg_par_40
 # prj_name?=digit_reg_par_80
 
 # prj_name=optical_flow_64_single
@@ -17,6 +17,11 @@
 # prj_name=spam_filter_par_32_dot_merged
 #prj_name=spam_filter_par_64
 
+# prj_name=routing_test
+
+# prj_name=finn_cnn_cifar10
+prj_name=test
+
 #############################################################################################
 
 src=./common/verilog_src
@@ -26,6 +31,7 @@ ws_hls=$(ws)/F002_hls_$(prj_name)
 ws_syn=$(ws)/F003_syn_$(prj_name)
 ws_impl=$(ws)/F004_impl_$(prj_name)
 ws_bit=$(ws)/F005_bits_$(prj_name)
+ws_mono=$(ws)/F007_mono_$(prj_name)
 
 host_dir=./input_src/$(prj_name)/host
 operators_dir=./input_src/$(prj_name)/operators
@@ -44,12 +50,19 @@ operators_bit_targets=$(foreach n, $(operators_impl), $(ws_impl)/$(n)/_impl_resu
 operators_xclbin_targets=$(foreach n, $(operators_impl), $(ws_bit)/$(n).xclbin)
 operators_runtime_target=$(ws_bit)/sd_card/app.exe
 
+mono_target=$(ws_mono)/ydma.xclbin
+
 
 
 # freq may need to be Makefile input
-freq?=400
+freq?=200
 
 all: $(operators_runtime_target)
+mono: $(mono_target)
+$(mono_target):./input_src/$(prj_name)/host/top.cpp ./pr_flow/monolithic.py $(operators_hls_targets)
+	python pr_flow.py $(prj_name) -monolithic -op '$(operators)'
+	cd $(ws_mono) && ./main.sh
+
 
 runtime:$(operators_runtime_target) # NOTE: operators
 $(operators_runtime_target):./input_src/$(prj_name)/host/host.cpp $(operators_xclbin_targets) ./pr_flow/runtime.py
@@ -91,13 +104,14 @@ $(operators_pblocks):$(ws_syn)/%/pblock.json: pg_assign
 
 pg_assign:$(ws_syn)/pblock_assignment.json
 $(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/pblock_operators_list.json
-	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
+	python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq)
+# 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
 
 # Synthesis
 syn:$(operators_syn_targets)
 # Out-of-Context Synthesis from Verilog to post-synthesis DCP
 $(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/runLog%.log $(ws_overlay)/__overlay_is_ready__ ./pr_flow/syn.py
-	python pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<)))
+	python pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<))) -freq=$(freq)
 	cd $(ws_syn)/$(subst runLog,,$(basename $(notdir $<))) && ./main.sh $(operators)
 
 # HLS
@@ -119,6 +133,12 @@ report:
 
 
 
+# Routing test
+update: $(operators_syn_targets)
+	python cp_update.py -freq=$(freq) -prj=$(prj_name) -ops='$(operators)'
+
+
+
 # When pre-stocking overlays,
 # if bft_n==23: p2~p23 
 # if bft_n==10, p2~p10
@@ -133,7 +153,7 @@ clear:
 	rm -rf ./workspace/*$(prj_name)
 
 clean:
-	rm -rf ./workspace
+# 	rm -rf ./workspace
 	rm -rf ./pr_flow/*.pyc
 
 clear_impl:

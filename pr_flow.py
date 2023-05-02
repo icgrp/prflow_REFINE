@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_monolithic'] == True:
     mono_inst = monolithic.monolithic(prflow_params)
-    mono_inst.run(operator, monitor_on = monitor_on)
+    mono_inst.run(operator, monitor_on = monitor_on, frequency = freq)
 
   if prflow_params['gen_ip_repo'] == True:
     ip_repo_inst = ip_repo.ip_repo(prflow_params)

@@ -32,17 +32,24 @@ class report(gen_basic):
     #   (overlay_n, page_assign_dict) = json.load(infile)
 
 
-    t_syn_max = 0
+    t_hls_syn_max = 0
     for fun_name in sorted(operators_list):
       #process syn timing
       try:
+        file_name = './workspace/F002_hls_'+benchmark_name+'/runLog' + fun_name + '.log'
+        file_in = open(file_name, 'r')
+        for line in file_in:
+          t_hls = int(re.findall(r"\d+", line)[0])
+        file_in.close()
+
         file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/runLog_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
-          t_syn = re.findall(r"\d+", line)[0]
-          if(t_syn > t_syn_max):
-            t_syn_max = t_syn
+          t_syn = int(re.findall(r"\d+", line)[0])
         file_in.close()
+
+        if(t_hls + t_syn  > t_hls_syn_max):
+          t_hls_syn_max = t_hls + t_syn
       except:
         print ('Something is wrong with '+file_name) 
 
@@ -95,7 +102,7 @@ class report(gen_basic):
             t_bitgen = re.findall(r"\d+", line)[0]
 
         file_in.close()
-        t_total_max_syn = str(int(t_hls) + int(t_syn_max) + int(t_rdchk) + int(t_opt) + int(t_place) + int(t_popt) + int(t_route) + int(t_bitgen))
+        t_total_max_syn = str(int(t_hls_syn_max) + int(t_rdchk) + int(t_opt) + int(t_place) + int(t_popt) + int(t_route) + int(t_bitgen))
         t_total = str(int(t_hls) + int(t_syn) + int(t_rdchk) + int(t_opt) + int(t_place) + int(t_popt) + int(t_route) + int(t_bitgen))
         time_report_dict[fun_name] = " {: <30}{: <10}{: <15}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <8}{: <16}{: <8}"\
                                         .format(fun_name, map_target, pblock_name, page_num, t_hls, t_syn, t_rdchk, t_opt, t_place, t_popt, t_route, t_bitgen, t_total_max_syn, t_total)
