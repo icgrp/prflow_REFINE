@@ -14,6 +14,7 @@ import pr_flow.runtime            as runtime
 import pr_flow.monolithic         as monolithic
 import pr_flow.ip_repo            as ip_repo
 import pr_flow.report             as report
+import pr_flow.report_monolithic  as report_mono
 import pr_flow.incr               as incr
 import pr_flow.page_assign        as page_assign
 import pr_flow.check_impl_result  as check_impl_result
@@ -37,6 +38,7 @@ if __name__ == '__main__':
   parser.add_argument('-monolithic','--gen_monolithic',    help="default: don't update the runtime driver",         action='store_true')
   parser.add_argument('-ip',        '--gen_ip_repo',       help="default: don't generate ip_repo",                  action='store_true')
   parser.add_argument('-rpt',       '--gen_report',        help="default: don't generate the report",               action='store_true')
+  parser.add_argument('-rpt_m',     '--gen_report_mono',   help="default: don't generate the report for monolithic",action='store_true')
   parser.add_argument('-op',        '--operator',          help="choose which function to be regenrated", type=str, default="no_func")
   parser.add_argument('-bft_n',     '--bft_n',             help="default: bft_n=23",                                default="23")
   parser.add_argument('-m',         '--monitor_on',        help="default: monitor_on=False", type=bool,             default=False)
@@ -65,6 +67,7 @@ if __name__ == '__main__':
   prflow_params['gen_monolithic']  = args.gen_monolithic
   prflow_params['gen_ip_repo']     = args.gen_ip_repo
   prflow_params['gen_report']      = args.gen_report
+  prflow_params['gen_report_mono'] = args.gen_report_mono
   prflow_params['input_file_name'] = input_file_name
   prflow_params['workspace']       = './workspace'
   bft_n = args.bft_n  
@@ -116,6 +119,10 @@ if __name__ == '__main__':
   if prflow_params['gen_report'] == True:
     rpt_inst = report.report(prflow_params)
     rpt_inst.run(operator,is_routing_test)
+
+  if prflow_params['gen_report_mono'] == True:
+    rpt_inst = report_mono.report_mono(prflow_params)
+    rpt_inst.run(operator,frequency = freq)
 
   if prflow_params['gen_incremental'] == True:
     incr_inst = incr.incr(prflow_params)

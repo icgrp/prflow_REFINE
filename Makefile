@@ -131,6 +131,8 @@ $(ws_overlay)/__overlay_is_ready__:
 report: 
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /_impl_result.txt,,$(operators_bit_targets))) ' -rpt
 
+report_mono: 
+	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /_impl_result.txt,,$(operators_bit_targets))) ' -rpt_m -freq=$(freq)
 
 
 # Routing test

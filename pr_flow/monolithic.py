@@ -296,18 +296,18 @@ class monolithic(gen_basic):
                                                                                     './build.sh',
                                                                                     'cd ../../../',
                                                                                     'touch __done__',
-                                                                                    'mkdir log',
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/' + 'v++_ydma*.log ./log',
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/' + '_x/ydma/ydma/ydma/solution/impl/ip/vivado.log ./log'
+                                                                                    'mkdir -p logs/' + str(frequency),
+                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/v++.log ./logs/' + str(frequency),
+                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/vivado.log ./logs/' + str(frequency)
                                                                                     ]), True)
     else:
       self.shell.write_lines(self.mono_dir+'/run.sh',  self.return_main_sh_list_local([
                                                                                     'cd ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/',
                                                                                     './build.sh',
                                                                                     'cd ../../../',
-                                                                                    'mkdir log',
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/' + 'v++_ydma*.log ./log',
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/' + '_x/ydma/ydma/ydma/solution/impl/ip/vivado.log ./log'
+                                                                                    'mkdir -p logs/' + str(frequency),
+                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/v++.log ./logs/' + str(frequency),
+                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/vivado.log ./logs/' + str(frequency)
                                                                                     ]), True)      
 
     self.shell.write_lines(self.mono_dir+'/main.sh', self.return_main_sh_list_local(['./run.sh']), True)
