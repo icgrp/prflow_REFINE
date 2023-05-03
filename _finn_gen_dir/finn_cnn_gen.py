@@ -78,8 +78,8 @@ if __name__ == '__main__':
     import os
     import shutil
 
-    model_file = "model.onnx"
-    folding_config_file = "folding_config.json"
+    model_file = build_dir + "/model.onnx"
+    folding_config_file = build_dir + "/folding_config.json"
 
     rtlsim_output_dir = "output_ipstitch_ooc_rtlsim"
 
