@@ -30,22 +30,25 @@ print("util_all_pre_blocked")
 
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 1): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][3]))
+                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][3]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][4]))
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 2): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][3]))
+                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][3]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][4]))
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 4): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][3]))
+                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][3]) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name][4]))
 print()
 
 with open('blocked_util.json', 'r') as infile:
@@ -58,18 +61,22 @@ for pblock_name in natsorted(blocked_resource_count_dict):
     # for resource_type in blocked_resource_count_dict[pblock_name]:
     #     print(resource_type + ': ' + str(blocked_resource_count_dict[pblock_name][resource_type]))
     # print()
+    # DJP: 'RAMB18_extra' value seems to be 0 always
     if(len(pblock_page_dict[pblock_name]) == 1): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUTs']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(blocked_resource_count_dict):
     if(len(pblock_page_dict[pblock_name]) == 2): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUTs']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(blocked_resource_count_dict):
     if(len(pblock_page_dict[pblock_name]) == 4): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUTs']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 print()
@@ -81,22 +88,25 @@ print("util_all")
 
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 1): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][3]))
+                            ', ' + str(util_all[pblock_name][1]) +\
+                            ', ' + str(util_all[pblock_name][3]) +\
+                            ', ' + str(util_all[pblock_name][4]))
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 2): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][3]))
+                            ', ' + str(util_all[pblock_name][1]) +\
+                            ', ' + str(util_all[pblock_name][3]) +\
+                            ', ' + str(util_all[pblock_name][4]))
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 4): 
-        # LUT, RAM36, RAM18, DSP
+        # LUT, FF, RAM36, RAM18, DSP
         print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][3]))
+                            ', ' + str(util_all[pblock_name][1]) +\
+                            ', ' + str(util_all[pblock_name][3]) +\
+                            ', ' + str(util_all[pblock_name][4]))
 
 
 

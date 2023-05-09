@@ -146,14 +146,16 @@ class page_assign(gen_basic):
   # TODO: need smarter way
   # returns whether the operator fits in the page
   def is_fit(self, op_resource_tuple, overlay_resource_tuple, pblock_name, frequency):
-    [num_clb, num_ram36, num_ram18, num_dsp] = op_resource_tuple
-    [num_clb_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
-    num_clb, num_ram36, num_ram18, num_dsp = int(num_clb), int(num_ram36), int(num_ram18), int(num_dsp)
-    num_clb_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay = \
-                int(num_clb_overlay), int(num_ram36_overlay), int(num_ram18_overlay), int(num_dsp_overlay)
+    [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = op_resource_tuple
+    [num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
+    num_LUT, num_FF, num_ram36, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram36), int(num_ram18), int(num_dsp)
+    num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay = \
+                int(num_LUT_overlay), int(num_FF_overlay), int(num_ram36_overlay), int(num_ram18_overlay), int(num_dsp_overlay)
 
     pblock_pages = pblock_page_dict[pblock_name]
     pblock_size = len(pblock_pages)
+
+    FF_MARGIN = 0
 
     if(pblock_size == 1):
       LUT_MARGIN = LUT_MARGIN_single_dict[frequency][pblock_name]
@@ -176,7 +178,8 @@ class page_assign(gen_basic):
     # print(RAM_DSP_MARGIN)
     # print(num_dsp)
     # print(num_dsp_overlay)
-    resource_condition = ((num_clb * (1+LUT_MARGIN) < num_clb_overlay) and \
+    resource_condition = ((num_LUT * (1+LUT_MARGIN) < num_LUT_overlay) and \
+                            num_FF * (1+FF_MARGIN) < num_FF_overlay and \
                             num_ram36 * (1+RAM_DSP_MARGIN) <= num_ram36_overlay and \
                             num_ram18 * (1+RAM_DSP_MARGIN) <= num_ram18_overlay and \
                             num_dsp * (1+RAM_DSP_MARGIN) <= num_dsp_overlay)
@@ -193,18 +196,19 @@ class page_assign(gen_basic):
 
 
   def get_tightest_pblock(self, op_resource_tuple, overlay_util_dict, possible_pblock_list):
-      [num_clb, num_ram36, num_ram18, num_dsp] = op_resource_tuple
-      num_clb, num_ram36, num_ram18, num_dsp = int(num_clb), int(num_ram36), int(num_ram18), int(num_dsp)
+      [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = op_resource_tuple
+      num_LUT, num_FF, num_ram36, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram36), int(num_ram18), int(num_dsp)
       pblock_ratio_dict = {} # contains tightness ratio for each pblock
       for pblock_name in possible_pblock_list:
           overlay_resource_tuple = overlay_util_dict[pblock_name]
-          [num_clb_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
-          num_clb_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay = \
-                      int(num_clb_overlay), int(num_ram36_overlay), int(num_ram18_overlay), int(num_dsp_overlay)
-          LUT_percent = float(num_clb) / num_clb_overlay 
+          [num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
+          num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay = \
+                      int(num_LUT_overlay), int(num_FF_overlay), int(num_ram36_overlay), int(num_ram18_overlay), int(num_dsp_overlay)
+          LUT_percent = float(num_LUT) / num_LUT_overlay 
+          FF_percent = float(num_FF) / num_FF_overlay 
           BRAM_percent = float(num_ram18) / num_ram18_overlay 
           DSP_percent = float(num_dsp) / num_dsp_overlay
-          pblock_ratio_dict[pblock_name] = LUT_percent + BRAM_percent + DSP_percent
+          pblock_ratio_dict[pblock_name] = LUT_percent + FF_percent + BRAM_percent + DSP_percent
       # print(pblock_ratio_dict)
 
       return max(pblock_ratio_dict, key=pblock_ratio_dict.get) # returns tightest pblock
@@ -274,25 +278,27 @@ class page_assign(gen_basic):
           for line in file:
             if(line.startswith('| leaf')):
               # print(line.split())
-              num_clb = str(line.split()[5])
+              num_LUT = str(line.split()[5])
+              num_FF = str(line.split()[13])
               num_ram36 = str(line.split()[15])
               num_ram18 = str(int(line.split()[15])*2 + int(line.split()[17]))
               num_dsp = str(line.split()[21])
-              # print(num_clb, num_ram18, num_dsp)
-              util_dict[pblock_op] = (num_clb, num_ram36, num_ram18, num_dsp)
+              # print(num_LUT, num_FF, num_ram18, num_dsp)
+              util_dict[pblock_op] = (num_LUT, num_FF, num_ram36, num_ram18, num_dsp)
       else: # multiple ops in a single page
-        (num_clb, num_ram36, num_ram18, num_dsp) = (0, 0, 0, 0)
+        (num_LUT, num_FF, num_ram36, num_ram18, num_dsp) = (0, 0, 0, 0, 0)
         for sub_op in pblock_op_list:
           # print(sub_op)
           with open(self.syn_dir + "/" + sub_op + '/utilization.rpt', 'r') as file:
             for line in file:
               if(line.startswith('| leaf')):
                 # print(line.split())
-                num_clb = int(line.split()[5]) + num_clb
+                num_LUT = int(line.split()[5]) + num_LUT
+                num_FF = str(line.split()[13])
                 num_ram36 = int(line.split()[15]) + num_ram36
                 num_ram18 = int(line.split()[15])*2 + int(line.split()[17]) + num_ram18
                 num_dsp = int(line.split()[21]) + num_dsp
-        util_dict[pblock_op] = (num_clb, num_ram36, num_ram18, num_dsp)
+        util_dict[pblock_op] = (num_LUT, num_FF, num_ram36, num_ram18, num_dsp)
     return util_dict
 
 
@@ -304,18 +310,19 @@ class page_assign(gen_basic):
         if(not line.startswith('Total')):
           resources = line.split()
           total_LUT = int(resources[0])
-          # total_dict['FFs'] = int(resources[1])
+          total_FF = int(resources[1])
           total_BRAM = int(resources[2])
           total_DSP = int(resources[3])
 
     # add criteria in util_dict's value
     for key, value in util_dict.items():
-      [num_clb, num_ram36, num_ram18, num_dsp] = value
-      num_clb, num_ram18, num_dsp = int(num_clb), int(num_ram18), int(num_dsp) # ignore num_ram36
-      LUT_percent = float(num_clb) / total_LUT 
+      [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = value
+      num_LUT, num_FF, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram18), int(num_dsp) # ignore num_ram36
+      LUT_percent = float(num_LUT) / total_LUT 
+      FF_percent = float(num_FF) / total_FF 
       BRAM_percent = float(num_ram18) / total_BRAM 
       DSP_percent = float(num_dsp) / total_DSP
-      criteria = LUT_percent + BRAM_percent + DSP_percent
+      criteria = LUT_percent + FF_percent + BRAM_percent + DSP_percent
       # print(criteria)
       util_dict[key] = (value, criteria)
     return util_dict
@@ -784,7 +791,7 @@ class page_assign(gen_basic):
     low, high = 2, 23
     overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad = \
         self.get_overlay_util_dict(overlay_util_dict, low, high)
-    # print(overlay_util_dict_single) # {'p16_p1_p0': ['8266', '28', '56', '72'], ''p20_p0_p1': ['6956', '24', '48', '68'], ... }
+    # print(overlay_util_dict_single) # {"p16_p1_p0": ["8274", "16548", "30", "60", "66"], "p20_p0_p1": ["6960", "13920", "24", "48", "71"], ... }
     # print(overlay_util_dict_double)
     # print(overlay_util_dict_quad)
 

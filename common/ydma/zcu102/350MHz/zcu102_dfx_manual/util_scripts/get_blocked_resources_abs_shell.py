@@ -87,7 +87,8 @@ def get_range_xdc(resource_range_list):
     return range_list
 
 def include_condition(line):
-    if(('CARRY8' in line) or ('MUX' in line) or ('FF' in line)):
+    # if(('CARRY8' in line) or ('MUX' in line) or ('FF' in line)):
+    if(('CARRY8' in line) or ('MUX' in line)):
         return False
     else:
         return True
@@ -146,10 +147,18 @@ def gen_pblock_resource_dict(xdc_files):
                         resource_type = get_resource_type(resource_range_list)
                         if(resource_type not in pblock_resource_dict[pblock_name]):
                             range_list = get_range_xdc(resource_range_list)
-                            pblock_resource_dict[pblock_name][resource_type] = range_list
+                            if resource_type == 'SLICE':
+                                pblock_resource_dict[pblock_name]['SLICE_LUT'] = range_list
+                                pblock_resource_dict[pblock_name]['SLICE_FF'] = range_list
+                            else:
+                                pblock_resource_dict[pblock_name][resource_type] = range_list
                         else:
                             range_list = get_range_xdc(resource_range_list)
-                            pblock_resource_dict[pblock_name][resource_type] += range_list
+                            if resource_type == 'SLICE':
+                                pblock_resource_dict[pblock_name]['SLICE_LUT'] += range_list
+                                pblock_resource_dict[pblock_name]['SLICE_FF'] += range_list
+                            else:
+                                pblock_resource_dict[pblock_name][resource_type] += range_list
                         # print(resource_type)
     return pblock_resource_dict
 
@@ -263,19 +272,12 @@ def main():
     #         print(pblock_resource_dict[pblock_name][resource_type])
 
 
-    # STEP 0 ############################################################################################################
-    for pblock_name in pblock_resource_dict: 
-        # Only care about blockedBelsOutputs.tcl from the pblock's abstrach shell
-        blocked_file = './blocked_dir/' + pblock_name + '/hd_visual/blockedBelsOutputs.tcl'
-        if(not os.path.isdir(blocked_file)): # if file doesn't exists, just create empty one for the sake of code's consistency
-            os.system("touch " + blocked_file)
-
-
     # STEP 1 ############################################################################################################
     blocked_resource_dict = {}
     for pblock_name in pblock_resource_dict:
         blocked_resource_dict[pblock_name] = {}
-        blocked_resource_dict[pblock_name]['SLICE'] = []
+        blocked_resource_dict[pblock_name]['SLICE_LUT'] = []
+        blocked_resource_dict[pblock_name]['SLICE_FF'] = []
         blocked_resource_dict[pblock_name]['DSP48E2'] = []
         blocked_resource_dict[pblock_name]['RAMB18'] = []
         blocked_resource_dict[pblock_name]['RAMB36'] = []
@@ -298,11 +300,18 @@ def main():
                         blocked_resource_dict[pblock_name]['DSP48E2'].append(line)
                         # blocked_resource_dict[pblock_name]['DSP48E2'].append(loc)
 
-            elif(line.startswith('SLICE')):
+            elif(line.startswith('SLICE') and 'FF' not in line):
                 loc = get_loc_tcl(line)
                 loc_y = int(loc.split('Y')[1])
-                if(is_in_range(pblock_resource_dict[pblock_name]['SLICE'], loc) and loc_y not in clock_boundary_Y):
-                        blocked_resource_dict[pblock_name]['SLICE'].append(line)
+                if(is_in_range(pblock_resource_dict[pblock_name]['SLICE_LUT'], loc) and loc_y not in clock_boundary_Y):
+                        blocked_resource_dict[pblock_name]['SLICE_LUT'].append(line)
+                        # blocked_resource_dict[pblock_name]['SLICE'].append(loc)
+
+            elif(line.startswith('SLICE') and 'FF' in line):
+                loc = get_loc_tcl(line)
+                loc_y = int(loc.split('Y')[1])
+                if(is_in_range(pblock_resource_dict[pblock_name]['SLICE_FF'], loc) and loc_y not in clock_boundary_Y):
+                        blocked_resource_dict[pblock_name]['SLICE_FF'].append(line)
                         # blocked_resource_dict[pblock_name]['SLICE'].append(loc)
 
             elif(line.startswith('RAMB18')):
@@ -342,11 +351,14 @@ def main():
     for pblock_name in blocked_resource_dict:
         # print(pblock_name)
         for resource_type in blocked_resource_dict[pblock_name]:
-            if(resource_type == 'SLICE'):
+            if(resource_type == 'SLICE_LUT'):
                 seen_lut_loc_list = []
-                for line in blocked_resource_dict[pblock_name]['SLICE']:
+                for line in blocked_resource_dict[pblock_name]['SLICE_LUT']:
                     update_seen_slice_loc_list(line, seen_lut_loc_list)
-                blocked_resource_loc_dict[pblock_name]['SLICE'] = seen_lut_loc_list
+                blocked_resource_loc_dict[pblock_name]['SLICE_LUT'] = seen_lut_loc_list
+
+            elif(resource_type == 'SLICE_FF'): # nothing to do here
+                blocked_resource_loc_dict[pblock_name]['SLICE_FF'] = blocked_resource_dict[pblock_name]['SLICE_FF']
 
             elif(resource_type == 'DSP48E2'):
                 seen_loc_list = []
@@ -366,8 +378,8 @@ def main():
                     update_seen_ram_loc_list(line, seen_loc_list)
                 blocked_resource_loc_dict[pblock_name]['RAMB18'] = seen_loc_list
     print("- Post-processed resources based on locations")
-    # # for pblock_name in blocked_resource_loc_dict.keys():
-    # for pblock_name in ['p16','p16_p1','p16_p1_p0']:
+    # for pblock_name in blocked_resource_loc_dict.keys():
+    # for pblock_name in ['p2']:
     #     print(pblock_name)
     #     for resource_type in blocked_resource_loc_dict[pblock_name]:
     #         # print(resource_type + ': ' + str(len(blocked_resource_loc_dict[pblock_name][resource_type])))
@@ -385,8 +397,10 @@ def main():
     for pblock_name in blocked_resource_loc_dict.keys():
         # print(pblock_name)
         for resource_type in blocked_resource_loc_dict[pblock_name]:
-            if(resource_type == 'SLICE'):
-                blocked_resource_count_dict[pblock_name]['SLICE_LUTs'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+            if(resource_type == 'SLICE_LUT'):
+                blocked_resource_count_dict[pblock_name]['SLICE_LUT'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+            elif(resource_type == 'SLICE_FF'):
+                blocked_resource_count_dict[pblock_name]['SLICE_FF'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
             elif(resource_type == 'DSP48E2'):
                 blocked_resource_count_dict[pblock_name]['DSP48E2'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
             elif(resource_type == 'RAMB36'):

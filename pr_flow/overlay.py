@@ -129,7 +129,7 @@ class overlay(gen_basic):
     lines_list.append('cp ../util_scripts/blocked_analysis.py .')
     lines_list.append('python get_blocked_resources_abs_shell.py')
     lines_list.append('python parse_ovly_util.py')
-    lines_list.append('python blocked_analysis.py')
+    # lines_list.append('python blocked_analysis.py')
 
     if(tandem_mode):
       lines_list.append('cd ../../../../')
