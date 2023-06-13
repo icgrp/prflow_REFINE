@@ -1,0 +1,9 @@
+{"data_transfer": "30720*4", 
+ "layer_0": "640*numReps_mva_0*MH1_mva_0/PE1_mva_0*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_1": "640*numReps_mva_1*MH1_mva_1/PE1_mva_1*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_2": "640*numReps_mva_2*MH1_mva_2/PE1_mva_2*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_3": "640*numReps_mva_3*MH1_mva_3/PE1_mva_3*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_4": "640*numReps_mva_4*MH1_mva_4/PE1_mva_4*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_5": "640*numReps_mva_5*MH1_mva_5/PE1_mva_5*32/512*min(1,32/Output_1_WIDTH)", 
+ "layer_last": "640*numReps_mva_8*MH1_mva_8/PE1_mva_8*32/512*min(1,32/Output_1_WIDTH)*1/10", 
+ "out_data_collect": "None"}

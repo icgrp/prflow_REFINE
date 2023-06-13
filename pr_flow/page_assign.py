@@ -8,6 +8,13 @@ import json
 from pr_flow.p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MARGIN_double_dict, LUT_MARGIN_quad_dict, \
                                BRAM_MARGIN_single_dict, BRAM_MARGIN_double_dict, BRAM_MARGIN_quad_dict
 
+import pandas as pd
+import numpy as np
+import pickle
+RECALL_THRESHOLD = 0.97
+resource_ratio_dict = {"single": [(0.6,1),(0.5,1),(0.5,1)],
+                        "double": [(0.6,1),(0.6,1),(0.6,1)],
+                        "quad": [(0.6,1),(0.6,1),(0.6,1)]}
 
 class page_assign(gen_basic):
   def __init__(self, prflow_params):
@@ -143,10 +150,57 @@ class page_assign(gen_basic):
     return is_in_range
 
 
-  # TODO: need smarter way
-  # returns whether the operator fits in the page
+  # is_fit based on pre-trained ML model
+  # returns True if the operator can be mapped to the pblock
+  # returns False if the operator cannot be mapped to the pblock
   def is_fit(self, op_resource_tuple, overlay_resource_tuple, pblock_name, frequency):
-    [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = op_resource_tuple
+    pblock_size = self.get_page_size(pblock_name)
+    if pblock_size == 1:
+        resource_ratio_list = resource_ratio_dict["single"]
+    elif pblock_size == 2:
+        resource_ratio_list = resource_ratio_dict["double"]
+    else:
+        resource_ratio_list = resource_ratio_dict["quad"]
+    LUT_low = resource_ratio_list[0][0]
+    LUT_high = resource_ratio_list[0][1]
+    BRAM_low = resource_ratio_list[1][0]
+    BRAM_high = resource_ratio_list[1][1]
+    DSP_low = resource_ratio_list[2][0]
+    DSP_high = resource_ratio_list[2][1]
+
+    cur_delay = 1000/int(frequency)
+    (num_LUT, num_FF, num_ram36, num_ram18, num_dsp, path_delay, rent, avg_fanout, total_inst) = op_resource_tuple
+    [num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
+
+    LUT_ratio = int(num_LUT) / int(num_LUT_overlay)
+    FF_ratio = int(num_FF) / int(num_FF_overlay)
+    BRAM_ratio = int(num_ram18) / int(num_ram18_overlay)
+    DSP_ratio = int(num_dsp) / int(num_dsp_overlay)
+    path_delay_ratio = float(path_delay) / cur_delay
+
+
+    if LUT_ratio > LUT_high or BRAM_ratio > BRAM_high or DSP_ratio > DSP_high:
+      return False # may overutilize pblock
+    elif LUT_ratio < LUT_low and BRAM_ratio < BRAM_low and DSP_ratio < DSP_low and path_delay_ratio < 1:
+      return True # small enough
+
+    test_feature = pd.DataFrame(np.array([[LUT_ratio, FF_ratio, BRAM_ratio, DSP_ratio, path_delay_ratio, rent, avg_fanout, total_inst]]), \
+      columns=['LUT ratio', 'FF ratio', 'BRAM ratio', 'DSP ratio', 'path delay', 'Rent', 'average fanout', 'total instances'])
+
+    dir_name = str(RECALL_THRESHOLD).split('.')[1]
+    best_model = pickle.load(open('./classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '.pickle', "rb"))
+    if best_model.__class__.__name__ != 'RandomForestClassifier':
+        standard_scaler = pickle.load(open('./classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '_sc.pickle', "rb"))
+        test_feature = pd.DataFrame(standard_scaler.transform(test_feature), index=test_feature.index, columns=test_feature.columns)
+
+    y_test_pred = best_model.predict(test_feature)
+    return not y_test_pred
+
+
+  # is_fit based on hard constraint
+  # returns whether the operator fits in the page
+  def is_fit_hard(self, op_resource_tuple, overlay_resource_tuple, pblock_name, frequency):
+    (num_LUT, num_FF, num_ram36, num_ram18, num_dsp, path_delay, rent, avg_fanout, total_inst) = op_resource_tuple
     [num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay] = overlay_resource_tuple
     num_LUT, num_FF, num_ram36, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram36), int(num_ram18), int(num_dsp)
     num_LUT_overlay, num_FF_overlay, num_ram36_overlay, num_ram18_overlay, num_dsp_overlay = \
@@ -195,8 +249,9 @@ class page_assign(gen_basic):
     return True
 
 
-  def get_tightest_pblock(self, op_resource_tuple, overlay_util_dict, possible_pblock_list):
-      [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = op_resource_tuple
+  def get_final_pblock(self, op_resource_tuple, overlay_util_dict, possible_pblock_list, is_tightest = True):
+      (num_LUT, num_FF, num_ram36, num_ram18, num_dsp) = \
+        (op_resource_tuple[0], op_resource_tuple[1], op_resource_tuple[2], op_resource_tuple[3], op_resource_tuple[4])
       num_LUT, num_FF, num_ram36, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram36), int(num_ram18), int(num_dsp)
       pblock_ratio_dict = {} # contains tightness ratio for each pblock
       for pblock_name in possible_pblock_list:
@@ -211,7 +266,10 @@ class page_assign(gen_basic):
           pblock_ratio_dict[pblock_name] = LUT_percent + FF_percent + BRAM_percent + DSP_percent
       # print(pblock_ratio_dict)
 
-      return max(pblock_ratio_dict, key=pblock_ratio_dict.get) # returns tightest pblock
+      if is_tightest:
+        return max(pblock_ratio_dict, key=pblock_ratio_dict.get) # returns tightest pblock
+      else:
+        return min(pblock_ratio_dict, key=pblock_ratio_dict.get) # returns tightest pblock        
 
 
   def is_assigned_all(self, pblock_assign_dict, pblock_operators_list):
@@ -229,20 +287,34 @@ class page_assign(gen_basic):
 
   # Updates page_valid_dict and pblock_assign_dict
   def update_assignment(self, overlay_util_dict, pblock_op, op_resource_tuple, 
-                              page_valid_dict, pblock_assign_dict, frequency):
+                              page_valid_dict, pblock_assign_dict, frequency, is_tightest = True):
     # iterate through overlay_util_dict's page_num in ascending order
     # We don't need to, but for the debuging purposes..
     possible_pblock_list = []
     for pblock_name in sorted(overlay_util_dict.keys()):
       overlay_resource_tuple = overlay_util_dict[pblock_name]
       # print(pblock_name, overlay_resource_tuple)
-      if(self.is_fit(op_resource_tuple, overlay_resource_tuple, pblock_name, frequency) and 
+      is_fit_result = self.is_fit(op_resource_tuple, overlay_resource_tuple, pblock_name, frequency)
+      is_fit_hard_result = self.is_fit_hard(op_resource_tuple, overlay_resource_tuple, pblock_name, frequency)
+      # print(is_fit_result)
+      # if(not is_fit_result and is_fit_hard_result):
+      #   print("examples---")
+      #   print(op_resource_tuple)
+      #   print(overlay_resource_tuple)
+      #   print(pblock_name)
+      #   print(is_fit_result)
+      #   print()
+      if(is_fit_result and 
          self.is_valid_pblock(page_valid_dict, pblock_name)):
         possible_pblock_list.append(pblock_name)
-    # print(possible_pblock_list)
+    # print("pblock_assign_dict:")
+    # print(pblock_assign_dict)
 
     if(possible_pblock_list): # if not empty
-      pblock_name_final = self.get_tightest_pblock(op_resource_tuple, overlay_util_dict, possible_pblock_list)
+      if is_tightest:
+        pblock_name_final = self.get_final_pblock(op_resource_tuple, overlay_util_dict, possible_pblock_list, True)
+      else:
+        pblock_name_final = self.get_final_pblock(op_resource_tuple, overlay_util_dict, possible_pblock_list, False)
       # print(pblock_name_final)
       pblock_assign_dict[pblock_op] = pblock_name_final
       pblock_pages = pblock_page_dict[pblock_name_final]
@@ -260,45 +332,36 @@ class page_assign(gen_basic):
 
   def get_pblock_operators_list(self, project_name):
     pblock_ops_dir = './input_src/' + project_name + '/operators'
-    with open(pblock_ops_dir + '/pblock_operators_list.json', 'r') as infile:
-        pblock_operators_list = json.load(infile)
-    # print(pblock_operators_list)
-    # temp_list = [tuple(pblock_op.split()) for pblock_op in pblock_operators_list]
-    # pblock_operators_list = temp_list
-    return pblock_operators_list
+    with open(pblock_ops_dir + '/pblock_operators_dict.json', 'r') as infile:
+        pblock_operators_dict = json.load(infile)
+    return list(pblock_operators_dict.keys())
 
 
-  # Returns operator's utilization dict
+  # Returns operator's utilization and design analysis dict
   def get_util_dict(self, pblock_operators_list):
     util_dict = {}
-    for pblock_op in pblock_operators_list:
-      pblock_op_list = pblock_op.split()
-      if(len(pblock_op_list) == 1):
-        with open(self.syn_dir + "/" + pblock_op_list[0] + '/utilization.rpt', 'r') as file:
-          for line in file:
-            if(line.startswith('| leaf')):
-              # print(line.split())
-              num_LUT = str(line.split()[5])
-              num_FF = str(line.split()[13])
-              num_ram36 = str(line.split()[15])
-              num_ram18 = str(int(line.split()[15])*2 + int(line.split()[17]))
-              num_dsp = str(line.split()[21])
-              # print(num_LUT, num_FF, num_ram18, num_dsp)
-              util_dict[pblock_op] = (num_LUT, num_FF, num_ram36, num_ram18, num_dsp)
-      else: # multiple ops in a single page
-        (num_LUT, num_FF, num_ram36, num_ram18, num_dsp) = (0, 0, 0, 0, 0)
-        for sub_op in pblock_op_list:
-          # print(sub_op)
-          with open(self.syn_dir + "/" + sub_op + '/utilization.rpt', 'r') as file:
-            for line in file:
-              if(line.startswith('| leaf')):
-                # print(line.split())
-                num_LUT = int(line.split()[5]) + num_LUT
-                num_FF = str(line.split()[13])
-                num_ram36 = int(line.split()[15]) + num_ram36
-                num_ram18 = int(line.split()[15])*2 + int(line.split()[17]) + num_ram18
-                num_dsp = int(line.split()[21]) + num_dsp
-        util_dict[pblock_op] = (num_LUT, num_FF, num_ram36, num_ram18, num_dsp)
+    for op in pblock_operators_list:
+      with open(self.syn_dir + "/" + op + '/utilization.rpt', 'r') as file:
+        for line in file:
+          if(line.startswith('| leaf')):
+            # print(line.split())
+            num_LUT = str(line.split()[5])
+            num_FF = str(line.split()[13])
+            num_ram36 = str(line.split()[15])
+            num_ram18 = str(int(line.split()[15])*2 + int(line.split()[17]))
+            num_dsp = str(line.split()[21])
+      with open(self.syn_dir + "/" + op + '/design_analysis.rpt', 'r') as file:
+        for line in file:
+          if line.startswith('| Path Delay '):
+            path_delay = float(line.split()[4])
+          elif line.startswith('| (top) '):
+            try:
+              rent = float(line.split()[5])
+            except ValueError:
+              rent = -1
+            avg_fanout = float(line.split()[7])
+            total_inst = int(line.split()[9])
+      util_dict[op] = (num_LUT, num_FF, num_ram36, num_ram18, num_dsp, path_delay, rent, avg_fanout, total_inst)
     return util_dict
 
 
@@ -316,7 +379,7 @@ class page_assign(gen_basic):
 
     # add criteria in util_dict's value
     for key, value in util_dict.items():
-      [num_LUT, num_FF, num_ram36, num_ram18, num_dsp] = value
+      (num_LUT, num_FF, num_ram36, num_ram18, num_dsp) = (value[0], value[1], value[2], value[3], value[4])
       num_LUT, num_FF, num_ram18, num_dsp = int(num_LUT), int(num_FF), int(num_ram18), int(num_dsp) # ignore num_ram36
       LUT_percent = float(num_LUT) / total_LUT 
       FF_percent = float(num_FF) / total_FF 
@@ -328,46 +391,42 @@ class page_assign(gen_basic):
     return util_dict
 
 
-  def get_overlay_util_dict(self, overlay_util_dict, low, high):
-    overlay_util_dict_single = {}
-    overlay_util_dict_double = {}
-    overlay_util_dict_quad = {}
-    for pblock in overlay_util_dict:
-      if(self.get_page_size(pblock) == 1 and self.is_pblock_in_range(pblock, low, high)):
-        overlay_util_dict_single[pblock] = overlay_util_dict[pblock]
-      elif(self.get_page_size(pblock) == 2 and self.is_pblock_in_range(pblock, low, high)):
-        overlay_util_dict_double[pblock] = overlay_util_dict[pblock]
-      elif(self.get_page_size(pblock) == 4 and self.is_pblock_in_range(pblock, low, high)):
-        overlay_util_dict_quad[pblock] = overlay_util_dict[pblock]
-    return overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad
+  # def get_overlay_util_dict(self, overlay_util_dict, low, high):
+  #   overlay_util_dict_single = {}
+  #   overlay_util_dict_double = {}
+  #   overlay_util_dict_quad = {}
+  #   for pblock in overlay_util_dict:
+  #     if(self.get_page_size(pblock) == 1 and self.is_pblock_in_range(pblock, low, high)):
+  #       overlay_util_dict_single[pblock] = overlay_util_dict[pblock]
+  #     elif(self.get_page_size(pblock) == 2 and self.is_pblock_in_range(pblock, low, high)):
+  #       overlay_util_dict_double[pblock] = overlay_util_dict[pblock]
+  #     elif(self.get_page_size(pblock) == 4 and self.is_pblock_in_range(pblock, low, high)):
+  #       overlay_util_dict_quad[pblock] = overlay_util_dict[pblock]
+  #   return overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad
 
+  def get_overlay_util_dict(self, overlay_util_dict, low, high):
+    overlay_util_dict_in_range = {}
+    for pblock in overlay_util_dict:
+      if(self.is_pblock_in_range(pblock, low, high)):
+        overlay_util_dict_in_range[pblock] = overlay_util_dict[pblock]
+    return overlay_util_dict_in_range
 
   # Makes sure that all operators are mappable and outputs node weights
   # This page assignment is capacity-based(NoC congestion is not considered), greedy
-  def gen_node_weight_dict(self, util_dict, 
-                                 overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad, 
+  def gen_greedy_node_weight_dict(self, util_dict, 
+                                 overlay_util_dict_in_range, 
                                  pblock_operators_list, frequency):
     page_valid_dict = {'2': None, '3': None, '4': None, '5': None, '6': None, '7': None, '8': None, 
         '9': None, '10': None, '11': None, '12': None, '13': None, '14': None, '15': None, '16': None, 
         '17': None, '18': None, '19': None, '20': None, '21': None, '22': None, '23': None}
     pblock_assign_dict = {}
 
-    # iterate through util_dict's pblock_op in descending order of resource usage
+    # iterate through util_dict's op in descending order of resource usage
     # iterate through overlay_util_dict's page_num in ascending order
-    for pblock_op, value in sorted(util_dict.items(), key=lambda x:x[1][1], reverse=True): # sorted by criteria
+    for op, value in sorted(util_dict.items(), key=lambda x:x[1][1], reverse=True): # sorted by criteria
       op_resource_tuple = value[0]
-      # print(pblock_op, op_resource_tuple)
-
-      pblock_op_list = pblock_op.split()
-      num_op = len(pblock_op_list)
-      if(num_op == 1):
-        self.update_assignment(overlay_util_dict_single, pblock_op, op_resource_tuple, 
-                               page_valid_dict, pblock_assign_dict, frequency)
-      if(num_op <= 2 and not pblock_op in pblock_assign_dict):
-        self.update_assignment(overlay_util_dict_double, pblock_op, op_resource_tuple, 
-                               page_valid_dict, pblock_assign_dict, frequency)
-      if(num_op <= 4 and not pblock_op in pblock_assign_dict):
-        self.update_assignment(overlay_util_dict_quad, pblock_op, op_resource_tuple, 
+      # print(op, op_resource_tuple)
+      self.update_assignment(overlay_util_dict_in_range, op, op_resource_tuple, 
                                page_valid_dict, pblock_assign_dict, frequency)
 
     # print(pblock_operators_list)
@@ -394,31 +453,26 @@ class page_assign(gen_basic):
       page_valid_dict[str(i)] = None
     pblock_assign_dict = {}
 
-    overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad = \
-        self.get_overlay_util_dict(overlay_util_dict, low, high)
+    overlay_util_dict_in_range = self.get_overlay_util_dict(overlay_util_dict, low, high)
 
-    # iterate through util_dict's pblock_op in descending order of resource usage
+    # iterate through util_dict's op in descending order of resource usage
     # iterate through overlay_util_dict's page_num in ascending order
-    for pblock_op, value in sorted(util_dict.items(), key=lambda x:x[1][1], reverse=True): # sorted by criteria
+    for op, value in sorted(util_dict.items(), key=lambda x:x[1][1], reverse=True): # sorted by criteria
       op_resource_tuple = value[0]
-      print(pblock_op, op_resource_tuple)
+      # print(op, op_resource_tuple)
 
-      pblock_op_list = pblock_op.split()
-      num_op = len(pblock_op_list)
-      if(num_op == 1):
-        self.update_assignment(overlay_util_dict_single, pblock_op, op_resource_tuple, 
-                               page_valid_dict, pblock_assign_dict, frequency)
-      if(num_op <= 2 and not pblock_op in pblock_assign_dict):
-        self.update_assignment(overlay_util_dict_double, pblock_op, op_resource_tuple, 
-                               page_valid_dict, pblock_assign_dict, frequency)
-      if(num_op <= 4 and not pblock_op in pblock_assign_dict):
-        self.update_assignment(overlay_util_dict_quad, pblock_op, op_resource_tuple, 
-                               page_valid_dict, pblock_assign_dict, frequency)
+      if len(util_dict) == 1: # when there's only one op to map in the subtree, try the largest first
+        self.update_assignment(overlay_util_dict_in_range, op, op_resource_tuple, 
+                                 page_valid_dict, pblock_assign_dict, frequency, False)
+      else:
+        self.update_assignment(overlay_util_dict_in_range, op, op_resource_tuple, 
+                                 page_valid_dict, pblock_assign_dict, frequency)
 
     node_weight_dict = {}
+    # print("node_weight_dict")
+    # print(node_weight_dict)
     for op, pblock in pblock_assign_dict.items():
       node_weight_dict[op] = str(self.get_page_size(pblock))
-
     result = self.is_assigned_all(pblock_assign_dict, operators_subtree)
     return node_weight_dict, result
 
@@ -597,21 +651,28 @@ class page_assign(gen_basic):
 
 
 
-  # Reorder partitions if necessary and update parts_sub and node_w_dict
+  # Reorder partitions if necessary and returns bi-partitioned ops
   # TODO: even is_fit_subtree_0 and is_fit_subtree_1 are True, 
   #       there's a chance that it just uses larger pages.
   #       Should I handle this to reduce fragmentation?
   #       But isn't larger page good for compile time?
   def assign_2(self, ops, 
                      util_dict, overlay_util_dict, 
-                     partitioned_file, parts_sub, node_w_dict,
-                     subtree_size, start, filename,
-                     frequency, tag):
+                     partitioned_file,
+                     subtree_size, start,
+                     frequency):
 
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
       parts = [part.strip() for part in parts]
-    print(ops)
+    # print(ops)
+    # print("parts:")
+    # print(parts)
+
+    # If the number of ops == 2, then parts should be [0,1] no matter what
+    # metis somehow doesn't return 0,1 sometimes ;-(
+    if len(ops) == 2:
+      parts = ['0','1']
 
     if('DMA' in ops): # If this partition contains DMA, reorder
       DMA_idx = ops.index("DMA")
@@ -631,6 +692,7 @@ class page_assign(gen_basic):
                                                                 overlay_util_dict, util_dict_0, 
                                                                 start, start+subtree_size//2-1, 
                                                                 frequency)
+    # print("node_w_dict_0")
     # print(node_w_dict_0)
     if('DMA' in ops):
       node_w_dict_0['DMA'] = '2'
@@ -642,6 +704,7 @@ class page_assign(gen_basic):
                                                                 overlay_util_dict, util_dict_1, 
                                                                 start+subtree_size//2, start+subtree_size-1, 
                                                                 frequency)
+    # print("node_w_dict_1")
     # print(node_w_dict_1)
     # print(is_fit_subtree_1)
 
@@ -672,8 +735,19 @@ class page_assign(gen_basic):
 
 
     # print(parts_sub)
-    self.update_parts(parts_sub, ops_0, ops_1, subtree_size//2, tag)
-    self.update_node_w(node_w_dict, node_w_dict_0, node_w_dict_1)
+    # self.update_parts(parts_sub, ops_0, ops_1, subtree_size//2, tag)
+    # self.update_node_w(node_w_dict, node_w_dict_0, node_w_dict_1)
+    # print("ops_0:")
+    # print(ops_0)
+    # print("node_w_dict_0:")
+    # print(node_w_dict_0)
+    # print("ops_1:")
+    # print(ops_1)
+    # print("node_w_dict_1:")
+    # print(node_w_dict_1)
+    # print("node_w_dict:")
+    # print(node_w_dict)
+
     return ops_0, ops_1, node_w_dict_0, node_w_dict_1 # new node weights will be used in generating graphfile
 
 
@@ -705,25 +779,29 @@ class page_assign(gen_basic):
         self.gen_partition_rand(ops, partitioned_file)
 
       ops_l, ops_r, node_w_dict_l, node_w_dict_r = \
-          self.assign_2(ops, 
-                        util_dict, overlay_util_dict, 
-                        partitioned_file, parts_sub, node_w_dict,
-                        subtree_size, start, filename,
-                        frequency, tag)
-      # print("")
-      # print("##################### parts_sub: ")
-      # print(parts_sub)
-      # print("")
+          self.assign_2(ops, util_dict, overlay_util_dict, partitioned_file, subtree_size, start, frequency)
+      self.update_parts(parts_sub, ops_l, ops_r, subtree_size//2, tag)
+      # self.update_node_w(node_w_dict, node_w_dict_l, node_w_dict_r)
+      # # node_w_dict is updated at this point
+
+      print("##################### parts_sub: ")
+      print(parts_sub)
+      print("")
 
       self.recursive_bisect(ops_l, 
                             node_w_dict_l, util_dict, overlay_util_dict, 
                             subtree_size//2, start, filename, '_l', parts_sub, 
                             frequency, tag)
+      # node_w_dict_l is updated at this point
+
       self.recursive_bisect(ops_r, 
                             node_w_dict_r, util_dict, overlay_util_dict,
                             subtree_size//2, start+subtree_size//2, filename, '_r', parts_sub, 
                             frequency, tag)
+      # node_w_dict_r is updated at this point
 
+      self.update_node_w(node_w_dict, node_w_dict_l, node_w_dict_r)
+      # node_w_dict is updated at this point
 
   # Returns pblock_assign_dict and page_assign_dict based on recursive bi-partitions
   def get_assign_dict(self, ops_0, ops_1, ops_2,
@@ -765,18 +843,16 @@ class page_assign(gen_basic):
 
     pblock_operators_list = self.get_pblock_operators_list(self.prflow_params['benchmark_name'])
     # print(pblock_operators_list)
-    # e.g. pblock_operators_list = ["coloringFB_bot_m coloringFB_top_m", "data_redir_m", ... , "zculling_top"]
-    # This is because we potentially wanted multiple ops in one page
-    # Not sure we keep this...
+    # e.g. pblock_operators_list = ["coloringFB_bot_m", "data_redir_m", ... , "zculling_top"]
 
     util_dict = self.get_util_dict(pblock_operators_list)
     # print(util_dict)
-    # e.g.: at this point, util_dict = {"coloringFB_bot_m coloringFB_top_m": ('8839', '31', '0'), 
-    #                                   "data_transfer": ('2303', '7', '6'), ... }
+    # e.g.: at this point, util_dict = {"coloringFB_bot_m": ('8839', '31', '0', ...), 
+    #                                   "data_transfer": ('2303', '7', '6', ...), ... }
     util_dict = self.add_criteria_util_dict(util_dict)
     # print(util_dict)
-    # e.g.: at this point, util_dict = {"coloringFB_bot_m, coloringFB_top_m": (('8839', '31', '0'), 0.049), 
-    #                                   "data_transfer": (('2303', '7', '6'), 0.014), ... }
+    # e.g.: at this point, util_dict = {"coloringFB_bot_m,": (('8839', '31', '0', ...), 0.049), 
+    #                                   "data_transfer": (('2303', '7', '6', ...), 0.014), ... }
 
     overlay_n = 'overlay_p' + str(bft_n)
     overlay_util_json_file = self.overlay_dir + "/ydma/zcu102/" + frequency + "MHz/" + \
@@ -784,24 +860,37 @@ class page_assign(gen_basic):
     with open(overlay_util_json_file, 'r') as infile:
         overlay_util_dict = json.load(infile)
     # print(overlay_util_dict)
-
     # for elem in util_dict:
     #     print(str(util_dict[elem][0])) # operator's resource tuple
 
-    low, high = 2, 23
-    overlay_util_dict_single, overlay_util_dict_double, overlay_util_dict_quad = \
-        self.get_overlay_util_dict(overlay_util_dict, low, high)
-    # print(overlay_util_dict_single) # {"p16_p1_p0": ["8274", "16548", "30", "60", "66"], "p20_p0_p1": ["6960", "13920", "24", "48", "71"], ... }
-    # print(overlay_util_dict_double)
-    # print(overlay_util_dict_quad)
 
-    node_w_dict, pblock_assign_dict_greedy = self.gen_node_weight_dict(util_dict, overlay_util_dict_single, 
-                                                                                  overlay_util_dict_double, 
-                                                                                  overlay_util_dict_quad, 
+    # Incremental, if previous assignment fits to the new netlist, use the previous assignment
+    # If any of operator does not fit or new operator is introduced, perform new page assignment
+    if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
+      with open(self.syn_dir + '/pblock_assignment.json', 'r') as infile:
+        _, pblock_assign_dict = json.load(infile)
+
+      is_ops_all_fit = True
+      for op in pblock_operators_list:
+        if op not in pblock_assign_dict: # new operator
+          is_ops_all_fit = False
+        else:
+          pblock_name = pblock_assign_dict[op]
+          overlay_resource_tuple = overlay_util_dict[pblock_name]
+          op_resource_tuple = util_dict[op][0]
+          if_fit_result = self.is_fit(op_resource_tuple, overlay_resource_tuple, pblock_name, frequency)
+          if not if_fit_result:
+            is_ops_all_fit = False
+      if is_ops_all_fit:
+        print("##################################")
+        print("## Previous page mapping works! ##")
+        print("##################################")
+        return # Finished!
+
+
+    # New page assginment starts
+    node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict, overlay_util_dict, 
                                                                                   pblock_operators_list, frequency)
-
-    # with open(self.prflow_params['benchmark_name'] + "_node_weight_dict.json", "r") as infile:
-    #   node_weight_dict = json.load(infile)
 
     os.system('mkdir -p _graph_dir/' + self.prflow_params['benchmark_name'])
     # print("operators")
@@ -817,10 +906,16 @@ class page_assign(gen_basic):
     ops_0, ops_1, ops_2, node_w_dict_0, node_w_dict_1, node_w_dict_2, parts = \
           self.assign_3(operators_dma, util_dict, overlay_util_dict, partitioned_file, frequency)
 
+    # print()
+    # print("ops_0")
     # print(ops_0) # e.g. ['DMA', 'update_knn1', 'update_knn2', 'update_knn20']
+    # print("ops_1")
     # print(ops_1)
+    # print("ops_2")
     # print(ops_2)
+    # print("parts")
     # print(parts)
+    # print()
 
     subtree_size, append = 8, ""
 
@@ -859,9 +954,11 @@ class page_assign(gen_basic):
     # print(parts_0)
     # print(parts_1)
     # print(parts_2)
-    # print(node_w_dict_0)
-    # print(node_w_dict_1)
-    # print(node_w_dict_2)
+    print("")
+    print("## node weight dict")
+    print(node_w_dict_0)
+    print(node_w_dict_1)
+    print(node_w_dict_2)
 
     print("")
     print("## page_assign_dict")

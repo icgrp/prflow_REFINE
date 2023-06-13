@@ -6,6 +6,8 @@ pr_flow/__pycache__
 workspace
 
 _graph_dir
+_finn_gen_dir
+classifier/
 
 vivad*.jou
 vivad*.log

@@ -180,8 +180,10 @@ class impl(gen_basic):
     
 
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/pblock_operators_list.json', 'r') as infile:
-      pblock_operators_list = json.load(infile)
+    with open(pblock_ops_dir + '/pblock_operators_dict.json', 'r') as infile:
+      pblock_operators_dict = json.load(infile)
+
+    pblock_operators_list = list(pblock_operators_dict.keys())
     for pblock_op in pblock_operators_list:
       if(operator_impl in pblock_op.split()):
         # replace representiative op to multiple pblock_op, e.g.:"coloringFB_bot_m" to "coloringFB_bot_m coloringFB_top_m"

@@ -34,7 +34,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <CL/cl2.hpp>
 #include "typedefs.h"
 #include "test_data.h"
-
+#include <sys/time.h>
+#include <numeric>
 
 
 using namespace std;
@@ -203,16 +204,10 @@ int main(int argc, char **argv)
     int mismatch = 0;
 
     std::cout << "Start Processing" << std::endl;
+    std::vector<long long> elapsed_vector;
+
     for (int i = 0; i < NUM_BATCHES; i++){
-        // std::cout << "Batch idx: " << i << std::endl;
-
-        // Prepare input data for this batch
-        // for (int j = 0; j < INPUT_SIZE; j++){
-        //     for (int k = 0; k < 64; k++){
-        //         in2[j](8*k+7, 8*k+0) = test_data[BATCH_SIZE*i + 64*j + k]; // The first data is the lowest bits
-        //     }
-        // }
-
+        gettimeofday(&start, NULL);
         // ------------------------------------------------------------------------------------
         // Step 3: Run the kernel
         // ------------------------------------------------------------------------------------
@@ -245,9 +240,13 @@ int main(int argc, char **argv)
         // Wait for all scheduled operations to finish
         q.finish();
 
+        gettimeofday(&end, NULL);
         // ------------------------------------------------------------------------------------
         // Step 4: Check Results and Release Allocated Resources
         // ------------------------------------------------------------------------------------
+        long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
+        // printf("elapsed time: %lld us\n", elapsed);
+        elapsed_vector.push_back(elapsed);
 
         for (int j = 0; j < OUTPUT_SIZE; j++){
             for (int k = 0; k < 64; k++){
@@ -267,7 +266,13 @@ int main(int argc, char **argv)
 
     std::cout << "num of mismatch: " << mismatch << std::endl;
     std::cout << "Accuracy = " << float(NUM_TESTS - mismatch) / NUM_TESTS << std::endl;
+    long long elapsed_sum = std::accumulate(elapsed_vector.begin(), elapsed_vector.end(), 0.0);
+    printf("avg elapsed time: %lld us\n", elapsed_sum/elapsed_vector.size());
 
+    std::ofstream outfile;
+    outfile.open("result-finn_cnn_ciar10.txt", std::ios_base::app);
+    outfile << "avg elapsed time: " << elapsed_sum/elapsed_vector.size() << "us\n";
+    outfile << "accuracy: " << float(NUM_TESTS - mismatch) / NUM_TESTS << "\n";
 
     return EXIT_SUCCESS;
 }
