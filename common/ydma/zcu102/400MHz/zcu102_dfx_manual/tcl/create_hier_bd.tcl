@@ -5,11 +5,11 @@ open_project PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.xpr
 
 open_bd_design {PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd}
 
-add_files -norecurse {/home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_report_unit.vh /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_detector.vh}
-add_files -norecurse {/home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w64_d3_S.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Config_Controls_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_aximm2_m_axi.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_regslice_both.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_regslice_both.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/single_ram.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/write_b_out.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/leaf_interface_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/read_b_in.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/page_double_bb.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/bft.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/stream_shell.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_32_2_proc2.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_36_4_proc4_Pipeline_VITIS_LOOP_36_4.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/PR_pages_top.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_54_4.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_entry_proc.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/data32to512.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_35_3_proc3.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w512_d1024_A.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ExtractCtrl.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Input_Port_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_Cluster.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_flow_control_loop_pipe_sequential_init.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/converge_ctrl.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/SynFIFO.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_35_1.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_31_1_proc1.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_flow_control_loop_pipe_sequential_init.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/page_bb.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/page_quad_bb.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_35_3_proc3_Pipeline_VITIS_LOOP_35_3.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Input_Port_Cluster_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Stream_Flow_Control_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/leaf_interface_wrapper1.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_31_1_proc1_Pipeline_VITIS_LOOP_31_1.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_aximm1_m_axi.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/write_b_in.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_v1_buffer_V_RAM_AUTO_1R1W.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_data32to512_Pipeline_VITIS_LOOP_175_1.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_start_for_Loop_VITIS_LOOP_36_4_proc4_U0.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_flow_control_loop_pipe_sequential_init.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ram0.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_41_2.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w32_d3_S.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_detection_unit.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_Cluster_ydma.v /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_ydma.v /home/dopark/workspace/zcu102...
+add_files -norecurse {PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_report_unit.vh PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_detector.vh}
+add_files -norecurse {PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_31_1_proc1_Pipeline_VITIS_LOOP_31_1.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/write_b_in.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/converge_ctrl.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/bft.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_Cluster.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Stream_Flow_Control_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_35_3_proc3.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/SynFIFO.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_31_1_proc1.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/leaf_interface_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/write_b_out.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_32_2_proc2.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_flow_control_loop_pipe_sequential_init.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Config_Controls_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/stream_shell.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w64_d3_S.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Input_Port_Cluster_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ExtractCtrl.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/page_quad_bb.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_start_for_Loop_VITIS_LOOP_32_2_proc2_U0.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Input_Port_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/page_bb.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_36_4_proc4.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_32_2_proc2_Pipeline_VITIS_LOOP_32_2.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/single_ram.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_v1_buffer_V_RAM_AUTO_1R1W.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_entry_proc.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_control_s_axi.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/rest_400MHz.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_36_4_proc4_Pipeline_VITIS_LOOP_36_4.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/PR_pages_top.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port_Cluster_ydma.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_regslice_both.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_start_for_Loop_VITIS_LOOP_36_4_proc4_U0.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_Loop_VITIS_LOOP_35_3_proc3_Pipeline_VITIS_LOOP_35_3.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_41_2.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/read_b_in.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_data32to512_Pipeline_VITIS_LOOP_175_1.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_regslice_both.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/Output_Port.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_aximm1_m_axi.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/data32to512_flow_control_loop_pipe_sequential_init.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_70_6.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/leaf_interface_wrapper1.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_61_5.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w32_d3_S.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_aximm2_m_axi.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w512_d1024_A.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_54_4.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ram0.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_fifo_w64_d512_A.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/data32to512.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/page_double_bb.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_hls_deadlock_detection_unit.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/ydma_flow_control_loop_pipe_sequential_init.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/config_parser_config_parser_Pipeline_VITIS_LOOP_35_1.v PRJ_BOARD_FREQ_DIR/zcu102_dfx_manual/src4level2/ydma_bb/rise_detect.v}
+
 set_property source_mgmt_mode All [current_project]
 create_bd_cell -type module -reference rest_400MHz rest_400MHz_0
-
 create_bd_cell -type module -reference PR_pages_top PR_pages_top_0
 
 delete_bd_objs [get_bd_nets ydma_1_interrupt]
@@ -47,7 +47,6 @@ connect_bd_net [get_bd_pins clk_wiz_0/clk_350] [get_bd_pins PR_pages_top_0/clk_3
 connect_bd_net [get_bd_ports clkwiz_kernel2_clk_out1] [get_bd_pins PR_pages_top_0/clk_300]
 connect_bd_net [get_bd_pins PR_pages_top_0/clk_250] [get_bd_pins clk_wiz_0/clk_250]
 connect_bd_net [get_bd_ports clkwiz_kernel4_clk_out] [get_bd_pins PR_pages_top_0/clk_200]
-
 
 
 connect_bd_net [get_bd_pins rest_400MHz_0/ap_rst_n_inv_400_p2] [get_bd_pins PR_pages_top_0/ap_rst_n_inv_400_p2]
@@ -167,7 +166,6 @@ connect_bd_net [get_bd_pins PR_pages_top_0/dout_leaf_22] [get_bd_pins rest_400MH
 connect_bd_net [get_bd_pins PR_pages_top_0/dout_leaf_23] [get_bd_pins rest_400MHz_0/dout_leaf_23]
 
 
-
 delete_bd_objs [get_bd_cells ydma_1]
 
 
@@ -190,7 +188,11 @@ delete_bd_objs  [get_bd_cells /hier_0]
 set_property name hier_0 $new_cell
 endgroup
 
+open_bd_design {PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd}
+
 generate_target all [get_files -of_objects [get_reconfig_modules my_rm] PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd]
+
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_xbar_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_dpa_hub_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_dpa_mon0_0] }
@@ -206,11 +208,13 @@ catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_register_slice_h
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_2_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_3_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_4_0] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_5_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_ctrl_userpf_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_axi_vip_hpm0fpd_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_debug_bridge_xsdbm_0] }
 catch { config_ip_cache -export [get_ips -all bd_93c6_xsdbm_0] }
+
 catch { config_ip_cache -export [get_ips -all bd_93c6_lut_buffer_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_xbar_1] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_xbar_2] }
@@ -218,10 +222,13 @@ catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_cont
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel2_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel3_0] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel4_0] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel5_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_psreset_gate_pr_kernel6_0] }
-catch { config_ip_cache -export [get_ips -all hier_0_inst_0_rest_0_0] }
+
+catch { config_ip_cache -export [get_ips -all hier_0_inst_0_rest_400MHz_0_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_20] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m00_regslice_8] }
 
@@ -229,8 +236,11 @@ catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m01_regslice_4] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m02_regslice_4] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m03_regslice_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m04_regslice_0] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_14] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_15] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_16] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_17] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_18] }
@@ -243,22 +253,25 @@ catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s02_data_fifo_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s03_regslice_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_us_1] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_1] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m00_regslice_6] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_ds_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_rs_w_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s00_regslice_19] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m00_regslice_7] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m01_regslice_3] }
+
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_2] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_m02_regslice_3] }
-catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_3] }
 
+catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_3] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_dpa_mon1_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_dpa_mon2_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_debug_bridge_xsdbm_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_xbar_1] }
-catch { config_ip_cache -export [get_ips -all hier_0_inst_0_rest_0_0] }
+catch { config_ip_cache -export [get_ips -all hier_0_inst_0_rest_400MHz_0_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s01_regslice_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_us_cc_df_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_s02_regslice_0] }
@@ -267,11 +280,16 @@ catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_cc_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_ds_0] }
 catch { config_ip_cache -export [get_ips -all hier_0_inst_0_auto_rs_w_0] }
 catch { config_ip_cache -export [get_ips -all pfm_dynamic_PR_pages_top_0_0] }
+catch { config_ip_cache -export [get_ips -all pfm_dynamic_clk_wiz_0_0] }
+
+
 export_ip_user_files -of_objects [get_files -of_objects [get_reconfig_modules my_rm] PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd] -no_script -sync -force -quiet
 create_ip_run [get_files -of_objects [get_reconfig_modules my_rm] PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd]
 reset_run my_rm_synth_1
-launch_runs my_rm_synth_1 hier_0_inst_0_dpa_mon1_0_synth_1 hier_0_inst_0_dpa_mon2_0_synth_1 hier_0_inst_0_debug_bridge_xsdbm_0_synth_1 hier_0_inst_0_xbar_1_synth_1 hier_0_inst_0_rest_0_0_synth_1 hier_0_inst_0_s01_regslice_0_synth_1 hier_0_inst_0_auto_us_cc_df_0_synth_1 hier_0_inst_0_s02_regslice_0_synth_1 hier_0_inst_0_s02_data_fifo_0_synth_1 hier_0_inst_0_auto_cc_0_synth_1 hier_0_inst_0_auto_ds_0_synth_1 hier_0_inst_0_auto_rs_w_0_synth_1 pfm_dynamic_PR_pages_top_0_0_synth_1 -jobs 24
-wait_on_runs my_rm_synth_1 hier_0_inst_0_dpa_mon1_0_synth_1 hier_0_inst_0_dpa_mon2_0_synth_1 hier_0_inst_0_debug_bridge_xsdbm_0_synth_1 hier_0_inst_0_xbar_1_synth_1 hier_0_inst_0_rest_0_0_synth_1 hier_0_inst_0_s01_regslice_0_synth_1 hier_0_inst_0_auto_us_cc_df_0_synth_1 hier_0_inst_0_s02_regslice_0_synth_1 hier_0_inst_0_s02_data_fifo_0_synth_1 hier_0_inst_0_auto_cc_0_synth_1 hier_0_inst_0_auto_ds_0_synth_1 hier_0_inst_0_auto_rs_w_0_synth_1 pfm_dynamic_PR_pages_top_0_0_synth_1
-export_simulation -of_objects [get_files -of_objects [get_reconfig_modules my_rm] PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd] -directory PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files/sim_scripts -ip_user_files_dir PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files -ipstatic_source_dir PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files/ipstatic -lib_map_path [list {modelsim=PRJ_BOARD_FREQ_DIR_x/link/vivado/vpl/prj/prj.cache/compile_simlib/modelsim} {questa=PRJ_BOARD_FREQ_DIR_x/link/vivado/vpl/prj/prj.cache/compile_simlib/questa} {xcelium=PRJ_BOARD_FREQ_DIR_x/link/vivado/vpl/prj/prj.cache/compile_simlib/xcelium} {vcs=PRJ_BOARD_FREQ_DIR_x/link/vivado/vpl/prj/prj.cache/compile_simlib/vcs} {riviera=PRJ_BOARD_FREQ_DIR_x/link/vivado/vpl/prj/prj.cache/compile_simlib/riviera}] -use_ip_compiled_libs -force -quiet
+launch_runs my_rm_synth_1 hier_0_inst_0_dpa_mon1_0_synth_1 hier_0_inst_0_dpa_mon2_0_synth_1 hier_0_inst_0_debug_bridge_xsdbm_0_synth_1 hier_0_inst_0_xbar_1_synth_1 hier_0_inst_0_rest_400MHz_0_0_synth_1 hier_0_inst_0_s01_regslice_0_synth_1 hier_0_inst_0_auto_us_cc_df_0_synth_1 hier_0_inst_0_s02_regslice_0_synth_1 hier_0_inst_0_s02_data_fifo_0_synth_1 hier_0_inst_0_auto_cc_0_synth_1 hier_0_inst_0_auto_ds_0_synth_1 hier_0_inst_0_auto_rs_w_0_synth_1 pfm_dynamic_PR_pages_top_0_0_synth_1 pfm_dynamic_clk_wiz_0_0_synth_1 -jobs 8
+wait_on_runs my_rm_synth_1 hier_0_inst_0_dpa_mon1_0_synth_1 hier_0_inst_0_dpa_mon2_0_synth_1 hier_0_inst_0_debug_bridge_xsdbm_0_synth_1 hier_0_inst_0_xbar_1_synth_1 hier_0_inst_0_rest_400MHz_0_0_synth_1 hier_0_inst_0_s01_regslice_0_synth_1 hier_0_inst_0_auto_us_cc_df_0_synth_1 hier_0_inst_0_s02_regslice_0_synth_1 hier_0_inst_0_s02_data_fifo_0_synth_1 hier_0_inst_0_auto_cc_0_synth_1 hier_0_inst_0_auto_ds_0_synth_1 hier_0_inst_0_auto_rs_w_0_synth_1 pfm_dynamic_PR_pages_top_0_0_synth_1 pfm_dynamic_clk_wiz_0_0_synth_1
+
+
+export_simulation -of_objects [get_files -of_objects [get_reconfig_modules my_rm] PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.srcs/my_rm/bd/pfm_dynamic/pfm_dynamic.bd] -directory PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files/sim_scripts -ip_user_files_dir PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files -ipstatic_source_dir PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.ip_user_files/ipstatic -lib_map_path [list {modelsim=PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.cache/compile_simlib/modelsim} {questa=PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.cache/compile_simlib/questa} {xcelium=PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.cache/compile_simlib/xcelium} {vcs=PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.cache/compile_simlib/vcs} {riviera=PRJ_BOARD_FREQ_DIR/_x/link/vivado/vpl/prj/prj.cache/compile_simlib/riviera}] -use_ip_compiled_libs -force -quiet
 
 save_bd_design

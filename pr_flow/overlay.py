@@ -105,7 +105,8 @@ class overlay(gen_basic):
     else: # generate abstract shell dcps for psnoc overlay
       lines_list.append('cd '+self.prflow_params['board']+'_dfx_manual')
     lines_list.append('source '+self.prflow_params['Xilinx_dir'])
-    lines_list.append('make -j$(nproc)')
+    lines_list.append('make -j8') # to be safe
+    # lines_list.append('make -j$(nproc)')
     lines_list.append('./shell/run_xclbin.sh')
 
     if(tandem_mode):
@@ -129,7 +130,7 @@ class overlay(gen_basic):
     lines_list.append('cp ../util_scripts/blocked_analysis.py .')
     lines_list.append('python get_blocked_resources_abs_shell.py')
     lines_list.append('python parse_ovly_util.py')
-    # lines_list.append('python blocked_analysis.py')
+    lines_list.append('python blocked_analysis.py')
 
     if(tandem_mode):
       lines_list.append('cd ../../../../')

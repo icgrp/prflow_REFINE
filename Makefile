@@ -1,7 +1,7 @@
 ############################################################################################
 
 # prj_name=digit_rec_test
-# prj_name=digit_reg_par_40
+# prj_name=digit_reg_par_80
 # prj_name?=digit_reg_par_80
 
 # prj_name=optical_flow_64_single
@@ -11,7 +11,7 @@
 #prj_name=optical_flow_incr
 
 # prj_name=rendering_par_1
-# prj_name=rendering_par_2
+prj_name=rendering_par_2
 
 #prj_name=spam_filter_par_32
 # prj_name=spam_filter_par_32_dot_merged
@@ -19,8 +19,8 @@
 
 # prj_name=routing_test
 
-prj_name=finn_cnn_cifar10
-# prj_name=spam_filter_ops_DSP
+# prj_name=finn_cnn_cifar10
+# prj_name=test
 
 #############################################################################################
 
@@ -55,22 +55,25 @@ mono_target=$(ws_mono)/ydma.xclbin
 
 
 # freq may need to be Makefile input
-freq?=200
+freq?=400
 
-all: $(operators_runtime_target) $(operators_xclbin_targets)
-	@cp $(operators_xclbin_targets) $(ws_bit)/sd_card
-	@echo "--------------------";
-	@echo "## Compile finished!";
-	@echo "--------------------";
-
+all: $(operators_runtime_target)
 mono: $(mono_target)
 $(mono_target):./input_src/$(prj_name)/host/top.cpp ./pr_flow/monolithic.py $(operators_hls_targets)
 	python pr_flow.py $(prj_name) -monolithic -op '$(operators)'
 	cd $(ws_mono) && ./main.sh
+
+
+runtime:$(operators_runtime_target) # NOTE: operators
+$(operators_runtime_target):./input_src/$(prj_name)/host/host.cpp $(operators_xclbin_targets) ./pr_flow/runtime.py
+	python pr_flow.py $(prj_name) -runtime -op '$(operators)'
+	cp $(operators_xclbin_targets) $(ws_bit)/sd_card
+	cd $(ws_bit)/$(prj_name)/host && ./gen_runtime.sh
+
 	
 xclbin: $(operators_xclbin_targets) # NOTE: operators_impl
-$(operators_xclbin_targets): $(operators_bit_targets)
-	python pr_flow.py $(prj_name) -xclbin -op $(basename $(notdir $@)) -freq=$(freq)
+$(operators_xclbin_targets): sync_impl
+	python pr_flow.py $(prj_name) -xclbin -op $(basename $(notdir $@))
 	cd $(ws_bit) && ./main_$(basename $(notdir $@)).sh $(operators_impl)
 
 # Wait untill all implementation runs are finished, TODO: may need to remove impl_result.txt?
@@ -89,17 +92,9 @@ sync_impl: $(operators_bit_targets)
 incr:
 	echo "nothing for now"
 
-# Can run once page assignment is done
-# runtime:./input_src/$(prj_name)/host/host.cpp ./pr_flow/runtime.py
-# 	python pr_flow.py $(prj_name) -runtime -op '$(operators_impl)' -freq=$(freq)
-runtime:$(operators_runtime_target)
-$(operators_runtime_target):./input_src/$(prj_name)/host/host.cpp ./input_src/$(prj_name)/host/host_bi.cpp ./pr_flow/runtime.py $(operators_pblocks)
-	python pr_flow.py $(prj_name) -runtime -op '$(operators_impl)' -freq=$(freq)
-	cd $(ws_bit)/$(prj_name)/host && ./main.sh
-
 bits:$(operators_bit_targets) # NOTE: operators_impl
 $(operators_bit_targets):$(ws_impl)/%/_impl_result.txt:$(ws_overlay)/__overlay_is_ready__ $(ws_syn)/%/pblock.json $(ws_syn)/%/page_netlist.dcp
-	python pr_flow.py $(prj_name) -impl -op $(notdir $(subst /_impl_result.txt,,$@)) -freq=$(freq)
+	python pr_flow.py $(prj_name) -impl -op $(notdir $(subst /_impl_result.txt,,$@))
 	# After Implementation, write success/fail results and based on the results
 	cd $(ws_impl)/$(notdir $(subst /_impl_result.txt,,$@)) && ./main.sh $(operators_impl) &&\
 	 python write_result.py || python write_result.py --fail
@@ -107,30 +102,29 @@ $(operators_bit_targets):$(ws_impl)/%/_impl_result.txt:$(ws_overlay)/__overlay_i
 sync_pg_assign:$(operators_pblocks) 
 $(operators_pblocks):$(ws_syn)/%/pblock.json: pg_assign
 
-pg_assign:$(operators_syn_targets) ./pr_flow/page_assign.py
-# 	python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq)
+pg_assign:$(ws_syn)/pblock_assignment.json
+$(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/kernel_clk.json
+	python pr_flow.py $(prj_name) -pg -op '$(operators_impl)'
 # 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
-	@python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq)
-
 
 # Synthesis
 syn:$(operators_syn_targets)
 # Out-of-Context Synthesis from Verilog to post-synthesis DCP
 $(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/runLog%.log $(ws_overlay)/__overlay_is_ready__ ./pr_flow/syn.py
-	python pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<))) -freq=$(freq)
+	python pr_flow.py $(prj_name) -syn -op $(subst runLog,,$(basename $(notdir $<)))
 	cd $(ws_syn)/$(subst runLog,,$(basename $(notdir $<))) && ./main.sh $(operators)
 
 # HLS
 hls: $(operators_hls_targets)
 # High-Level-Synthesis from C to Verilog
 $(operators_hls_targets):$(ws_hls)/runLog%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h $(host_dir)/typedefs.h ./pr_flow/hls.py
-	python pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<)) -freq=$(freq)
+	python pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<))
 	cd $(ws_hls) && ./main_$(basename $(notdir $<)).sh $(operators)
 
 bft_n=23
 overlay: $(ws_overlay)/__overlay_is_ready__
 $(ws_overlay)/__overlay_is_ready__:
-	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
+	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n)
 	cd ./workspace/F001_overlay && ./main.sh
 
 .PHONY: report 
@@ -151,9 +145,9 @@ update: $(operators_syn_targets)
 # if bft_n==23: p2~p23 
 # if bft_n==10, p2~p10
 # if bft_n==12, p2~p12
-overlay_only:
-	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
-	cd ./workspace/F001_overlay && ./main.sh
+# overlay_only:
+# 	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n) -freq=$(freq)
+# 	cd ./workspace/F001_overlay && ./main.sh
 
 
 
