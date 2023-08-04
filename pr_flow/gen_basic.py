@@ -465,6 +465,7 @@ class _verilog:
                          output_num,
                          operator_arg_list,
                          operator_width_list,
+                         frequency,
                          for_syn=False,
                          is_riscv=False,
                          PAYLOAD_BITS=None,
@@ -490,12 +491,20 @@ class _verilog:
     else:
       lines_list.append('module leaf_'+str(page_num)+'(')
 
-    lines_list.append('    input wire clk,')
+    lines_list.append('    input wire clk_200,')
+    lines_list.append('    input wire clk_250,')
+    lines_list.append('    input wire clk_300,')
+    lines_list.append('    input wire clk_350,')
+    lines_list.append('    input wire clk_400,')
     lines_list.append('    input wire ['+str(PACKET_BITS)+'-1 : 0] din_leaf_bft2interface,')
     lines_list.append('    output wire ['+str(PACKET_BITS)+'-1 : 0] dout_leaf_interface2bft,')
     lines_list.append('    input wire resend,')
     # lines_list.append('    input wire ap_start,')
-    lines_list.append('    input wire reset,')
+    # lines_list.append('    input wire reset_200,')
+    # lines_list.append('    input wire reset_250,')
+    # lines_list.append('    input wire reset_300,')
+    # lines_list.append('    input wire reset_350,')
+    lines_list.append('    input wire reset_400,')
     lines_list.append('    input wire ap_start')
     lines_list.append('    );')
     lines_list.append('')
@@ -519,6 +528,7 @@ class _verilog:
     # lines_list.append('    wire instr_wr_en_out;')
     lines_list.append('    wire ap_start_user;')
      
+    # interface -> user, wire declaration
     dout_list = []
     val_out_list = [] 
     ack_out_list = []
@@ -538,26 +548,42 @@ class _verilog:
       lines_list.append('    wire vld_interface2user_'+str(i)+'_user;')
       lines_list.append('    wire ack_user2interface_'+str(i)+'_user;')
  
-      if int(WIDTH) != 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
-         lines_list.append('    read_queue#(')
-         lines_list.append('      .IN_WIDTH(32),')
-         lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
-         lines_list.append('    )Input_'+str(i)+'_converter(')
-         lines_list.append('      .clk(clk),')
-         lines_list.append('      .reset(reset),')
-         lines_list.append('      .din(dout_leaf_interface2user_'+str(i)+'),')
-         lines_list.append('      .vld_in(vld_interface2user_'+str(i)+'),')
-         lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
-         lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
-         lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
-         lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user),')
-         lines_list.append('      .ap_start(ap_start)') 
-         lines_list.append('    );')
-      else:
-         lines_list.append('    assign dout_leaf_interface2user_'+str(i)+'_user = dout_leaf_interface2user_'+str(i)+';')
-         lines_list.append('    assign vld_interface2user_'+str(i)+'_user = vld_interface2user_'+str(i)+';')
-         lines_list.append('    assign ack_user2interface_'+str(i)+' = ack_user2interface_'+str(i)+'_user;')
+      # if int(WIDTH) > 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
+      #    lines_list.append('    expand_queue#(')
+      #    lines_list.append('      .IN_WIDTH(32),')
+      #    lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
+      #    lines_list.append('    )Input_'+str(i)+'_converter(')
+      #    lines_list.append('      .clk(clk),')
+      #    lines_list.append('      .reset(reset),')
+      #    lines_list.append('      .din(dout_leaf_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .vld_in(vld_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
 
+      #    lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
+      #    lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
+      #    lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .ap_start(ap_start)') 
+      #    lines_list.append('    );')
+      # elif int(WIDTH) < 32 and (32 % int(WIDTH) == 0) and is_riscv == False: # divisor of 32
+      #    lines_list.append('    shrink_queue#(')
+      #    lines_list.append('      .IN_WIDTH(32),')
+      #    lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
+      #    lines_list.append('    )Input_'+str(i)+'_converter(')
+      #    lines_list.append('      .clk(clk),')
+      #    lines_list.append('      .reset(reset),')
+      #    lines_list.append('      .din(dout_leaf_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .vld_in(vld_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
+
+      #    lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
+      #    lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
+      #    lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .ap_start(ap_start)') 
+      #    lines_list.append('    );')
+      # else:
+      #    lines_list.append('    assign dout_leaf_interface2user_'+str(i)+'_user = dout_leaf_interface2user_'+str(i)+';')
+      #    lines_list.append('    assign vld_interface2user_'+str(i)+'_user = vld_interface2user_'+str(i)+';')
+      #    lines_list.append('    assign ack_user2interface_'+str(i)+' = ack_user2interface_'+str(i)+'_user;')
 
       dout_list.append('dout_leaf_interface2user_'+str(i))
       val_out_list.append('vld_interface2user_'+str(i))
@@ -566,6 +592,7 @@ class _verilog:
     val_out_str='{'+','.join(val_out_list)+'}'
     ack_out_str='{'+','.join(ack_out_list)+'}'
 
+    # user -> interface, wire declaration
     din_list = []
     val_in_list = [] 
     ack_in_list = []
@@ -581,25 +608,40 @@ class _verilog:
       lines_list.append('    wire vld_user2interface_'+str(i)+'_user;')
       lines_list.append('    wire ack_interface2user_'+str(i)+'_user;')
 
-      if int(WIDTH) != 32 and (int(WIDTH) % 32 == 0) and is_riscv == False:    
-         lines_list.append('    write_queue#(')
-         lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
-         lines_list.append('      .OUT_WIDTH(32)')
-         lines_list.append('    )Output_'+str(i)+'_converter(')
-         lines_list.append('      .clk(clk),')
-         lines_list.append('      .reset(reset),')
-         lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
-         lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
-         lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
-         lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
-         lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
-         lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+'),')
-         lines_list.append('      .ap_start(ap_start)') 
-         lines_list.append('    );')
-      else:
-         lines_list.append('    assign din_leaf_user2interface_'+str(i)+' = din_leaf_user2interface_'+str(i)+'_user;')
-         lines_list.append('    assign vld_user2interface_'+str(i)+' = vld_user2interface_'+str(i)+'_user;')
-         lines_list.append('    assign ack_interface2user_'+str(i)+'_user = ack_interface2user_'+str(i)+';')
+      # if int(WIDTH) > 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
+      #    lines_list.append('    shrink_queue#(')
+      #    lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
+      #    lines_list.append('      .OUT_WIDTH(32)')
+      #    lines_list.append('    )Output_'+str(i)+'_converter(')
+      #    lines_list.append('      .clk(clk),')
+      #    lines_list.append('      .reset(reset),')
+      #    lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
+      #    lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
+      #    lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
+      #    lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .ap_start(ap_start)') 
+      #    lines_list.append('    );')
+      # elif int(WIDTH) < 32 and (32 % int(WIDTH) == 0) and is_riscv == False: # divisor of 32
+      #    lines_list.append('    expand_queue#(')
+      #    lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
+      #    lines_list.append('      .OUT_WIDTH(32)')
+      #    lines_list.append('    )Output_'+str(i)+'_converter(')
+      #    lines_list.append('      .clk(clk),')
+      #    lines_list.append('      .reset(reset),')
+      #    lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
+      #    lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
+      #    lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
+      #    lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
+      #    lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+'),')
+      #    lines_list.append('      .ap_start(ap_start)') 
+      #    lines_list.append('    );')
+      # else:
+      #    lines_list.append('    assign din_leaf_user2interface_'+str(i)+' = din_leaf_user2interface_'+str(i)+'_user;')
+      #    lines_list.append('    assign vld_user2interface_'+str(i)+' = vld_user2interface_'+str(i)+'_user;')
+      #    lines_list.append('    assign ack_interface2user_'+str(i)+'_user = ack_interface2user_'+str(i)+';')
 
       din_list.append('din_leaf_user2interface_'+str(i))
       val_in_list.append('vld_user2interface_'+str(i))
@@ -608,10 +650,27 @@ class _verilog:
     val_in_str='{'+','.join(val_in_list)+'}'
     ack_in_str='{'+','.join(ack_in_list)+'}'
 
+    lines_list.append('    wire clk_user;')
+    # lines_list.append('    wire reset_user;')
+    if frequency == "200":
+      lines_list.append('    assign clk_user = clk_200;')
+      # lines_list.append('    assign reset_user = reset_200;')
+    elif frequency == "250":
+      lines_list.append('    assign clk_user = clk_250;')
+      # lines_list.append('    assign reset_user = reset_250;')
+    elif frequency == "300":
+      lines_list.append('    assign clk_user = clk_300;')
+      # lines_list.append('    assign reset_user = reset_300;')
+    elif frequency == "350":
+      lines_list.append('    assign clk_user = clk_350;')
+      # lines_list.append('    assign reset_user = reset_350;')
+    elif frequency == "400":
+      lines_list.append('    assign clk_user = clk_400;')
+      # lines_list.append('    assign reset_user = reset_400;')
 
     if int(input_num) == 0: lines_list.append('    assign ack_user2interface_1_user = 0;')
 
-
+    lines_list.append('    wire reset_ap_start_user;')
 
     lines_list.append('    ')
     lines_list.append('    wire [48:0] dout_leaf_interface2bft_tmp;')
@@ -628,15 +687,17 @@ class _verilog:
     lines_list.append('        .NUM_BRAM_ADDR_BITS('+str(NUM_BRAM_ADDR_BITS)+'),')
     lines_list.append('        .FREESPACE_UPDATE_SIZE('+str(FREESPACE_UPDATE_SIZE)+')')
     lines_list.append('    )leaf_interface_inst(')
-    lines_list.append('        .clk(clk),')
-    # lines_list.append('        .reset(reset),')
-    lines_list.append('        .reset(reset),')
+    lines_list.append('        .clk(clk_400),') # clk_bft is fixed to max freq, which is 400MHz
+    lines_list.append('        .clk_user(clk_user),')
+    lines_list.append('        .reset(reset_400),') # clk_bft is fixed to max freq, which is 400MHz
+    # lines_list.append('        .reset_user(reset_user),') # use reset_ap_start_user instead
     lines_list.append('        .din_leaf_bft2interface(din_leaf_bft2interface),')
     lines_list.append('        .dout_leaf_interface2bft(dout_leaf_interface2bft_tmp),')
     # lines_list.append('        .riscv_addr(riscv_addr),')
     # lines_list.append('        .riscv_dout(riscv_dout),')
     # lines_list.append('        .instr_wr_en_out(instr_wr_en_out),') 
-    lines_list.append('        .ap_start_user(ap_start_user),') 
+    lines_list.append('        .ap_start_user(ap_start_user), // not used') 
+    # lines_list.append('        .ap_start_user(1),') 
     lines_list.append('        .resend(resend),')
     lines_list.append('        .dout_leaf_interface2user('+dout_str+'),')
     lines_list.append('        .vld_interface2user('+val_out_str+'),')
@@ -644,12 +705,99 @@ class _verilog:
     lines_list.append('        .ack_interface2user('+ack_in_str+'),')
     lines_list.append('        .vld_user2interface('+val_in_str+'),')
     lines_list.append('        .din_leaf_user2interface('+din_str+'),')
-    lines_list.append('        .ap_start(ap_start)')
+    lines_list.append('        .ap_start(ap_start),')
+    lines_list.append('        .reset_ap_start_user(reset_ap_start_user)')
     lines_list.append('    );')
     lines_list.append('    ')
+
+    # interface -> user
+    for i in range(self.my_max(1, int(input_num)),0,-1): 
+      if int(input_num) != 0:
+        WIDTH = operator_width_list[self.return_idx_in_list_local(operator_arg_list, 'Input_'+str(i))].split('<')[1].split('>')[0]
+      else:
+        WIDTH = 32
+ 
+      if int(WIDTH) > 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
+         lines_list.append('    expand_queue#(')
+         lines_list.append('      .IN_WIDTH(32),')
+         lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
+         lines_list.append('    )Input_'+str(i)+'_converter(')
+         lines_list.append('      .clk(clk_user),')
+         lines_list.append('      .reset(reset_ap_start_user),')
+         lines_list.append('      .din(dout_leaf_interface2user_'+str(i)+'),')
+         lines_list.append('      .vld_in(vld_interface2user_'+str(i)+'),')
+         lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
+
+         lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
+         lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
+         lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user)')
+         # lines_list.append('      .ap_start(1)') 
+         lines_list.append('    );')
+      elif int(WIDTH) < 32 and (32 % int(WIDTH) == 0) and is_riscv == False: # divisor of 32
+         lines_list.append('    shrink_queue#(')
+         lines_list.append('      .IN_WIDTH(32),')
+         lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
+         lines_list.append('    )Input_'+str(i)+'_converter(')
+         lines_list.append('      .clk(clk_user),')
+         lines_list.append('      .reset(reset_ap_start_user),')
+         lines_list.append('      .din(dout_leaf_interface2user_'+str(i)+'),')
+         lines_list.append('      .vld_in(vld_interface2user_'+str(i)+'),')
+         lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
+
+         lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
+         lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
+         lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user)')
+         # lines_list.append('      .ap_start(1)') 
+         lines_list.append('    );')
+      else:
+         lines_list.append('    assign dout_leaf_interface2user_'+str(i)+'_user = dout_leaf_interface2user_'+str(i)+';')
+         lines_list.append('    assign vld_interface2user_'+str(i)+'_user = vld_interface2user_'+str(i)+';')
+         lines_list.append('    assign ack_user2interface_'+str(i)+' = ack_user2interface_'+str(i)+'_user;')
+      lines_list.append('')
+
+    # user -> interface
+    for i in range(int(output_num),0,-1): 
+      WIDTH = operator_width_list[self.return_idx_in_list_local(operator_arg_list, 'Output_'+str(i))].split('<')[1].split('>')[0]
+
+      if int(WIDTH) > 32 and (int(WIDTH) % 32 == 0) and is_riscv == False: # multiple of 32
+         lines_list.append('    shrink_queue#(')
+         lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
+         lines_list.append('      .OUT_WIDTH(32)')
+         lines_list.append('    )Output_'+str(i)+'_converter(')
+         lines_list.append('      .clk(clk_user),')
+         lines_list.append('      .reset(reset_ap_start_user),')
+         lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
+         lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
+         lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
+         lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
+         lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
+         lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+')')
+         # lines_list.append('      .ap_start(1)') 
+         lines_list.append('    );')
+      elif int(WIDTH) < 32 and (32 % int(WIDTH) == 0) and is_riscv == False: # divisor of 32
+         lines_list.append('    expand_queue#(')
+         lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
+         lines_list.append('      .OUT_WIDTH(32)')
+         lines_list.append('    )Output_'+str(i)+'_converter(')
+         lines_list.append('      .clk(clk_user),')
+         lines_list.append('      .reset(reset_ap_start_user),')
+         lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
+         lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
+         lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
+         lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
+         lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
+         lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+')')
+         # lines_list.append('      .ap_start(1)') 
+         lines_list.append('    );')
+      else:
+         lines_list.append('    assign din_leaf_user2interface_'+str(i)+' = din_leaf_user2interface_'+str(i)+'_user;')
+         lines_list.append('    assign vld_user2interface_'+str(i)+' = vld_user2interface_'+str(i)+'_user;')
+         lines_list.append('    assign ack_interface2user_'+str(i)+'_user = ack_interface2user_'+str(i)+';')
+      lines_list.append('')
+
     if is_riscv == True:
       lines_list.append('   picorv32_wrapper picorv32_wrapper_inst(')
-      lines_list.append('       .clk(clk),')
+      lines_list.append('       .clk(clk_user),')
       lines_list.append('       .instr_config_addr(riscv_addr),')
       lines_list.append('       .instr_config_din(riscv_dout),')
       lines_list.append('       .instr_config_wr_en(instr_wr_en_out),')
@@ -666,27 +814,27 @@ class _verilog:
         lines_list.append('       .val_in'+str(i)+'(1\'d0),')
       for i in range(int(output_num)+1, 6, 1):
         lines_list.append('       .ready_downward'+str(i)+'(1\'d0),')
-      lines_list.append('       .resetn(ap_start_user&(!reset))')
+      lines_list.append('       .resetn(ap_start_user&(!reset_ap_start_user))')
       # lines_list.append('       .resetn((!reset))')
       lines_list.append('       );') 
     else:
       lines_list.append('    '+fun_name+' '+fun_name+'_inst(')
-      lines_list.append('        .ap_clk(clk),')
-      lines_list.append('        .ap_start(ap_start_user),')
-      # lines_list.append('        .ap_start(1\'b1),')
+      lines_list.append('        .ap_clk(clk_user),')
+      # lines_list.append('        .ap_start(ap_start_user),')
+      lines_list.append('        .ap_start(1\'b1), // this should be fine')
       lines_list.append('        .ap_done(),')
       lines_list.append('        .ap_idle(),')
       lines_list.append('        .ap_ready(),')
       for i in range(int(input_num),0,-1): 
-        lines_list.append('        .Input_'+str(i)+'_V_TDATA(dout_leaf_interface2user_'+str(i)+'_user),')
-        lines_list.append('        .Input_'+str(i)+'_V_TVALID(vld_interface2user_'+str(i)+'_user),')
-        lines_list.append('        .Input_'+str(i)+'_V_TREADY(ack_user2interface_'+str(i)+'_user),')
+        lines_list.append('        .Input_'+str(i)+'_TDATA(dout_leaf_interface2user_'+str(i)+'_user),')
+        lines_list.append('        .Input_'+str(i)+'_TVALID(vld_interface2user_'+str(i)+'_user),')
+        lines_list.append('        .Input_'+str(i)+'_TREADY(ack_user2interface_'+str(i)+'_user),')
       for i in range(int(output_num),0,-1): 
-        lines_list.append('        .Output_'+str(i)+'_V_TDATA(din_leaf_user2interface_'+str(i)+'_user),')
-        lines_list.append('        .Output_'+str(i)+'_V_TVALID(vld_user2interface_'+str(i)+'_user),')
-        lines_list.append('        .Output_'+str(i)+'_V_TREADY(ack_interface2user_'+str(i)+'_user),')
+        lines_list.append('        .Output_'+str(i)+'_TDATA(din_leaf_user2interface_'+str(i)+'_user),')
+        lines_list.append('        .Output_'+str(i)+'_TVALID(vld_user2interface_'+str(i)+'_user),')
+        lines_list.append('        .Output_'+str(i)+'_TREADY(ack_interface2user_'+str(i)+'_user),')
       # lines_list.append('        .ap_rst_n(~new_reset)')
-      lines_list.append('        .ap_rst_n(~reset)')
+      lines_list.append('        .ap_rst_n(~reset_ap_start_user)')
       lines_list.append('        );  ')
     lines_list.append('    ')
     lines_list.append('endmodule')

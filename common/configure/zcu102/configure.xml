@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <!--specifications for pr_flow tool-->
-  <spec name = "PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_dfx_202110_1" />
-  <spec name = "ROOTFS"              value = "/opt/platforms/xilinx-zynqmp-common-v2021.1" />
-  <spec name = "sdk_dir"             value = "/opt/platforms/xilinx-zynqmp-common-v2021.1/environment-setup-cortexa72-cortexa53-xilinx-linux" />
-  <spec name = "PLATFORM"            value = "xilinx_zcu102_base_dfx_202110_1" />
+  <spec name = "PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_dfx_202210_1" />
+  <spec name = "ROOTFS"              value = "/opt/platforms/xilinx-zynqmp-common-v2022.1" />
+  <spec name = "sdk_dir"             value = "/opt/platforms/xilinx-zynqmp-common-v2022.1/environment-setup-cortexa72-cortexa53-xilinx-linux" />
+  <spec name = "PLATFORM"            value = "xilinx_zcu102_base_dfx_202210_1" />
 
   <spec name = "board"               value = "zcu102" />
   <spec name = "device"              value = "xczcu9_0" />
   <spec name = "part"                value = "xczu9eg-ffvb1156-2-e" />
-  <spec name = "inst_name"           value = "pfm_top_i/dynamic_region/ydma_1" />
+  <!-- <spec name = "inst_name"           value = "pfm_top_i/dynamic_region/ydma_1" /> -->
+
+  <spec name = "inst_name"           value = "pfm_top_i/dynamic_region/PR_pages_top_0/inst" />
   <spec name = "top_name"            value = "pfm_top_wrapper" />
 
   <spec name = "p"                   value = "0.5" />

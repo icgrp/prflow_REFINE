@@ -9,27 +9,27 @@ extern "C" {
 			bit512 * output2,
 			int config_size,
 			int input_size,
-			int output_size
-	        )
+			int output_size,
+			int num_total_cnt // 2.5*num total ports + num ops
+	)
 	{
 #pragma HLS INTERFACE m_axi port=input1 bundle=aximm1
 #pragma HLS INTERFACE m_axi port=input2 bundle=aximm2
 #pragma HLS INTERFACE m_axi port=output1 bundle=aximm1
 #pragma HLS INTERFACE m_axi port=output2 bundle=aximm2
 
-	    bit64 v1_buffer[256];   // Local memory to store vector1
-		//hls::stream< unsigned int > v1_buffer;
-		#pragma HLS STREAM variable=v1_buffer depth=256
+
+	    bit64 v1_buffer[512];   // Local memory to store vector1
+		#pragma HLS STREAM variable=v1_buffer depth=512
 
 	    bit512 v2_buffer[1024];   // Local memory to store vector2
-		//hls::stream< unsigned int > v2_buffer;
 		#pragma HLS STREAM variable=v2_buffer depth=1024
 
 
 #pragma HLS DATAFLOW
 
 	    	for(int i=0; i<config_size; i++){ v1_buffer[i] = input1[i]; }
-	    	for(int i=0; i<config_size; i++){ output1[i] = v1_buffer[i]; }
+	    	for(int i=0; i<num_total_cnt; i++){ output1[i] = v1_buffer[i]; }
 
 
 	    	for(int i=0; i<input_size;  i++){ v2_buffer[i] = input2[i]; }

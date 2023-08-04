@@ -1,6 +1,7 @@
 // ==============================================================
-// Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2021.1 (64-bit)
-// Copyright 1986-2021 Xilinx, Inc. All Rights Reserved.
+// Vitis HLS - High-Level Synthesis from C, C++ and OpenCL v2022.1 (64-bit)
+// Tool Version Limit: 2022.04
+// Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 // ==============================================================
 `timescale 1ns/1ps
 module ydma_control_s_axi
@@ -36,7 +37,33 @@ module ydma_control_s_axi
     output wire [31:0]                   config_size,
     output wire [31:0]                   input_size,
     output wire [31:0]                   output_size,
+    output wire [31:0]                   num_total_cnt,
+
     output wire                          ap_start,
+    // below added by dopark
+(* dont_touch = "true" *) output wire ap_start_400_p2,
+(* dont_touch = "true" *) output wire ap_start_400_p3,
+(* dont_touch = "true" *) output wire ap_start_400_p4,
+(* dont_touch = "true" *) output wire ap_start_400_p5,
+(* dont_touch = "true" *) output wire ap_start_400_p6,
+(* dont_touch = "true" *) output wire ap_start_400_p7,
+(* dont_touch = "true" *) output wire ap_start_400_p8,
+(* dont_touch = "true" *) output wire ap_start_400_p9,
+(* dont_touch = "true" *) output wire ap_start_400_p10,
+(* dont_touch = "true" *) output wire ap_start_400_p11,
+(* dont_touch = "true" *) output wire ap_start_400_p12,
+(* dont_touch = "true" *) output wire ap_start_400_p13,
+(* dont_touch = "true" *) output wire ap_start_400_p14,
+(* dont_touch = "true" *) output wire ap_start_400_p15,
+(* dont_touch = "true" *) output wire ap_start_400_p16,
+(* dont_touch = "true" *) output wire ap_start_400_p17,
+(* dont_touch = "true" *) output wire ap_start_400_p18,
+(* dont_touch = "true" *) output wire ap_start_400_p19,
+(* dont_touch = "true" *) output wire ap_start_400_p20,
+(* dont_touch = "true" *) output wire ap_start_400_p21,
+(* dont_touch = "true" *) output wire ap_start_400_p22,
+(* dont_touch = "true" *) output wire ap_start_400_p23,
+
     input  wire                          ap_done,
     input  wire                          ap_ready,
     output wire                          ap_continue,
@@ -51,17 +78,18 @@ module ydma_control_s_axi
 //        bit 3  - ap_ready (Read/COR)
 //        bit 4  - ap_continue (Read/Write/SC)
 //        bit 7  - auto_restart (Read/Write)
+//        bit 9  - interrupt (Read)
 //        others - reserved
 // 0x04 : Global Interrupt Enable Register
 //        bit 0  - Global Interrupt Enable (Read/Write)
 //        others - reserved
 // 0x08 : IP Interrupt Enable Register (Read/Write)
-//        bit 0  - enable ap_done interrupt (Read/Write)
-//        bit 1  - enable ap_ready interrupt (Read/Write)
+//        bit 0 - enable ap_done interrupt (Read/Write)
+//        bit 1 - enable ap_ready interrupt (Read/Write)
 //        others - reserved
-// 0x0c : IP Interrupt Status Register (Read/TOW)
-//        bit 0  - ap_done (COR/TOW)
-//        bit 1  - ap_ready (COR/TOW)
+// 0x0c : IP Interrupt Status Register (Read/COR)
+//        bit 0 - ap_done (Read/COR)
+//        bit 1 - ap_ready (Read/COR)
 //        others - reserved
 // 0x10 : Data signal of input1
 //        bit 31~0 - input1[31:0] (Read/Write)
@@ -92,39 +120,44 @@ module ydma_control_s_axi
 // 0x50 : Data signal of output_size
 //        bit 31~0 - output_size[31:0] (Read/Write)
 // 0x54 : reserved
+// 0x58 : Data signal of num_total_cnt
+//        bit 31~0 - num_total_cnt[31:0] (Read/Write)
+// 0x5c : reserved
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
 
 //------------------------Parameter----------------------
 localparam
-    ADDR_AP_CTRL            = 7'h00,
-    ADDR_GIE                = 7'h04,
-    ADDR_IER                = 7'h08,
-    ADDR_ISR                = 7'h0c,
-    ADDR_INPUT1_DATA_0      = 7'h10,
-    ADDR_INPUT1_DATA_1      = 7'h14,
-    ADDR_INPUT1_CTRL        = 7'h18,
-    ADDR_INPUT2_DATA_0      = 7'h1c,
-    ADDR_INPUT2_DATA_1      = 7'h20,
-    ADDR_INPUT2_CTRL        = 7'h24,
-    ADDR_OUTPUT1_DATA_0     = 7'h28,
-    ADDR_OUTPUT1_DATA_1     = 7'h2c,
-    ADDR_OUTPUT1_CTRL       = 7'h30,
-    ADDR_OUTPUT2_DATA_0     = 7'h34,
-    ADDR_OUTPUT2_DATA_1     = 7'h38,
-    ADDR_OUTPUT2_CTRL       = 7'h3c,
-    ADDR_CONFIG_SIZE_DATA_0 = 7'h40,
-    ADDR_CONFIG_SIZE_CTRL   = 7'h44,
-    ADDR_INPUT_SIZE_DATA_0  = 7'h48,
-    ADDR_INPUT_SIZE_CTRL    = 7'h4c,
-    ADDR_OUTPUT_SIZE_DATA_0 = 7'h50,
-    ADDR_OUTPUT_SIZE_CTRL   = 7'h54,
-    WRIDLE                  = 2'd0,
-    WRDATA                  = 2'd1,
-    WRRESP                  = 2'd2,
-    WRRESET                 = 2'd3,
-    RDIDLE                  = 2'd0,
-    RDDATA                  = 2'd1,
-    RDRESET                 = 2'd2,
+    ADDR_AP_CTRL              = 7'h00,
+    ADDR_GIE                  = 7'h04,
+    ADDR_IER                  = 7'h08,
+    ADDR_ISR                  = 7'h0c,
+    ADDR_INPUT1_DATA_0        = 7'h10,
+    ADDR_INPUT1_DATA_1        = 7'h14,
+    ADDR_INPUT1_CTRL          = 7'h18,
+    ADDR_INPUT2_DATA_0        = 7'h1c,
+    ADDR_INPUT2_DATA_1        = 7'h20,
+    ADDR_INPUT2_CTRL          = 7'h24,
+    ADDR_OUTPUT1_DATA_0       = 7'h28,
+    ADDR_OUTPUT1_DATA_1       = 7'h2c,
+    ADDR_OUTPUT1_CTRL         = 7'h30,
+    ADDR_OUTPUT2_DATA_0       = 7'h34,
+    ADDR_OUTPUT2_DATA_1       = 7'h38,
+    ADDR_OUTPUT2_CTRL         = 7'h3c,
+    ADDR_CONFIG_SIZE_DATA_0   = 7'h40,
+    ADDR_CONFIG_SIZE_CTRL     = 7'h44,
+    ADDR_INPUT_SIZE_DATA_0    = 7'h48,
+    ADDR_INPUT_SIZE_CTRL      = 7'h4c,
+    ADDR_OUTPUT_SIZE_DATA_0   = 7'h50,
+    ADDR_OUTPUT_SIZE_CTRL     = 7'h54,
+    ADDR_NUM_TOTAL_CNT_DATA_0 = 7'h58,
+    ADDR_NUM_TOTAL_CNT_CTRL   = 7'h5c,
+    WRIDLE                    = 2'd0,
+    WRDATA                    = 2'd1,
+    WRRESP                    = 2'd2,
+    WRRESET                   = 2'd3,
+    RDIDLE                    = 2'd0,
+    RDDATA                    = 2'd1,
+    RDRESET                   = 2'd2,
     ADDR_BITS                = 7;
 
 //------------------------Local signal-------------------
@@ -149,6 +182,7 @@ localparam
     wire                          task_ap_done;
     reg                           int_task_ap_done = 1'b0;
     reg                           int_ap_start = 1'b0;
+    reg                           int_interrupt = 1'b0;
     reg                           int_auto_restart = 1'b0;
     reg                           auto_restart_status = 1'b0;
     reg                           auto_restart_done = 1'b0;
@@ -162,6 +196,32 @@ localparam
     reg  [31:0]                   int_config_size = 'b0;
     reg  [31:0]                   int_input_size = 'b0;
     reg  [31:0]                   int_output_size = 'b0;
+    reg  [31:0]                   int_num_total_cnt = 'b0;
+
+// below added by dopark
+(* dont_touch = "true" *) reg                           int_ap_start_400_p2 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p3 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p4 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p5 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p6 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p7 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p8 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p9 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p10 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p11 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p12 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p13 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p14 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p15 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p16 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p17 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p18 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p19 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p20 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p21 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p22 = 1'b0;
+(* dont_touch = "true" *) reg                           int_ap_start_400_p23 = 1'b0;
+
 
 //------------------------Instantiation------------------
 
@@ -261,6 +321,7 @@ always @(posedge ACLK) begin
                     rdata[3] <= int_ap_ready;
                     rdata[4] <= int_ap_continue;
                     rdata[7] <= int_auto_restart;
+                    rdata[9] <= int_interrupt;
                 end
                 ADDR_GIE: begin
                     rdata <= int_gie;
@@ -304,6 +365,9 @@ always @(posedge ACLK) begin
                 ADDR_OUTPUT_SIZE_DATA_0: begin
                     rdata <= int_output_size[31:0];
                 end
+                ADDR_NUM_TOTAL_CNT_DATA_0: begin
+                    rdata <= int_num_total_cnt[31:0];
+                end
             endcase
         end
     end
@@ -311,9 +375,38 @@ end
 
 
 //------------------------Register logic-----------------
-assign interrupt     = int_gie & (|int_isr);
+assign interrupt     = int_interrupt;
 assign event_start   = int_event_start;
 assign ap_start      = int_ap_start;
+
+// below added by dopark
+assign ap_start_400_p2      = int_ap_start_400_p2;
+assign ap_start_400_p3      = int_ap_start_400_p3;
+assign ap_start_400_p4      = int_ap_start_400_p4;
+assign ap_start_400_p5      = int_ap_start_400_p5;
+assign ap_start_400_p6      = int_ap_start_400_p6;
+assign ap_start_400_p7      = int_ap_start_400_p7;
+assign ap_start_400_p8      = int_ap_start_400_p8;
+assign ap_start_400_p9      = int_ap_start_400_p9;
+assign ap_start_400_p10     = int_ap_start_400_p10;
+assign ap_start_400_p11     = int_ap_start_400_p11;
+assign ap_start_400_p12     = int_ap_start_400_p12;
+assign ap_start_400_p13     = int_ap_start_400_p13;
+assign ap_start_400_p14     = int_ap_start_400_p14;
+assign ap_start_400_p15     = int_ap_start_400_p15;
+assign ap_start_400_p16     = int_ap_start_400_p16;
+assign ap_start_400_p17     = int_ap_start_400_p17;
+assign ap_start_400_p18     = int_ap_start_400_p18;
+assign ap_start_400_p19     = int_ap_start_400_p19;
+assign ap_start_400_p20     = int_ap_start_400_p20;
+assign ap_start_400_p21     = int_ap_start_400_p21;
+assign ap_start_400_p22     = int_ap_start_400_p22;
+assign ap_start_400_p23     = int_ap_start_400_p23;
+
+
+
+
+
 assign task_ap_done  = (ap_done && !auto_restart_status) || auto_restart_done;
 assign task_ap_ready = ap_ready && !int_auto_restart;
 assign ap_continue   = int_ap_continue || auto_restart_status;
@@ -324,6 +417,19 @@ assign output2       = int_output2;
 assign config_size   = int_config_size;
 assign input_size    = int_input_size;
 assign output_size   = int_output_size;
+assign num_total_cnt = int_num_total_cnt;
+// int_interrupt
+always @(posedge ACLK) begin
+    if (ARESET)
+        int_interrupt <= 1'b0;
+    else if (ACLK_EN) begin
+        if (int_gie && (|int_isr))
+            int_interrupt <= 1'b1;
+        else
+            int_interrupt <= 1'b0;
+    end
+end
+
 // int_event_start
 always @(posedge ACLK) begin
     if (ARESET)
@@ -348,6 +454,86 @@ always @(posedge ACLK) begin
     end
 end
 
+// below added by dopark
+always @(posedge ACLK) begin
+    if (ARESET) begin
+        int_ap_start_400_p2 <= 1'b0;
+        int_ap_start_400_p3 <= 1'b0;
+        int_ap_start_400_p4 <= 1'b0;
+        int_ap_start_400_p5 <= 1'b0;
+        int_ap_start_400_p6 <= 1'b0;
+        int_ap_start_400_p7 <= 1'b0;
+        int_ap_start_400_p8 <= 1'b0;
+        int_ap_start_400_p9 <= 1'b0;
+        int_ap_start_400_p10 <= 1'b0;
+        int_ap_start_400_p11 <= 1'b0;
+        int_ap_start_400_p12 <= 1'b0;
+        int_ap_start_400_p13 <= 1'b0;
+        int_ap_start_400_p14 <= 1'b0;
+        int_ap_start_400_p15 <= 1'b0;
+        int_ap_start_400_p16 <= 1'b0;
+        int_ap_start_400_p17 <= 1'b0;
+        int_ap_start_400_p18 <= 1'b0;
+        int_ap_start_400_p19 <= 1'b0;
+        int_ap_start_400_p20 <= 1'b0;
+        int_ap_start_400_p21 <= 1'b0;
+        int_ap_start_400_p22 <= 1'b0;
+        int_ap_start_400_p23 <= 1'b0;
+    end
+    else if (ACLK_EN) begin
+        if (w_hs && waddr == ADDR_AP_CTRL && WSTRB[0] && WDATA[0]) begin
+            int_ap_start_400_p2 <= 1'b1;
+            int_ap_start_400_p3 <= 1'b1;
+            int_ap_start_400_p4 <= 1'b1;
+            int_ap_start_400_p5 <= 1'b1;
+            int_ap_start_400_p6 <= 1'b1;
+            int_ap_start_400_p7 <= 1'b1;
+            int_ap_start_400_p8 <= 1'b1;
+            int_ap_start_400_p9 <= 1'b1;
+            int_ap_start_400_p10 <= 1'b1;
+            int_ap_start_400_p11 <= 1'b1;
+            int_ap_start_400_p12 <= 1'b1;
+            int_ap_start_400_p13 <= 1'b1;
+            int_ap_start_400_p14 <= 1'b1;
+            int_ap_start_400_p15 <= 1'b1;
+            int_ap_start_400_p16 <= 1'b1;
+            int_ap_start_400_p17 <= 1'b1;
+            int_ap_start_400_p18 <= 1'b1;
+            int_ap_start_400_p19 <= 1'b1;
+            int_ap_start_400_p20 <= 1'b1;
+            int_ap_start_400_p21 <= 1'b1;
+            int_ap_start_400_p22 <= 1'b1;
+            int_ap_start_400_p23 <= 1'b1;
+        end
+        else if (ap_ready) begin
+            int_ap_start_400_p2 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p3 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p4 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p5 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p6 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p7 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p8 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p9 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p10 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p11 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p12 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p13 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p14 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p15 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p16 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p17 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p18 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p19 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p20 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p21 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p22 <= int_auto_restart; // clear on handshake/auto restart
+            int_ap_start_400_p23 <= int_auto_restart; // clear on handshake/auto restart
+        end
+    end
+end
+
+
+
 // int_ap_done
 always @(posedge ACLK) begin
     if (ARESET)
@@ -362,7 +548,7 @@ always @(posedge ACLK) begin
     if (ARESET)
         int_task_ap_done <= 1'b0;
     else if (ACLK_EN) begin
-            int_task_ap_done <= task_ap_done;
+            int_task_ap_done <= task_ap_done && !int_ap_continue;
     end
 end
 
@@ -460,8 +646,8 @@ always @(posedge ACLK) begin
     else if (ACLK_EN) begin
         if (int_ier[0] & ap_done)
             int_isr[0] <= 1'b1;
-        else if (w_hs && waddr == ADDR_ISR && WSTRB[0])
-            int_isr[0] <= int_isr[0] ^ WDATA[0]; // toggle on write
+        else if (ar_hs && raddr == ADDR_ISR)
+            int_isr[0] <= 1'b0; // clear on read
     end
 end
 
@@ -472,8 +658,8 @@ always @(posedge ACLK) begin
     else if (ACLK_EN) begin
         if (int_ier[1] & ap_ready)
             int_isr[1] <= 1'b1;
-        else if (w_hs && waddr == ADDR_ISR && WSTRB[0])
-            int_isr[1] <= int_isr[1] ^ WDATA[1]; // toggle on write
+        else if (ar_hs && raddr == ADDR_ISR)
+            int_isr[1] <= 1'b0; // clear on read
     end
 end
 
@@ -587,6 +773,26 @@ always @(posedge ACLK) begin
     end
 end
 
+// int_num_total_cnt[31:0]
+always @(posedge ACLK) begin
+    if (ARESET)
+        int_num_total_cnt[31:0] <= 0;
+    else if (ACLK_EN) begin
+        if (w_hs && waddr == ADDR_NUM_TOTAL_CNT_DATA_0)
+            int_num_total_cnt[31:0] <= (WDATA[31:0] & wmask) | (int_num_total_cnt[31:0] & ~wmask);
+    end
+end
+
+//synthesis translate_off
+always @(posedge ACLK) begin
+    if (ACLK_EN) begin
+        if (int_gie & ~int_isr[0] & int_ier[0] & ap_done)
+            $display ("// Interrupt Monitor : interrupt for ap_done detected @ \"%0t\"", $time);
+        if (int_gie & ~int_isr[1] & int_ier[1] & ap_ready)
+            $display ("// Interrupt Monitor : interrupt for ap_ready detected @ \"%0t\"", $time);
+    end
+end
+//synthesis translate_on
 
 //------------------------Memory logic-------------------
 

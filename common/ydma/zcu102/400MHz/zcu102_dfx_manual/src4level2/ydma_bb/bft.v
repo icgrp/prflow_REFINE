@@ -1,3 +1,4 @@
+// bft, p==0.67 ver.
 module bft(
     input clk,
     input  [49-1:0]dout_leaf_0,
@@ -293,17 +294,17 @@ module gen_nw32 # (
 	output [24-1:0] resend
 );
 	
-	wire [p_sz*4-1:0] left_switch_0_0;
-	wire [p_sz*4-1:0] right_switch_0_0;
-	wire [p_sz*4-1:0] switch_left_0_0;
-	wire [p_sz*4-1:0] switch_right_0_0;
+	wire [p_sz*8-1:0] left_switch_0_0;
+	wire [p_sz*8-1:0] right_switch_0_0;
+	wire [p_sz*8-1:0] switch_left_0_0;
+	wire [p_sz*8-1:0] switch_right_0_0;
 	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(addr),
 		.level(level),
 		.p_sz(p_sz),
-		.num_switches(4))
+		.num_switches(8))
 		pi_lvl0(
 		.clk(clk),
 		.reset(reset),
@@ -321,14 +322,14 @@ module gen_nw32 # (
 	wire [p_sz*4-1:0] right_switch_1_1;
 	wire [p_sz*4-1:0] switch_left_1_1;
 	wire [p_sz*4-1:0] switch_right_1_1;
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(0),
 		.level(1),
 		.p_sz(p_sz),
 		.num_switches(4)
-		)t_lvl_1_0(
+		)pi_lvl_1_0(
 		.clk(clk),
 		.reset(reset),
 		.u_bus_o(left_switch_0_0),
@@ -338,14 +339,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_1_0),
 		.r_bus_o(switch_right_1_0));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(1),
 		.level(1),
 		.p_sz(p_sz),
 		.num_switches(4)
-		)t_lvl_1_1(
+		)pi_lvl_1_1(
 		.clk(clk),
 		.reset(reset),
 		.u_bus_o(right_switch_0_0),
@@ -357,30 +358,30 @@ module gen_nw32 # (
 
 
 //--------level=2--------------
-	wire [p_sz*2-1:0] left_switch_2_0;
-	wire [p_sz*2-1:0] right_switch_2_0;
-	wire [p_sz*2-1:0] switch_left_2_0;
-	wire [p_sz*2-1:0] switch_right_2_0;
-	wire [p_sz*2-1:0] left_switch_2_1;
-	wire [p_sz*2-1:0] right_switch_2_1;
-	wire [p_sz*2-1:0] switch_left_2_1;
-	wire [p_sz*2-1:0] switch_right_2_1;
-	wire [p_sz*2-1:0] left_switch_2_2;
-	wire [p_sz*2-1:0] right_switch_2_2;
-	wire [p_sz*2-1:0] switch_left_2_2;
-	wire [p_sz*2-1:0] switch_right_2_2;
+	wire [p_sz*4-1:0] left_switch_2_0;
+	wire [p_sz*4-1:0] right_switch_2_0;
+	wire [p_sz*4-1:0] switch_left_2_0;
+	wire [p_sz*4-1:0] switch_right_2_0;
+	wire [p_sz*4-1:0] left_switch_2_1;
+	wire [p_sz*4-1:0] right_switch_2_1;
+	wire [p_sz*4-1:0] switch_left_2_1;
+	wire [p_sz*4-1:0] switch_right_2_1;
+	wire [p_sz*4-1:0] left_switch_2_2;
+	wire [p_sz*4-1:0] right_switch_2_2;
+	wire [p_sz*4-1:0] switch_left_2_2;
+	wire [p_sz*4-1:0] switch_right_2_2;
 	// wire [p_sz*2-1:0] left_switch_2_3;
 	// wire [p_sz*2-1:0] right_switch_2_3;
 	// wire [p_sz*2-1:0] switch_left_2_3;
 	// wire [p_sz*2-1:0] switch_right_2_3;
-	pi_cluster #(
+	t_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(0),
 		.level(2),
 		.p_sz(p_sz),
-		.num_switches(2)
-		)pi_lvl_2_0(
+		.num_switches(4)
+		)t_lvl_2_0(
 		.clk(clk),
 		.reset(reset),
 		.u_bus_o(left_switch_1_0),
@@ -390,14 +391,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_2_0),
 		.r_bus_o(switch_right_2_0));
 
-	pi_cluster #(
+	t_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(1),
 		.level(2),
 		.p_sz(p_sz),
-		.num_switches(2)
-		)pi_lvl_2_1(
+		.num_switches(4)
+		)t_lvl_2_1(
 		.clk(clk),
 		.reset(reset),
 		.u_bus_o(right_switch_1_0),
@@ -407,14 +408,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_2_1),
 		.r_bus_o(switch_right_2_1));
 
-	pi_cluster #(
+	t_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(2),
 		.level(2),
 		.p_sz(p_sz),
-		.num_switches(2)
-		)pi_lvl_2_2(
+		.num_switches(4)
+		)t_lvl_2_2(
 		.clk(clk),
 		.reset(reset),
 		.u_bus_o(left_switch_1_1),
@@ -424,7 +425,7 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_2_2),
 		.r_bus_o(switch_right_2_2));
 
-	// pi_cluster #(
+	// t_cluster #(
 	// 	.num_leaves(num_leaves),
 	// 	.payload_sz(payload_sz),
 	// 	.addr(3),
@@ -475,14 +476,14 @@ module gen_nw32 # (
 	// wire [p_sz*2-1:0] right_switch_3_7;
 	// wire [p_sz*2-1:0] switch_left_3_7;
 	// wire [p_sz*2-1:0] switch_right_3_7;
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(0),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_0(
+		)pi_lvl_3_0(
 		.clk(clk),
 		.reset(reset_2),
 		.u_bus_o(left_switch_2_0),
@@ -492,14 +493,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_3_0),
 		.r_bus_o(switch_right_3_0));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(1),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_1(
+		)pi_lvl_3_1(
 		.clk(clk),
 		.reset(reset_4),
 		.u_bus_o(right_switch_2_0),
@@ -509,14 +510,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_3_1),
 		.r_bus_o(switch_right_3_1));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(2),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_2(
+		)pi_lvl_3_2(
 		.clk(clk),
 		.reset(reset_8),
 		.u_bus_o(left_switch_2_1),
@@ -526,14 +527,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_3_2),
 		.r_bus_o(switch_right_3_2));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(3),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_3(
+		)pi_lvl_3_3(
 		.clk(clk),
 		.reset(reset_12),
 		.u_bus_o(right_switch_2_1),
@@ -543,14 +544,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_3_3),
 		.r_bus_o(switch_right_3_3));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(4),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_4(
+		)pi_lvl_3_4(
 		.clk(clk),
 		.reset(reset_16),
 		.u_bus_o(left_switch_2_2),
@@ -560,14 +561,14 @@ module gen_nw32 # (
 		.l_bus_o(switch_left_3_4),
 		.r_bus_o(switch_right_3_4));
 
-	t_cluster #(
+	pi_cluster #(
 		.num_leaves(num_leaves),
 		.payload_sz(payload_sz),
 		.addr(5),
 		.level(3),
 		.p_sz(p_sz),
 		.num_switches(2)
-		)t_lvl_3_5(
+		)pi_lvl_3_5(
 		.clk(clk),
 		.reset(reset_20),
 		.u_bus_o(right_switch_2_2),

@@ -30,8 +30,8 @@ class impl(gen_basic):
         page_inst = 'page' + base_page_num + '_inst'
     return page_inst
 
-  # create one directory for each page 
-  def create_page(self, pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency):
+  # create one directory for each page
+  def create_page(self, pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency, overlay_freq):
     num_op = self.get_num_op(pblock_op_impl)
     if(num_op > 1): # if pblock_op_impl="coloringFB_bot_m coloringFB_top_m", operator_impl=coloringFB_bot_m
       operator_impl = pblock_op_impl.split()[0]
@@ -67,6 +67,9 @@ class impl(gen_basic):
     #   set_bit_name_replace = 'set bit_name "../../F005_bits_${benchmark}/${operator}.bit"'
     #   set_logFileId_replace = 'set logFileId [open ./runLogImpl_${operator}.log "w"]'
     #   add_files_user_logic_dcp_replace = 'add_files $user_logic_dcp'
+    clk_src_list = {"clk_200": "clk_out5_pfm_top_clkwiz_sysclks_0", "clk_250": "clk_250_pfm_dynamic_clk_wiz_0_0_1",
+                    "clk_300": "clk_out2_pfm_top_clkwiz_sysclks_0", "clk_350": "clk_350_pfm_dynamic_clk_wiz_0_0_1", \
+                    "clk_400": "clk_out6_pfm_top_clkwiz_sysclks_0"}
 
     tmp_dict = {'set operator'                : set_operator_replace,
                 'set benchmark'               : 'set benchmark '+self.prflow_params['benchmark_name'],
@@ -85,31 +88,37 @@ class impl(gen_basic):
                                                 +'report_utilization -hierarchical -file ' \
                                                 + operator_impl + '_' + str(pblock_name) + '.rpt'
                 }
+    if frequency == "400":
+      tmp_dict["set_max_delay "] = "" # remove this constraint
+    else:
+      clk_src = clk_src_list["clk_" + frequency]
+      tmp_dict["set_max_delay "] = "set_max_delay -datapath_only 2.5 -from [get_clocks clk_out6_pfm_top_clkwiz_sysclks_0] -to [get_clocks " +\
+                                    clk_src + "]"
 
     if(self.get_page_size(pblock_name) == 1):
       tmp_dict['set leaf_dcp']     = ''
     elif(self.get_page_size(pblock_name) == 2):
       if(num_op == 1):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_1.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_1.dcp"'
       elif(num_op == 2):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_2.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_2.dcp"'
       else:
         raise Exception("Invalid num_op")
     elif(self.get_page_size(pblock_name) == 4):
       if(num_op == 1):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_1.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_1.dcp"'
       elif(num_op == 2):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_2.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_2.dcp"'
       elif(num_op == 3):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_3.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_3.dcp"'
       elif(num_op == 4):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_4.dcp"'
+                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_4.dcp"'
       else:
         raise Exception("Invalid num_op")
     #elif(self.get_page_size(pblock_name) == 8):
@@ -137,7 +146,7 @@ class impl(gen_basic):
  
       tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/' + page_inst + '"'
       tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                  +'/'+frequency+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/' + pblock_name + '.dcp"'
+                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/' + pblock_name + '.dcp"'
 
 
     # self.shell.cp_dir('./common/script_src/monitor_impl.sh', self.pr_dir+'/monitor.sh') # syn and impl are type 2
@@ -171,7 +180,7 @@ class impl(gen_basic):
   #   qsub_main.sh <-|_ Qsubmit each qsub_run.sh <- impl_page.tcl
     pass   
 
-  def run(self, operator_impl, syn_dcp, monitor_on=False, frequency="200"):
+  def run(self, operator_impl, syn_dcp, monitor_on=False, overlay_freq="400"):
     # mk work directory
     if self.prflow_params['gen_impl']==True:
       print("gen_impl")
@@ -180,10 +189,11 @@ class impl(gen_basic):
     
 
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/pblock_operators_dict.json', 'r') as infile:
-      pblock_operators_dict = json.load(infile)
+    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+      # pblock_operators_list = json.load(infile)
+        pblock_operators_dict = json.load(infile)
+    pblock_operators_list = pblock_operators_dict.keys()
 
-    pblock_operators_list = list(pblock_operators_dict.keys())
     for pblock_op in pblock_operators_list:
       if(operator_impl in pblock_op.split()):
         # replace representiative op to multiple pblock_op, e.g.:"coloringFB_bot_m" to "coloringFB_bot_m coloringFB_top_m"
@@ -204,6 +214,11 @@ class impl(gen_basic):
     print("############################ PBLOCK NAME: " + pblock_name)
     # print("############################ OVERLAY_N: " + overlay_n)
 
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
+      # pblock_operators_list = json.load(infile)
+      pblock_operators_dict = json.load(infile)
+    frequency = pblock_operators_dict[operator_impl]
+
     # if pblock_name_exist==True:
     #   self.create_page(pblock_op_impl, pblock_name, overlay_n, monitor_on)
-    self.create_page(pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency)
+    self.create_page(pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency, overlay_freq)

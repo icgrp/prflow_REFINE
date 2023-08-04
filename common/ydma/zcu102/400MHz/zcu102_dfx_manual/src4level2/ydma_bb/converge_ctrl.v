@@ -270,19 +270,19 @@ xpm_fifo_sync #(
       .wr_clk(clk),
       .wr_en(wr_update_en));
 */
- SynFIFO #(
-    .DSIZE(PACKET_BITS),
-    .ASIZE(4)
-    )SynFIFO_inst (
-	.clk(clk),
-	.rst_n(~reset),
-	.rdata(fifo_dout), 
-	.wfull(), 
-	.rempty(FreeUpdateEmpty), 
-	.wdata(fifo_din),
-	.winc(wr_update_en), 
-	.rinc(rd_update_en)
-	);
+     SynFIFO #(
+        .DSIZE(PACKET_BITS),
+        .ASIZE(4)
+        )SynFIFO_inst (
+    	.clk(clk),
+    	.rst_n(~reset),
+    	.rdata(fifo_dout), 
+    	.wfull(), 
+    	.rempty(FreeUpdateEmpty), 
+    	.wdata(fifo_din),
+    	.winc(wr_update_en), 
+    	.rinc(rd_update_en)
+    );
   
     //detect the rising edge of the update signals
     rise_detect #(

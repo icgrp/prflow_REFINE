@@ -287,10 +287,12 @@ def main():
         # Only care about blockedBelsOutputs.tcl from the pblock's abstrach shell
         blocked_file = './blocked_dir/' + pblock_name + '/hd_visual/blockedBelsOutputs.tcl'
         lines_raw = []
-        with open(blocked_file, 'r') as file:
-            lines_raw = file.readlines()
-        with open(blocked_sites_file, 'r') as file:
-            lines_raw = lines_raw + file.readlines()
+        if(os.path.isfile(blocked_file)): 
+            with open(blocked_file, 'r') as file:
+                lines_raw = file.readlines()
+        if(os.path.isfile(blocked_sites_file)):         
+            with open(blocked_sites_file, 'r') as file:
+                lines_raw = lines_raw + file.readlines()
         lines_processed = pre_process(lines_raw) # remove unneccessary lines and unnecessary blocked resources like CARRY8, etc
         for line in lines_processed:
             line = line.strip()

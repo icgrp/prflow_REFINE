@@ -15,7 +15,7 @@
 #define NUM_TEST      2000
 #define DIGIT_WIDTH   4
 #define PAR_FACTOR_NEW 10
-#define SIZE PAR_FACTOR/PAR_FACTOR_NEW
+#define OP_SIZE PAR_FACTOR/PAR_FACTOR_NEW
 // typedefs
 typedef unsigned long long DigitType;
 typedef unsigned char      LabelType;
@@ -38,7 +38,7 @@ typedef unsigned char      LabelType;
 #endif
 
 // parameters
-#define K_CONST 3
+#define K_CONST 1
 #define PAR_FACTOR 40
 #include <hls_stream.h>
 #endif

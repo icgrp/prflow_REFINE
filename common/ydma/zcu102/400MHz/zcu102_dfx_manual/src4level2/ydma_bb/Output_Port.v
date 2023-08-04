@@ -43,13 +43,20 @@ module Output_Port#(
     output empty,
     input rd_en_sel,
 
-    
+    //user interface
     output ack_b_out2user,
     input [PAYLOAD_BITS-1:0] din_leaf_user2interface,
     input vld_user2b_out,
     
-    input ap_start
-
+    input ap_start,
+    input is_done_mode,
+    output reg [PAYLOAD_BITS-1:0] output_port_full_cnt,
+    output reg [PAYLOAD_BITS-1:0] output_port_empty_cnt,
+    input is_sending_full_cnt_reg,
+    input [NUM_LEAF_BITS-1:0] self_leaf_reg,
+    input [NUM_PORT_BITS-1:0] self_port_reg,
+    input [1:0] cnt_type_reg,
+    output output_port_stall_condition
     );
 
     reg valid;
@@ -62,14 +69,34 @@ module Output_Port#(
     reg [NUM_ADDR_BITS-1:0] fifo_addr_reg;
 
     wire full;
+
+    wire [NUM_LEAF_BITS-1:0] self_leaf;
+    wire [NUM_PORT_BITS-1:0] self_port;
+    wire [1:0] cnt_type;
+    wire is_sending_full_cnt;
     
     generate
+        wire [PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_LEAF_BITS-NUM_PORT_BITS-2-1:0] cnt_dout;
+        if(PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_LEAF_BITS-NUM_PORT_BITS-2 > PAYLOAD_BITS) begin
+            wire [PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_LEAF_BITS-NUM_PORT_BITS-2-PAYLOAD_BITS-1:0] remaining_bits;
+            assign remaining_bits = 0;
+            assign cnt_dout = {remaining_bits,dout[PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_LEAF_BITS-NUM_PORT_BITS-2-1:0]};
+        end
+        else begin
+            assign cnt_dout = dout[PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_LEAF_BITS-NUM_PORT_BITS-2-1:0];
+        end
+
         if(PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_ADDR_BITS-PAYLOAD_BITS-1>=0) begin
             wire [PACKET_BITS-1-NUM_LEAF_BITS-NUM_PORT_BITS-NUM_ADDR_BITS-PAYLOAD_BITS-1:0] reserved_bits;
             assign reserved_bits = 0;
-            assign internal_out = valid ? {1'b1, dst_leaf, dst_port, reserved_bits, fifo_addr_reg, dout} : 0;
+            // assign internal_out = valid ? {1'b1, dst_leaf, dst_port, reserved_bits, fifo_addr_reg, dout} : 0;
+
+            assign internal_out = is_sending_full_cnt ? (valid ? {1'b1, dst_leaf, dst_port, self_leaf, self_port, cnt_type, cnt_dout} : 0) : 
+                                                        (valid ? {1'b1, dst_leaf, dst_port, reserved_bits, fifo_addr_reg, dout} : 0);
         end else begin
-            assign internal_out = valid ? {1'b1, dst_leaf, dst_port, fifo_addr_reg, dout} : 0;
+            // assign internal_out = valid ? {1'b1, dst_leaf, dst_port, fifo_addr_reg, dout} : 0;
+            assign internal_out = is_sending_full_cnt ? (valid ? {1'b1, dst_leaf, dst_port, self_leaf, self_port, cnt_type, cnt_dout} : 0) : 
+                                                        (valid ? {1'b1, dst_leaf, dst_port, fifo_addr_reg, dout} : 0);
         end
     endgenerate
         
@@ -130,65 +157,178 @@ module Output_Port#(
         .full(full),
         .wr_en(wr_en), 
         .din(din));
-              
-/*
-xpm_fifo_async # (
+                  
+    /*
+    xpm_fifo_async # (
 
-  .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
-  .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
-  .RELATED_CLOCKS            (0),                //positive integer; 0 or 1
-  .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
-  .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
-  .WR_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
-  .PROG_FULL_THRESH          (10),               //positive integer
-  .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
-  .READ_MODE                 ("std"),            //string; "std" or "fwft";
-  .FIFO_READ_LATENCY         (1),                //positive integer;
-  .READ_DATA_WIDTH           (PAYLOAD_BITS),               //positive integer
-  .RD_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
-  .PROG_EMPTY_THRESH         (10),               //positive integer
-  .DOUT_RESET_VALUE          ("0"),              //string
-  .CDC_SYNC_STAGES           (2),                //positive integer
-  .WAKEUP_TIME               (0)                 //positive integer; 0 or 2;
+      .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
+      .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
+      .RELATED_CLOCKS            (0),                //positive integer; 0 or 1
+      .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
+      .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
+      .WR_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
+      .PROG_FULL_THRESH          (10),               //positive integer
+      .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
+      .READ_MODE                 ("std"),            //string; "std" or "fwft";
+      .FIFO_READ_LATENCY         (1),                //positive integer;
+      .READ_DATA_WIDTH           (PAYLOAD_BITS),               //positive integer
+      .RD_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
+      .PROG_EMPTY_THRESH         (10),               //positive integer
+      .DOUT_RESET_VALUE          ("0"),              //string
+      .CDC_SYNC_STAGES           (2),                //positive integer
+      .WAKEUP_TIME               (0)                 //positive integer; 0 or 2;
 
-) xpm_fifo_async_inst (
+    ) xpm_fifo_async_inst (
 
-  .rst              (reset),
-  .wr_clk           (clk_user),
-  .wr_en            (wr_en),
-  .din              (din),
-  .full             (full),
-  .overflow         (overflow),
-  .wr_rst_busy      (wr_rst_busy),
-  .rd_clk           (clk_bft),
-  .rd_en            (rd_en),
-  .dout             (dout),
-  .empty            (empty),
-  .underflow        (underflow),
-  .rd_rst_busy      (rd_rst_busy),
-  .prog_full        (prog_full),
-  .wr_data_count    (wr_data_count),
-  .prog_empty       (prog_empty),
-  .rd_data_count    (rd_data_count),
-  .sleep            (1'b0),
-  .injectsbiterr    (1'b0),
-  .injectdbiterr    (1'b0),
-  .sbiterr          (),
-  .dbiterr          ()
+      .rst              (reset),
+      .wr_clk           (clk_user),
+      .wr_en            (wr_en),
+      .din              (din),
+      .full             (full),
+      .overflow         (overflow),
+      .wr_rst_busy      (wr_rst_busy),
+      .rd_clk           (clk_bft),
+      .rd_en            (rd_en),
+      .dout             (dout),
+      .empty            (empty),
+      .underflow        (underflow),
+      .rd_rst_busy      (rd_rst_busy),
+      .prog_full        (prog_full),
+      .wr_data_count    (wr_data_count),
+      .prog_empty       (prog_empty),
+      .rd_data_count    (rd_data_count),
+      .sleep            (1'b0),
+      .injectsbiterr    (1'b0),
+      .injectdbiterr    (1'b0),
+      .sbiterr          (),
+      .dbiterr          ()
 
-);
-*/
+    );
+    */
 
-SynFIFO SynFIFO_inst (
-	.clk(clk),
-	.rst_n(!reset),
-	.rdata(dout), 
-	.wfull(full), 
-	.rempty(empty), 
-	.wdata(din),
-	.winc(wr_en), 
-	.rinc(rd_en)
-	);
-	
-	
+
+    // fifo for self_leaf_reg, self_port_reg, cnt_type_reg. Used only after is_done
+    SynFIFO_distributed #(
+    .DSIZE(1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2),
+    .ASIZE(4)
+    )SynFIFO_distributed_inst (
+        .clk(clk),
+        .rst_n(!reset),
+        .rdata({is_sending_full_cnt,self_leaf,self_port,cnt_type}), 
+        .wfull(), 
+        .rempty(), 
+        .wdata({is_sending_full_cnt_reg,self_leaf_reg,self_port_reg,cnt_type_reg}),
+        .winc(wr_en), 
+        .rinc(rd_en)
+        );
+
+    SynFIFO SynFIFO_inst (
+    	.clk(clk),
+    	.rst_n(!reset),
+    	.rdata(dout), 
+    	.wfull(full), 
+    	.rempty(empty), 
+    	.wdata(din),
+    	.winc(wr_en), 
+    	.rinc(rd_en)
+    	);
+
+
+    /////////////////////////
+    // counter logic below //
+    /////////////////////////
+    // User is ready to output data but output queue is full
+    assign output_port_stall_condition = (!is_done_mode) && vld_user2b_out && full;
+
+    // count the number of output queue's full
+    always@(posedge clk) begin
+        if(reset) output_port_full_cnt <= 0;
+        else begin
+            if(full && !is_done_mode) output_port_full_cnt <= output_port_full_cnt + 1;
+            else output_port_full_cnt <= output_port_full_cnt;
+        end
+    end
+
+    // count the number of output queue's empty
+    always@(posedge clk) begin
+        if(reset) output_port_empty_cnt <= 0;
+        else begin
+            if(empty && !is_done_mode) output_port_empty_cnt <= output_port_empty_cnt + 1;
+            else output_port_empty_cnt <= output_port_empty_cnt;
+        end
+    end
+
+    // count the number of output queue's write
+    // DJP: I think this shuold match with Input's read cnt 
+    // always@(posedge clk) begin
+    //     if(reset) output_port_write_cnt <= 0;
+    //     else begin
+    //         if(vld_user2b_out && ack_b_out2user && !is_done_mode) output_port_write_cnt <= output_port_write_cnt + 1;
+    //         else output_port_write_cnt <= output_port_write_cnt;
+    //     end
+    // end
+
+endmodule
+
+
+// small synchronous FIFO, synthesized to distributed RAM
+module SynFIFO_distributed (
+    clk,
+    rst_n,
+    rdata, 
+    wfull, 
+    rempty, 
+    wdata,
+    winc, 
+    rinc
+    );
+    
+parameter DSIZE = 32;
+parameter ASIZE = 4;
+parameter MEMDEPTH = 1<<ASIZE;
+parameter RAM_TYPE = "distributed";     // Type of RAM: string; "auto", "block", or "distributed";
+
+    output reg [DSIZE-1:0] rdata;
+    output wfull;
+    output rempty;
+
+    input [DSIZE-1:0] wdata;
+    input winc, rinc, clk, rst_n;
+
+    reg [ASIZE:0] wptr;
+    reg [ASIZE:0] rptr;
+    (* ram_style = RAM_TYPE *) reg [DSIZE-1:0] ex_mem [0:MEMDEPTH-1];
+    wire [DSIZE-1:0] rdata_tmp;
+
+    wire wfull_r;
+    wire [ASIZE:0] wptr_1;
+
+    always @(posedge clk)
+        if (!rst_n) wptr <= 0;
+        else if (winc && !wfull) begin
+            ex_mem[wptr[ASIZE-1:0]] <= wdata;
+            wptr <= wptr+1;
+        end
+
+
+    always @(posedge clk)
+        if (!rst_n) rptr <= 0;
+        else if (rinc && !rempty) rptr <= rptr+1;
+
+    assign wptr_1 = wptr + 1;   
+    assign rdata_tmp = ex_mem[rptr[ASIZE-1:0]];
+    assign rempty = (rptr == wptr);
+    assign wfull = ((wptr_1[ASIZE-1:0] == rptr[ASIZE-1:0]) && (wptr_1[ASIZE] != rptr[ASIZE])) || wfull_r;
+    assign wfull_r = (wptr[ASIZE-1:0] == rptr[ASIZE-1:0]) && (wptr[ASIZE] != rptr[ASIZE]);
+
+    always @(posedge clk) begin
+        if(!rst_n) begin
+            rdata <= 0;
+        end else if(rinc) begin
+            rdata <= rdata_tmp;
+        end else begin
+            rdata <= rdata;
+        end
+    end
+
 endmodule

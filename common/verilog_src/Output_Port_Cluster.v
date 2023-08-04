@@ -33,7 +33,11 @@ module Output_Port_Cluster #(
     localparam OUT_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS+NUM_ADDR_BITS+NUM_ADDR_BITS+3
     )(
     input clk,
+    input clk_user,
+
     input reset,
+    input reset_user,    
+
     input [OUT_PORTS_REG_BITS*NUM_OUT_PORTS-1:0] out_control_reg,  
     output [PACKET_BITS*NUM_OUT_PORTS-1:0] internal_out,
     output [NUM_OUT_PORTS-1:0] empty,
@@ -43,11 +47,20 @@ module Output_Port_Cluster #(
     input [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] din_leaf_user2interface,
     input [NUM_OUT_PORTS-1:0] vld_user2b_out,
     
-    input ap_start
-
+    input is_done_mode, // clk(_bft) domain
+    input is_done_mode_user, // clk_user domain
+    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_full_cnt,
+    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_empty_cnt,
+    input is_sending_full_cnt_reg,
+    input [NUM_LEAF_BITS-1:0] self_leaf_reg,
+    input [NUM_PORT_BITS-1:0] self_port_reg,
+    input [1:0] cnt_type_reg,
+    output output_port_cluster_stall_condition
     );
-    
 
+    wire [NUM_OUT_PORTS-1:0] output_port_stall_condition;
+    assign output_port_cluster_stall_condition = |output_port_stall_condition;
+    
     genvar gv_i;
     generate
     for(gv_i = 0; gv_i < NUM_OUT_PORTS; gv_i = gv_i + 1) begin : output_port_cluster
@@ -61,7 +74,9 @@ module Output_Port_Cluster #(
             .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE)
         )OPort(
             .clk(clk),
+            .clk_user(clk_user),
             .reset(reset),
+            .reset_user(reset_user),
             .update_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*gv_i+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+2]),
             .update_fifo_addr_en(out_control_reg[OUT_PORTS_REG_BITS*gv_i+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+1]),
             .add_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*gv_i+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS]),
@@ -75,8 +90,16 @@ module Output_Port_Cluster #(
             .internal_out(internal_out[PACKET_BITS*(gv_i+1)-1:PACKET_BITS*gv_i]),
             .empty(empty[gv_i]),
             .ack_b_out2user(ack_b_out2user[gv_i]),
-            .ap_start(ap_start)      
-            
+
+            .is_done_mode(is_done_mode),
+            .is_done_mode_user(is_done_mode_user),
+            .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            .is_sending_full_cnt_reg(is_sending_full_cnt_reg),
+            .self_leaf_reg(self_leaf_reg),
+            .self_port_reg(self_port_reg),
+            .cnt_type_reg(cnt_type_reg),
+            .output_port_stall_condition(output_port_stall_condition[gv_i])
         );
     end
     endgenerate

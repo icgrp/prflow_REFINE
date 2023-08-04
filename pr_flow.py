@@ -81,32 +81,33 @@ if __name__ == '__main__':
   prflow_params['gen_page_assign'] = args.gen_page_assign
   freq = args.frequency
   prflow_params['check_impl_result'] = args.check_impl_result
+  overlay_freq = "400" # fixed to highest frequency
 
 
   if prflow_params['gen_overlay'] == True and prflow_params['overlay_type'] == 'psnoc':
     overlay_inst = overlay.overlay(prflow_params)
-    overlay_inst.run(operator, bft_n, tandem_mode = tandem_mode, frequency = freq)
+    overlay_inst.run(operator, bft_n, tandem_mode = tandem_mode, overlay_freq = overlay_freq)
     print ('psnoc')
 
   if prflow_params['gen_hls'] == True:
     hls_inst = hls.hls(prflow_params)
-    hls_inst.run(operator, monitor_on = monitor_on, frequency = freq)
+    hls_inst.run(operator, monitor_on = monitor_on)
 
   if prflow_params['gen_syn'] == True:
     syn_inst = syn.syn(prflow_params)
-    syn_inst.run(operator, monitor_on = monitor_on, frequency = freq)
+    syn_inst.run(operator, monitor_on = monitor_on)
 
   if prflow_params['gen_impl'] == True:
     impl_inst = impl.impl(prflow_params)
-    impl_inst.run(operator, syn_dcp, monitor_on = monitor_on, frequency = freq)
+    impl_inst.run(operator, syn_dcp, monitor_on = monitor_on, overlay_freq = overlay_freq)
 
   if prflow_params['gen_xclbin'] == True:
     xclbin_inst = xclbin.xclbin(prflow_params)
-    xclbin_inst.run(operator, frequency = freq)
+    xclbin_inst.run(operator, overlay_freq = overlay_freq)
 
   if prflow_params['gen_runtime'] == True:
     runtime_inst = runtime.runtime(prflow_params)
-    runtime_inst.run(operator, frequency = freq)
+    runtime_inst.run(operator, overlay_freq = overlay_freq)
 
   if prflow_params['gen_monolithic'] == True:
     mono_inst = monolithic.monolithic(prflow_params)
@@ -130,7 +131,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_page_assign'] == True:
     pg_inst = page_assign.page_assign(prflow_params)
-    pg_inst.run(operator, bft_n, frequency = freq)
+    pg_inst.run(operator, bft_n, overlay_freq = overlay_freq) # TODO: add overlay_freq
 
   if prflow_params['check_impl_result'] == True:
     pg_inst = check_impl_result.check_impl_result(prflow_params)

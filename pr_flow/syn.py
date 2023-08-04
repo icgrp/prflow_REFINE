@@ -15,7 +15,7 @@
 #
 # Additional Comments:
 
-import os  
+import os, json
 import subprocess
 from pr_flow.gen_basic import gen_basic
 
@@ -172,23 +172,28 @@ class syn(gen_basic):
 
   def prepare_HW(self, operator, page_num, monitor_on, frequency):
     # Update target clock
-    clk_period = '{:.1f}'.format(1000 / int(frequency))
-    with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
-      filedata = infile.readlines()
-    assert(len(filedata) == 1)
-    filedata = filedata[0]
-    filedata = filedata.replace('TARGET_CLK', clk_period)
-    with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
-      outfile.write(filedata)
+    # clk_period = '{:.1f}'.format(1000 / int(frequency))
+    # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
+    #   filedata = infile.readlines()
+    # assert(len(filedata) == 1)
+    # filedata = filedata[0]
+    # filedata = filedata.replace('TARGET_CLK', clk_period)
+    # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
+    #   outfile.write(filedata)
 
     # If the map target is Hardware, we need to prepare the HDL files and scripts to compile it.
     self.shell.mkdir(self.syn_dir+'/'+operator+'/src')
-    file_list = [ 'Config_Controls.v', 'write_queue.v',        'rise_detect.v',         'read_queue.v',     'converge_ctrl.v',
-                  'ExtractCtrl.v',     'Input_Port_Cluster.v', 'Input_Port.v',          'leaf_interface.v', 'Output_Port_Cluster.v',
-                  'Output_Port.v',     'read_b_in.v',          'ram0.v',                'single_ram.v',     'SynFIFO.v',
-                  'instr_config.v',    'picorv32_wrapper.v',   'picorv32.v',            'picorv_mem.v',     'xram2.v',
-                  'xram_triple.v',     'riscv2consumer.v',     'Stream_Flow_Control.v', 'write_b_in.v',     'write_b_out.v',
-                  'stream_shell.v']
+    # file_list = [ 'Config_Controls.v', 'write_queue.v',        'rise_detect.v',         'read_queue.v',     'converge_ctrl.v',
+    #               'ExtractCtrl.v',     'Input_Port_Cluster.v', 'Input_Port.v',          'leaf_interface.v', 'Output_Port_Cluster.v',
+    #               'Output_Port.v',     'read_b_in.v',          'ram0.v',                'single_ram.v',     'SynFIFO.v',
+    #               'instr_config.v',    'picorv32_wrapper.v',   'picorv32.v',            'picorv_mem.v',     'xram2.v',
+    #               'xram_triple.v',     'riscv2consumer.v',     'Stream_Flow_Control.v', 'write_b_in.v',     'write_b_out.v',
+    #               'stream_shell.v',    'expand_queue.v',       'shrink_queue.v',        'send_IO_queue_cnt.v']
+    file_list = [ 'Config_Controls.v', 'rise_detect.v',         'converge_ctrl.v',
+                  'ExtractCtrl.v',     'Input_Port_Cluster.v',  'Input_Port.v',          'leaf_interface.v',   'Output_Port_Cluster.v',
+                  'Output_Port.v',     'read_b_in.v',           'ram0.v',                'single_ram.v',       'SynFIFO.v',
+                  'xram_triple.v',     'Stream_Flow_Control.v', 'write_b_in.v',          'write_b_out.v',
+                  'stream_shell.v',    'expand_queue.v',        'shrink_queue.v',        'send_IO_queue_cnt.v']
 
     # copy the necessary leaf interface verilog files for out-of-context compilation
     for name in file_list: self.shell.cp_file(self.overlay_dir+'/src/'+name, self.syn_dir+'/'+operator+'/src/'+name)
@@ -228,6 +233,7 @@ class syn(gen_basic):
                                                            output_num,
                                                            operator_arg_dict[operator],
                                                            operator_width_dict[operator],
+                                                           frequency,
                                                            for_syn=True,
                                                            is_riscv=False),
                            False)
@@ -310,7 +316,12 @@ class syn(gen_basic):
     #   self.prepare_RISCV(operator, page_num, input_num, output_num)
 
 
-  def run(self, operator, monitor_on=False, frequency="200"):
+  def run(self, operator, monitor_on=False):
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
+        # pblock_operators_list = json.load(infile)
+        pblock_operators_dict = json.load(infile)
+    frequency = pblock_operators_dict[operator]
+
     # mk work directory
     self.shell.mkdir(self.syn_dir)
     # create ip directories for the operator

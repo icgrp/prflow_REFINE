@@ -25,8 +25,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY 1
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
-
-
 #include <vector>
 #include <unistd.h>
 #include <iostream>
@@ -37,12 +35,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "testing_data.h"
 #include <sys/time.h>
 
-
-
-
 #define CONFIG_SIZE 256
 #define INPUT_SIZE ((NUM_TRAINING + NUM_TEST) * 8 / 16)
 #define OUTPUT_SIZE (32)
+#define NUM_OPS 10
+#define NUM_TOTAL_CNT 60
+
 
 // Forward declaration of utility functions included at the end of this file
 std::vector<cl::Device> get_xilinx_devices();
@@ -141,7 +139,7 @@ int main(int argc, char **argv)
     // Create the buffers and allocate memory
     cl::Buffer in1_buf(context, CL_MEM_READ_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
     cl::Buffer in2_buf(context, CL_MEM_READ_ONLY, sizeof(bit512) * INPUT_SIZE, NULL, &err);
-    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
+    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
     cl::Buffer out2_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
 
     // Map buffers to kernel arguments, thereby assigning them to specific device memory banks
@@ -153,7 +151,7 @@ int main(int argc, char **argv)
     // Map host-side buffer memory to user-space pointers
     bit64 *in1 = (bit64 *)q.enqueueMapBuffer(in1_buf, CL_TRUE, CL_MAP_WRITE, 0, sizeof(bit64) * CONFIG_SIZE);
     bit512 *in2 = (bit512 *)q.enqueueMapBuffer(in2_buf, CL_TRUE, CL_MAP_WRITE, 0, sizeof(bit512) * INPUT_SIZE);
-    bit64 *out1 = (bit64 *)q.enqueueMapBuffer(out1_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit64) * CONFIG_SIZE);
+    bit64 *out1 = (bit64 *)q.enqueueMapBuffer(out1_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit64) * NUM_TOTAL_CNT);
     bit512 *out2 = (bit512 *)q.enqueueMapBuffer(out2_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit512) * OUTPUT_SIZE);
 
     // Initialize the vectors used in the test
@@ -161,11 +159,16 @@ int main(int argc, char **argv)
     //for ( int i = 0; i < CONFIG_SIZE; i++)
     //{
 
-      in1[0].range(63, 32) = 0x00000000;
-      in1[0].range(31,  0) = 0x00000000;
-
-      in1[1].range(63, 32) = 0x00000000;
-      in1[1].range(31,  0) = INPUT_SIZE;
+    in1[0].range(63, 32) = 0x00000000;
+    in1[0].range(31,  0) = 0x00000000;
+    in1[1].range(63, 32) = 0x00000000;
+    in1[1].range(31,  0) = INPUT_SIZE;
+    in1[2].range(63, 32) = 0x00000000;
+    in1[2].range(31,  0) = NUM_OPS;
+    in1[3].range(63, 32) = 0x00000000;
+    in1[3].range(31,  0) = OUTPUT_SIZE;
+    in1[4].range(63, 32) = 0x00000000;
+    in1[4].range(31,  0) = NUM_TOTAL_CNT;
 
       // configure packets
 
@@ -204,9 +207,7 @@ int main(int argc, char **argv)
     // Step 3: Run the kernel
     // ------------------------------------------------------------------------------------
     // Set kernel arguments
-  gettimeofday(&start, NULL);
-
-
+    gettimeofday(&start, NULL);
 
 	krnl_ydma.setArg(0, in1_buf);
 	krnl_ydma.setArg(1, in2_buf);
@@ -216,6 +217,7 @@ int main(int argc, char **argv)
 	krnl_ydma.setArg(5, INPUT_SIZE);
 	krnl_ydma.setArg(6, OUTPUT_SIZE);
 	//krnl_ydma.setArg(6, OUTPUT_SIZE);
+    krnl_ydma.setArg(7, NUM_TOTAL_CNT);
 
 	// Schedule transfer of inputs to device memory, execution of kernel, and transfer of outputs back to host memory
 	q.enqueueMigrateMemObjects({in1_buf, in2_buf}, 0 /* 0 means from host*/);
@@ -225,8 +227,7 @@ int main(int argc, char **argv)
 
 	// Wait for all scheduled operations to finish
 	q.finish();
-
-  gettimeofday(&end, NULL);
+    gettimeofday(&end, NULL);
 
     // ------------------------------------------------------------------------------------
     // Step 4: Check Results and Release Allocated Resources
@@ -234,16 +235,19 @@ int main(int argc, char **argv)
     bool match = true;
     check_results(out2, expected, NUM_TEST );
     // for(int i=0; i<CONFIG_SIZE; i++){
-    int config_max = CONFIG_SIZE > 20 ? 20 : CONFIG_SIZE;
-    for(int i=0; i<config_max; i++){
-        printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
-    	//std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
+    // int config_max = CONFIG_SIZE > 20 ? 20 : CONFIG_SIZE;
+    // for(int i=0; i<config_max; i++){
+    //     printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
+    // 	//std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
+    // }
+    for(int i=0; i<NUM_TOTAL_CNT; i++){
+        printf("out1[%d] = %08x%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
     }
     
     delete[] fileBuf;
-  // print time
-  long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
-  printf("elapsed time: %lld us\n", elapsed);
+    // print time
+    long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
+    printf("elapsed time: %lld us\n", elapsed);
 
 
     std::cout << "TEST " << (match ? "PASSED" : "FAILED") << std::endl;

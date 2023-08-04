@@ -9,7 +9,7 @@ set part xcu50-fsvh2104-2-e # to be changed
 set leaf_dcp "../../F001_overlay/ydma/zcu102/zcu102_dfx_manual/overlay_p10/leaf_double.dcp" #used when leaf is larger than leaf_single, to be changed
 set user_logic_dcp "../../F003_syn_${benchmark}/${operator}/page_netlist.dcp"
 set context_dcp "../../F001_overlay/ydma/zcu102/zcu102_dfx_manual/checkpoint/p_${page_num}.dcp" # to be changed
-set inst_name "pfm_top_i/dynamic_region/ydma_1/${page_name}_inst" # to be changed
+set inst_name "pfm_top_i/dynamic_region/PR_pages_top_0/inst/${page_name}_inst" # to be changed
 set bit_name "../../F005_bits_${benchmark}/${operator}.bit"
 set logFileId [open ./runLogImpl_${operator}.log "w"]
 set place_dcp "./${pblock_name}_design_place.dcp"
@@ -202,6 +202,7 @@ OPTRACE "set parameters" START { }
   # set_property ip_output_repo /home/ylxiao/ws_211/prflow_riscv/workspace/F001_overlay/ydma/zcu102/.ipcache [current_project]
   set_property ip_cache_permissions {read write} [current_project]
   set_property XPM_LIBRARIES {XPM_CDC XPM_FIFO XPM_MEMORY} [current_project]
+
 OPTRACE "set parameters" END { }
 OPTRACE "add files" START { }
   # add_files -quiet ./.local/hw_platform/hw_bb_locked.dcp
@@ -219,6 +220,9 @@ OPTRACE "read constraints: implementation" END { }
   # set_property processing_order LATE [get_files ./output/pfm_dynamic_ooc_copy.xdc]
 OPTRACE "add files" END { }
   link_design -part xczu9eg-ffvb1156-2-e -reconfig_partitions pfm_top_i/dynamic_region
+
+  set_max_delay -datapath_only 2.5 -from [get_clocks clk_out6_pfm_top_clkwiz_sysclks_0] -to [get_clocks CLK_USER]
+
 OPTRACE "gray box cells" START { }
 OPTRACE "gray box cells" END { }
 OPTRACE "Design Initialization: post hook" START { }
@@ -394,7 +398,9 @@ if {$rc} {
 OPTRACE "Phase: Place Design" END { }
 set end_time [clock seconds]
 set total_seconds [expr $end_time - $start_time]
+
 puts $logFileId "place: $total_seconds seconds"
+# write_checkpoint -force $place_dcp
 
 
 

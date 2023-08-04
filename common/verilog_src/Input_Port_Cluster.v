@@ -32,8 +32,9 @@ module Input_Port_Cluster # (
     parameter FREESPACE_UPDATE_SIZE = 64
     )(
     input clk,
+    input clk_user,
     input reset,
-    
+    input reset_user,    
     
     //internal interface
     output [NUM_IN_PORTS-1:0] freespace_update,
@@ -45,15 +46,22 @@ module Input_Port_Cluster # (
     output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] dout2user,
     output [NUM_IN_PORTS-1:0] vld2user,
     input [NUM_IN_PORTS-1:0] ack_user2b_in,
-    
-    input ap_start
-    
+
+    input is_done_mode, // clk(_bft) domain
+    input is_done_mode_user, // clk_user domain
+    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_full_cnt,
+    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_empty_cnt,
+    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_read_cnt,
+    output input_port_cluster_stall_condition
     );
+
+    wire [NUM_IN_PORTS-1:0] input_port_stall_condition;
+    assign input_port_cluster_stall_condition = |input_port_stall_condition;
     
     genvar gv_i;
     generate
     for(gv_i = 0; gv_i < NUM_IN_PORTS; gv_i = gv_i + 1) begin: input_port_inst
-        Input_Port#(
+        Input_Port #(
             .PACKET_BITS(PACKET_BITS),
             .NUM_LEAF_BITS(NUM_LEAF_BITS),
             .NUM_PORT_BITS(NUM_PORT_BITS),
@@ -66,7 +74,9 @@ module Input_Port_Cluster # (
             .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE)
         )IPort(
             .clk(clk),
+            .clk_user(clk_user),
             .reset(reset),
+            .reset_user(reset_user),
             .freespace_update(freespace_update[gv_i]),
             .packet_from_input_port(packet_from_input_ports[PACKET_BITS*(gv_i+1)-1:PACKET_BITS*gv_i]),
             .din_leaf_bft2interface(stream_in),
@@ -75,7 +85,12 @@ module Input_Port_Cluster # (
             .dout2user(dout2user[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
             .vld2user(vld2user[gv_i]),
             .ack_user2b_in(ack_user2b_in[gv_i]),
-            .ap_start(ap_start)
+            .is_done_mode(is_done_mode),
+            .is_done_mode_user(is_done_mode_user),
+            .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            .input_port_stall_condition(input_port_stall_condition[gv_i])
         );
     end
     endgenerate

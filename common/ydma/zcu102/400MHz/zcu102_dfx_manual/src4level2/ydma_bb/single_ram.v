@@ -42,13 +42,12 @@ module single_ram#(
 reg valid;  
 
 
+// (* ram_style = "distributed" *) 
+reg vld_mem[0:BRAM_DEPTH-1];
 
-(* ram_style = "distributed" *) reg vld_mem[0:BRAM_DEPTH-1];
-initial begin
-    $readmemh("./vld_mem_data.dat", vld_mem);
-end
-
-
+// initial begin
+//     $readmemh("./vld_mem_data.dat", vld_mem);
+// end
 
 always@(posedge clk) begin
     if(reset) begin

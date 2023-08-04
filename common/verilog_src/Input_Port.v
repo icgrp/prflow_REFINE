@@ -34,7 +34,10 @@ module Input_Port#(
     localparam BRAM_DEPTH = 2**(NUM_BRAM_ADDR_BITS-1)*(PAYLOAD_BITS+1)
     )(
     input clk,
+    input clk_user,
     input reset,
+    input reset_user,    
+
     //internal interface
     output freespace_update,
     output [PACKET_BITS-1:0] packet_from_input_port,
@@ -47,8 +50,12 @@ module Input_Port#(
     output vld2user,
     input ack_user2b_in,
     
-    input ap_start
-    
+    input is_done_mode, // clk(_bft) domain
+    input is_done_mode_user, // clk_user domain
+    output reg [PAYLOAD_BITS-1:0] input_port_full_cnt,
+    output reg [PAYLOAD_BITS-1:0] input_port_empty_cnt,
+    output reg [PAYLOAD_BITS-1:0] input_port_read_cnt,
+    output input_port_stall_condition
     );
 
     wire vldBit;
@@ -77,7 +84,7 @@ module Input_Port#(
     //wire [NUM_BRAM_ADDR_BITS-1:0] addrb_extend_1;
     wire [PAYLOAD_BITS:0] doutb_1;
     wire web_1;
-    
+
     
     assign wea_0 = addra[0] ? 0 : wea;
     assign wea_1 = addra[0] ? wea : 0;
@@ -111,7 +118,6 @@ module Input_Port#(
 
     // write bram_in, it manipulates write port of b_in
     
-    
 
     write_b_in #(
         .NUM_PORT_BITS(NUM_PORT_BITS),
@@ -127,8 +133,7 @@ module Input_Port#(
         .payload(payload), 
         .wea(wea), 
         .addra(addra), 
-        .dina(dina),
-        .ap_start(ap_start)
+        .dina(dina)
         );
 
 
@@ -151,171 +156,174 @@ module Input_Port#(
         );
 
        */ 
-wire [PAYLOAD_BITS:0] b_in_dinb;
-assign b_in_dinb = 0;
-/*
-      
-xpm_memory_tdpram # (
-  // Common module parameters
-  .MEMORY_SIZE        (BRAM_DEPTH),            //positive integer
-  .MEMORY_PRIMITIVE   ("block"),          //string; "auto", "distributed", "block" or "ultra";
-  .CLOCKING_MODE      ("common_clock"),  //string; "common_clock", "independent_clock" 
-  .MEMORY_INIT_FILE   ("none"),          //string; "none" or "<filename>.mem" 
-  .MEMORY_INIT_PARAM  (""    ),          //string;
-  .USE_MEM_INIT       (1),               //integer; 0,1
-  .WAKEUP_TIME        ("disable_sleep"), //string; "disable_sleep" or "use_sleep_pin" 
-  .MESSAGE_CONTROL    (0),               //integer; 0,1
-  .ECC_MODE           ("no_ecc"),        //string; "no_ecc", "encode_only", "decode_only" or "both_encode_and_decode" 
-  .AUTO_SLEEP_TIME    (0),               //Do not Change
+    wire [PAYLOAD_BITS:0] b_in_dinb;
+    assign b_in_dinb = 0;
+    
+          
+    xpm_memory_tdpram # (
+      // Common module parameters
+      .MEMORY_SIZE        (BRAM_DEPTH),            //positive integer
+      .MEMORY_PRIMITIVE   ("block"),          //string; "auto", "distributed", "block" or "ultra";
+      .CLOCKING_MODE      ("common_clock"),  //string; "common_clock", "independent_clock" 
+      .MEMORY_INIT_FILE   ("none"),          //string; "none" or "<filename>.mem" 
+      .MEMORY_INIT_PARAM  (""    ),          //string;
+      .USE_MEM_INIT       (1),               //integer; 0,1
+      .WAKEUP_TIME        ("disable_sleep"), //string; "disable_sleep" or "use_sleep_pin" 
+      .MESSAGE_CONTROL    (0),               //integer; 0,1
+      .ECC_MODE           ("no_ecc"),        //string; "no_ecc", "encode_only", "decode_only" or "both_encode_and_decode" 
+      .AUTO_SLEEP_TIME    (0),               //Do not Change
 
-  // Port A module parameters
-  .WRITE_DATA_WIDTH_A (PAYLOAD_BITS+1),              //positive integer
-  .READ_DATA_WIDTH_A  (PAYLOAD_BITS+1),              //positive integer
-  .BYTE_WRITE_WIDTH_A (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_A value
-  .ADDR_WIDTH_A       (NUM_BRAM_ADDR_BITS-1),               //positive integer
-  .READ_RESET_VALUE_A ("0"),             //string
-  .READ_LATENCY_A     (1),               //non-negative integer
-  .WRITE_MODE_A       ("read_first"),     //string; "write_first", "read_first", "no_change" 
+      // Port A module parameters
+      .WRITE_DATA_WIDTH_A (PAYLOAD_BITS+1),              //positive integer
+      .READ_DATA_WIDTH_A  (PAYLOAD_BITS+1),              //positive integer
+      .BYTE_WRITE_WIDTH_A (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_A value
+      .ADDR_WIDTH_A       (NUM_BRAM_ADDR_BITS-1),               //positive integer
+      .READ_RESET_VALUE_A ("0"),             //string
+      .READ_LATENCY_A     (1),               //non-negative integer
+      .WRITE_MODE_A       ("read_first"),     //string; "write_first", "read_first", "no_change" 
 
-  // Port B module parameters
-  .WRITE_DATA_WIDTH_B (PAYLOAD_BITS+1),              //positive integer
-  .READ_DATA_WIDTH_B  (PAYLOAD_BITS+1),              //positive integer
-  .BYTE_WRITE_WIDTH_B (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_B value
-  .ADDR_WIDTH_B       (NUM_BRAM_ADDR_BITS-1),               //positive integer
-  .READ_RESET_VALUE_B ("0"),             //vector of READ_DATA_WIDTH_B bits
-  .READ_LATENCY_B     (1),               //non-negative integer
-  .WRITE_MODE_B       ("read_first")      //string; "write_first", "read_first", "no_change" 
+      // Port B module parameters
+      .WRITE_DATA_WIDTH_B (PAYLOAD_BITS+1),              //positive integer
+      .READ_DATA_WIDTH_B  (PAYLOAD_BITS+1),              //positive integer
+      .BYTE_WRITE_WIDTH_B (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_B value
+      .ADDR_WIDTH_B       (NUM_BRAM_ADDR_BITS-1),               //positive integer
+      .READ_RESET_VALUE_B ("0"),             //vector of READ_DATA_WIDTH_B bits
+      .READ_LATENCY_B     (1),               //non-negative integer
+      .WRITE_MODE_B       ("read_first")      //string; "write_first", "read_first", "no_change" 
 
-) xpm_memory_tdpram_inst_0 (
-  // Common module ports
-  .sleep          (1'b0),
-  // Port A module ports
-  .clka           (clk),
-  .rsta           (reset),
-  .ena            (1'b1),
-  .regcea         (1'b1),
-  .wea            (wea_0),
-  .addra          (addra[NUM_ADDR_BITS-1:1]),
-  .dina           (dina),
-  .injectsbiterra (1'b0),
-  .injectdbiterra (1'b0),
-  .douta          (),
-  .sbiterra       (),
-  .dbiterra       (),
-  // Port B module ports
-  .clkb           (clk),
-  .rstb           (reset),
-  .enb            (1'b1),
-  .regceb         (1'b1),
-  .web            (web_0),
-  .addrb          (addrb_0),
-  .dinb           (0),
-  .injectsbiterrb (1'b0),
-  .injectdbiterrb (1'b0),
-  .doutb          (doutb_0),
-  .sbiterrb       (),
-  .dbiterrb       ()
-);
-*/
-single_ram#(
-    .PAYLOAD_BITS(PAYLOAD_BITS), 
-    .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS-1),
-    .NUM_ADDR_BITS(NUM_ADDR_BITS-1),
-    .RAM_TYPE("block")
-    )ram_1(
-    .clk(clk),
-    .reset(reset),
-    .wea(wea_0),
-    .web(web_0),
-    .addra(addra[NUM_ADDR_BITS-1:1]),
-    .addrb(addrb_0),
-    .dina(dina),
-    .dinb(0),
-    .doutb(doutb_0)
+    ) xpm_memory_tdpram_inst_0 (
+      // Common module ports
+      .sleep          (1'b0),
+      // Port A module ports
+      .clka           (clk),
+      .rsta           (reset),
+      .ena            (1'b1),
+      .regcea         (1'b1),
+      .wea            (wea_0),
+      .addra          (addra[NUM_ADDR_BITS-1:1]),
+      .dina           (dina),
+      .injectsbiterra (1'b0),
+      .injectdbiterra (1'b0),
+      .douta          (),
+      .sbiterra       (),
+      .dbiterra       (),
+      // Port B module ports
+      .clkb           (clk),
+      .rstb           (reset),
+      .enb            (1'b1),
+      .regceb         (1'b1),
+      .web            (web_0),
+      .addrb          (addrb_0),
+      .dinb           (0),
+      .injectsbiterrb (1'b0),
+      .injectdbiterrb (1'b0),
+      .doutb          (doutb_0),
+      .sbiterrb       (),
+      .dbiterrb       ()
     );
     
-    
-/*
-xpm_memory_tdpram # (
-  // Common module parameters
-  .MEMORY_SIZE        (BRAM_DEPTH),            //positive integer
-  .MEMORY_PRIMITIVE   ("block"),          //string; "auto", "distributed", "block" or "ultra";
-  .CLOCKING_MODE      ("common_clock"),  //string; "common_clock", "independent_clock" 
-  .MEMORY_INIT_FILE   ("none"),          //string; "none" or "<filename>.mem" 
-  .MEMORY_INIT_PARAM  (""    ),          //string;
-  .USE_MEM_INIT       (1),               //integer; 0,1
-  .WAKEUP_TIME        ("disable_sleep"), //string; "disable_sleep" or "use_sleep_pin" 
-  .MESSAGE_CONTROL    (0),               //integer; 0,1
-  .ECC_MODE           ("no_ecc"),        //string; "no_ecc", "encode_only", "decode_only" or "both_encode_and_decode" 
-  .AUTO_SLEEP_TIME    (0),               //Do not Change
+    /*
+    single_ram#(
+        .PAYLOAD_BITS(PAYLOAD_BITS), 
+        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS-1),
+        .NUM_ADDR_BITS(NUM_ADDR_BITS-1),
+        .RAM_TYPE("block")
+        )ram_1(
+        .clk(clk),
+        .reset(reset),
+        .wea(wea_0),
+        .web(web_0),
+        .addra(addra[NUM_ADDR_BITS-1:1]),
+        .addrb(addrb_0),
+        .dina(dina),
+        .dinb(33'b0),
+        .doutb(doutb_0)
+        );
+        */
+        
+        
+    xpm_memory_tdpram # (
+      // Common module parameters
+      .MEMORY_SIZE        (BRAM_DEPTH),            //positive integer
+      .MEMORY_PRIMITIVE   ("block"),          //string; "auto", "distributed", "block" or "ultra";
+      .CLOCKING_MODE      ("common_clock"),  //string; "common_clock", "independent_clock" 
+      .MEMORY_INIT_FILE   ("none"),          //string; "none" or "<filename>.mem" 
+      .MEMORY_INIT_PARAM  (""    ),          //string;
+      .USE_MEM_INIT       (1),               //integer; 0,1
+      .WAKEUP_TIME        ("disable_sleep"), //string; "disable_sleep" or "use_sleep_pin" 
+      .MESSAGE_CONTROL    (0),               //integer; 0,1
+      .ECC_MODE           ("no_ecc"),        //string; "no_ecc", "encode_only", "decode_only" or "both_encode_and_decode" 
+      .AUTO_SLEEP_TIME    (0),               //Do not Change
 
-  // Port A module parameters
-  .WRITE_DATA_WIDTH_A (PAYLOAD_BITS+1),              //positive integer
-  .READ_DATA_WIDTH_A  (PAYLOAD_BITS+1),              //positive integer
-  .BYTE_WRITE_WIDTH_A (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_A value
-  .ADDR_WIDTH_A       (NUM_BRAM_ADDR_BITS-1),               //positive integer
-  .READ_RESET_VALUE_A ("0"),             //string
-  .READ_LATENCY_A     (1),               //non-negative integer
-  .WRITE_MODE_A       ("read_first"),     //string; "write_first", "read_first", "no_change" 
+      // Port A module parameters
+      .WRITE_DATA_WIDTH_A (PAYLOAD_BITS+1),              //positive integer
+      .READ_DATA_WIDTH_A  (PAYLOAD_BITS+1),              //positive integer
+      .BYTE_WRITE_WIDTH_A (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_A value
+      .ADDR_WIDTH_A       (NUM_BRAM_ADDR_BITS-1),               //positive integer
+      .READ_RESET_VALUE_A ("0"),             //string
+      .READ_LATENCY_A     (1),               //non-negative integer
+      .WRITE_MODE_A       ("read_first"),     //string; "write_first", "read_first", "no_change" 
 
-  // Port B module parameters
-  .WRITE_DATA_WIDTH_B (PAYLOAD_BITS+1),              //positive integer
-  .READ_DATA_WIDTH_B  (PAYLOAD_BITS+1),              //positive integer
-  .BYTE_WRITE_WIDTH_B (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_B value
-  .ADDR_WIDTH_B       (NUM_BRAM_ADDR_BITS-1),               //positive integer
-  .READ_RESET_VALUE_B ("0"),             //vector of READ_DATA_WIDTH_B bits
-  .READ_LATENCY_B     (1),               //non-negative integer
-  .WRITE_MODE_B       ("read_first")      //string; "write_first", "read_first", "no_change" 
+      // Port B module parameters
+      .WRITE_DATA_WIDTH_B (PAYLOAD_BITS+1),              //positive integer
+      .READ_DATA_WIDTH_B  (PAYLOAD_BITS+1),              //positive integer
+      .BYTE_WRITE_WIDTH_B (PAYLOAD_BITS+1),              //integer; 8, 9, or WRITE_DATA_WIDTH_B value
+      .ADDR_WIDTH_B       (NUM_BRAM_ADDR_BITS-1),               //positive integer
+      .READ_RESET_VALUE_B ("0"),             //vector of READ_DATA_WIDTH_B bits
+      .READ_LATENCY_B     (1),               //non-negative integer
+      .WRITE_MODE_B       ("read_first")      //string; "write_first", "read_first", "no_change" 
 
-) xpm_memory_tdpram_inst_1 (
-  // Common module ports
-  .sleep          (1'b0),
-  // Port A module ports
-  .clka           (clk),
-  .rsta           (reset),
-  .ena            (1'b1),
-  .regcea         (1'b1),
-  .wea            (wea_1),
-  .addra          (addra[NUM_ADDR_BITS-1:1]),
-  .dina           (dina),
-  .injectsbiterra (1'b0),
-  .injectdbiterra (1'b0),
-  .douta          (),
-  .sbiterra       (),
-  .dbiterra       (),
-  // Port B module ports
-  .clkb           (clk),
-  .rstb           (reset),
-  .enb            (1'b1),
-  .regceb         (1'b1),
-  .web            (web_1),
-  .addrb          (addrb_1),
-  .dinb           (0),
-  .injectsbiterrb (1'b0),
-  .injectdbiterrb (1'b0),
-  .doutb          (doutb_1),
-  .sbiterrb       (),
-  .dbiterrb       ()
-);
-*/
-single_ram#(
-    .PAYLOAD_BITS(PAYLOAD_BITS), 
-    .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS-1),
-    .NUM_ADDR_BITS(NUM_ADDR_BITS-1),
-    .RAM_TYPE("block")
-    )ram_2(
-    .clk(clk),
-    .reset(reset),
-    .wea(wea_1),
-    .web(web_1),
-    .addra(addra[NUM_ADDR_BITS-1:1]),
-    .addrb(addrb_1),
-    .dina(dina),
-    .dinb(0),
-    .doutb(doutb_1)
+    ) xpm_memory_tdpram_inst_1 (
+      // Common module ports
+      .sleep          (1'b0),
+      // Port A module ports
+      .clka           (clk),
+      .rsta           (reset),
+      .ena            (1'b1),
+      .regcea         (1'b1),
+      .wea            (wea_1),
+      .addra          (addra[NUM_ADDR_BITS-1:1]),
+      .dina           (dina),
+      .injectsbiterra (1'b0),
+      .injectdbiterra (1'b0),
+      .douta          (),
+      .sbiterra       (),
+      .dbiterra       (),
+      // Port B module ports
+      .clkb           (clk),
+      .rstb           (reset),
+      .enb            (1'b1),
+      .regceb         (1'b1),
+      .web            (web_1),
+      .addrb          (addrb_1),
+      .dinb           (0),
+      .injectsbiterrb (1'b0),
+      .injectdbiterrb (1'b0),
+      .doutb          (doutb_1),
+      .sbiterrb       (),
+      .dbiterrb       ()
     );
     
-    
+    /*
+    single_ram#(
+        .PAYLOAD_BITS(PAYLOAD_BITS), 
+        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS-1),
+        .NUM_ADDR_BITS(NUM_ADDR_BITS-1),
+        .RAM_TYPE("block")
+        )ram_2(
+        .clk(clk),
+        .reset(reset),
+        .wea(wea_1),
+        .web(web_1),
+        .addra(addra[NUM_ADDR_BITS-1:1]),
+        .addrb(addrb_1),
+        .dina(dina),
+        .dinb(33'b0),
+        .doutb(doutb_1)
+        );
+        */
+        
+        
     wire [PAYLOAD_BITS-1:0] din_bram2fifo;
     wire vld_bram2fifo;
     wire ack_fifo2bram;
@@ -337,57 +345,99 @@ single_ram#(
         .vld_bram_in2user(vld_bram2fifo), 
         .freespace_update(freespace_update), 
         .web_0(web_0),
-        .web_1(web_1),
-        .ap_start(ap_start));
+        .web_1(web_1));
 
-data_converter # (
-    .PAYLOAD_BITS(PAYLOAD_BITS) 
-    ) data_converter_inst(
-    .clk(clk),
-    .reset(reset),
-    .din_bram2fifo(din_bram2fifo),
-    .vld_bram2fifo(vld_bram2fifo),
-    .ack_fifo2bram(ack_fifo2bram),
-    .dout_interface2user(dout2user),
-    .vld_interface2user(vld2user),
-    .ack_user2interface(ack_user2b_in)
-    );
+    wire input_fifo_empty;
+    data_converter # (
+        .PAYLOAD_BITS(PAYLOAD_BITS) 
+        ) data_converter_inst(
+        .clk(clk),
+        .clk_user(clk_user),
+        .reset(reset),
+        .reset_user(reset_user),
+        .din_bram2fifo(din_bram2fifo),
+        .vld_bram2fifo(vld_bram2fifo),
+        .ack_fifo2bram(ack_fifo2bram), // ~full
+        .dout_interface2user(dout2user),
+        .vld_interface2user(vld2user),
+        .ack_user2interface(ack_user2b_in),
+        .empty(input_fifo_empty)
+        );
 
+
+    /////////////////////////
+    // counter logic below //
+    /////////////////////////
+    // User is ready to receive data but input queue is empty
+    assign input_port_stall_condition = (!is_done_mode_user) && ack_user2b_in && input_fifo_empty;
+
+    // count the number of input queue's full, clk(_bft) domain
+    always@(posedge clk) begin
+        if(reset) input_port_full_cnt <= 0;
+        else begin
+            if(!ack_fifo2bram && !is_done_mode) input_port_full_cnt <= input_port_full_cnt + 1;
+            else input_port_full_cnt <= input_port_full_cnt;
+        end
+    end
+
+    // count the number of input queue's empty, clk_user domain
+    always@(posedge clk_user) begin
+        if(reset_user) input_port_empty_cnt <= 0;
+        else begin
+            if(input_fifo_empty && !is_done_mode_user) input_port_empty_cnt <= input_port_empty_cnt + 1;
+            else input_port_empty_cnt <= input_port_empty_cnt;
+        end
+    end
+
+    // count the number of input read, clk_user domain
+    always@(posedge clk_user) begin
+        if(reset_user) input_port_read_cnt <= 0;
+        else begin
+            if(vld2user && ack_user2b_in && !is_done_mode_user) input_port_read_cnt <= input_port_read_cnt + 1;
+            else input_port_read_cnt <= input_port_read_cnt;
+        end
+    end
     
 endmodule
+
 
 module data_converter # (
     parameter PAYLOAD_BITS = 64
     )(
     input clk,
+    input clk_user,
     input reset,
+    input reset_user,
     
     input [PAYLOAD_BITS-1:0] din_bram2fifo,
     input vld_bram2fifo,
     output ack_fifo2bram,
     output [PAYLOAD_BITS-1:0] dout_interface2user,
     output reg vld_interface2user,
-    input ack_user2interface
+    input ack_user2interface,
+    output empty
     );
+
     
     wire wr_en;
     wire [PAYLOAD_BITS-1:0] fifo_in;
     wire full;
     reg rd_en;
     wire [PAYLOAD_BITS-1:0] fifo_out;
-    wire empty;
+    // wire empty;
     
     
     assign ack_fifo2bram = ~full;
     assign wr_en = (~full) && vld_bram2fifo;
     assign fifo_in = din_bram2fifo;
     
-    /*
-xpm_fifo_async # (
     
-      .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
+    xpm_fifo_async # (
+    
+      // .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
+      .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", or "distributed";
       .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
-      .RELATED_CLOCKS            (0),                //positive integer; 0 or 1
+      .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
       .FIFO_WRITE_DEPTH          (16),             //positive integer
       .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
       .WR_DATA_COUNT_WIDTH       (4),               //positive integer
@@ -409,18 +459,18 @@ xpm_fifo_async # (
       .wr_en            (wr_en),
       .din              (fifo_in),
       .full             (full),
-      .overflow         (overflow),
-      .wr_rst_busy      (wr_rst_busy),
-      .rd_clk           (clk),
+      .overflow         (), // not used
+      .wr_rst_busy      (), // not used
+      .rd_clk           (clk_user),
       .rd_en            (rd_en),
       .dout             (fifo_out),
       .empty            (empty),
-      .underflow        (underflow),
-      .rd_rst_busy      (rd_rst_busy),
-      .prog_full        (prog_full),
-      .wr_data_count    (wr_data_count),
-      .prog_empty       (prog_empty),
-      .rd_data_count    (rd_data_count),
+      .underflow        (), // not used
+      .rd_rst_busy      (), // not used
+      .prog_full        (), // not used
+      .wr_data_count    (), // not used
+      .prog_empty       (), // not used
+      .rd_data_count    (), // not used
       .sleep            (1'b0),
       .injectsbiterr    (1'b0),
       .injectdbiterr    (1'b0),
@@ -428,20 +478,20 @@ xpm_fifo_async # (
       .dbiterr          ()
     
     );    
-    */
-    SynFIFO #(
-    .DSIZE(PAYLOAD_BITS),
-    .ASIZE(4)
-    )SynFIFO_inst (
-	.clk(clk),
-	.rst_n(!reset),
-	.rdata(fifo_out), 
-	.wfull(full), 
-	.rempty(empty), 
-	.wdata(fifo_in),
-	.winc(wr_en), 
-	.rinc(rd_en)
-	);
+    
+    // SynFIFO #(
+    // .DSIZE(PAYLOAD_BITS),
+    // .ASIZE(4)
+    // )SynFIFO_inst (
+	// .clk(clk),
+	// .rst_n(!reset),
+	// .rdata(fifo_out), 
+	// .wfull(full), 
+	// .rempty(empty), 
+	// .wdata(fifo_in),
+	// .winc(wr_en), 
+	// .rinc(rd_en)
+	// );
 	
 	
 	
@@ -461,8 +511,8 @@ xpm_fifo_async # (
     end
         
     //vld_interface2user
-    always@(posedge clk) begin
-        if(reset) begin
+    always@(posedge clk_user) begin // TODO: is this clk_user??
+        if(reset_user) begin
             vld_interface2user <= 0;
         end else begin
             if(rd_en) begin

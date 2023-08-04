@@ -299,6 +299,15 @@ $(impl_dir)/design_route.dcp: $(impl_dir)/$(vitis_impl_tcl_name)_mk_overlay.tcl 
 $(impl_dir)/run_tcl.sh: ./shell/run_tcl.sh
 	cp ./shell/run_tcl.sh $(impl_dir)
 
+overlay_tcl:$(impl_dir)/$(vitis_impl_tcl_name)_mk_overlay.tcl
+
+# $(abs_gen_tcls): ./python/mk_abs_tcl.py
+# 	./shell/run_python.sh ./python/mk_abs_tcl.py $(workspace) $(kl_name) $(vitis_impl_tcl_name)
+
+$(impl_dir)/$(vitis_impl_tcl_name)_mk_overlay.tcl:$(impl_dir)/$(vitis_impl_tcl_name).tcl ./python/mk_overlay_tcl.py
+	./shell/run_python.sh ./python/mk_overlay_tcl.py $(workspace) $(kl_name) $(vitis_impl_tcl_name)
+
+
 page:./checkpoint/page.dcp
 ./checkpoint/page.dcp: ./src4level2/pages/page.v ./tcl/page_syn/ooc_syn_page.tcl
 	./shell/run_tcl.sh ./tcl/page_syn/ooc_syn_page.tcl	
@@ -312,33 +321,34 @@ page_quad:./checkpoint/page_quad.dcp
 	./shell/run_tcl.sh ./tcl/page_syn/ooc_syn_page_quad.tcl	
 
 
-./checkpoint/hw_bb_divided.dcp: ./checkpoint/pfm_dynamic_new_bb.dcp ./checkpoint/hw_bb_locked.dcp ./tcl/sub_divided.tcl 
-	./shell/run_tcl.sh ./tcl/sub_divided.tcl
+# ./checkpoint/hw_bb_divided.dcp: ./checkpoint/pfm_dynamic_new_bb.dcp ./checkpoint/hw_bb_locked.dcp ./tcl/sub_divided.tcl 
+# 	./shell/run_tcl.sh ./tcl/sub_divided.tcl
 
-./checkpoint/pfm_dynamic_new_bb.dcp:./checkpoint/pfm_dynamic_bb.dcp ./tcl/replace_sub_module_level1.tcl ./checkpoint/$(kl_name)_bb.dcp 
-	./shell/run_tcl.sh ./tcl/replace_sub_module_level1.tcl
+# ./checkpoint/pfm_dynamic_new_bb.dcp:./checkpoint/pfm_dynamic_bb.dcp ./tcl/replace_sub_module_level1.tcl ./checkpoint/$(kl_name)_bb.dcp 
+# 	./shell/run_tcl.sh ./tcl/replace_sub_module_level1.tcl
 
-./checkpoint/$(kl_name)_bb.dcp: ./src4level2/ydma_bb/* ./tcl/out_of_context_syn_$(kl_name)_bb.tcl
-	./shell/run_tcl.sh ./tcl/out_of_context_syn_$(kl_name)_bb.tcl	
+# ./checkpoint/$(kl_name)_bb.dcp: ./src4level2/ydma_bb/* ./tcl/out_of_context_syn_$(kl_name)_bb.tcl
+# 	./shell/run_tcl.sh ./tcl/out_of_context_syn_$(kl_name)_bb.tcl	
 
-./checkpoint/pfm_dynamic_bb.dcp:./checkpoint/pfm_dynamic.dcp ./tcl/empty_pfm_dynamic.tcl
-	./shell/run_tcl.sh ./tcl/empty_pfm_dynamic.tcl
+# ./checkpoint/pfm_dynamic_bb.dcp:./checkpoint/pfm_dynamic.dcp ./tcl/empty_pfm_dynamic.tcl
+# 	./shell/run_tcl.sh ./tcl/empty_pfm_dynamic.tcl
 
+pfm_dynamic:./checkpoint/pfm_dynamic.dcp
 ./checkpoint/pfm_dynamic.dcp: $(impl_dir)/gen_pfm_dynamic.tcl
 	./shell/run_gen_pfm_dynamic.sh $(workspace) 
 
 modify:$(impl_dir)/gen_pfm_dynamic.tcl
-
-$(impl_dir)/gen_pfm_dynamic.tcl:$(impl_dir)/$(vitis_impl_tcl_name).tcl ./python/mk_gen_pfm_tcl.py
+$(impl_dir)/gen_pfm_dynamic.tcl:$(impl_dir)/$(vitis_impl_tcl_name).tcl ./python/mk_gen_pfm_tcl.py checkpoint/hw_bb_locked.dcp
 	./shell/run_python.sh ./python/mk_gen_pfm_tcl.py $(workspace) $(kl_name) $(vitis_impl_tcl_name)
 
-overlay_tcl:$(impl_dir)/$(vitis_impl_tcl_name)_mk_overlay.tcl
 
-# $(abs_gen_tcls): ./python/mk_abs_tcl.py
-# 	./shell/run_python.sh ./python/mk_abs_tcl.py $(workspace) $(kl_name) $(vitis_impl_tcl_name)
+# TODO: complete the script!
+# Adjust directory in create_hier_bd.tcl, cp it to impl dir, and run it
+# create_hier_bd:$(impl_dir)/create_hier_bd.tcl
+# $(impl_dir)/create_hier_bd.tcl: ./python/mk_create_hier_bd_tcl.py
+# 	python ./python/mk_create_hier_bd_tcl.py
+# 	./shell/run_gen_hier_bd.sh $(workspace)
 
-$(impl_dir)/$(vitis_impl_tcl_name)_mk_overlay.tcl:$(impl_dir)/$(vitis_impl_tcl_name).tcl ./python/mk_overlay_tcl.py
-	./shell/run_python.sh ./python/mk_overlay_tcl.py $(workspace) $(kl_name) $(vitis_impl_tcl_name)
 
 checkpoint/hw_bb_locked.dcp: ../_x/link/vivado/vpl/.local/hw_platform/hw_bb_locked.dcp
 	mkdir -p checkpoint

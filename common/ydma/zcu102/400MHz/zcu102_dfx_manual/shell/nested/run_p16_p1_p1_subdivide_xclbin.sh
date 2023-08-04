@@ -1,8 +1,8 @@
 #!/bin/bash -e
-Xilinx_dir
-bitstream=./checkpoint/p16_p1_p1_subdivide.bit
+source /tools/Xilinx/Vitis/2022.1/settings64.sh
+bitstream=./overlay_p23/p16_p1_p1_subdivide.bit
 xmlfile=./shell/nested/p16_p1_p1_subdivide.xml
-xclbin=./checkpoint/p16_p1_p1_subdivide.xclbin
+xclbin=./overlay_p23/p16_p1_p1_subdivide.xclbin
 
 xclbinutil --add-section DEBUG_IP_LAYOUT:JSON:../_x/link/int/debug_ip_layout.rtd \
 --add-section BITSTREAM:RAW:${bitstream} \

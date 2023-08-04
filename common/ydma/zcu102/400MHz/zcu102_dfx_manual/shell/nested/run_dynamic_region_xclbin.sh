@@ -1,8 +1,8 @@
 #!/bin/bash -e
-Xilinx_dir
-bitstream=./checkpoint/dynamic_region.bit
+source /tools/Xilinx/Vitis/2022.1/settings64.sh
+bitstream=./overlay_p23/dynamic_region.bit
 xmlfile=./shell/nested/dynamic_region.xml
-xclbin=./checkpoint/dynamic_region.xclbin
+xclbin=./overlay_p23/dynamic_region.xclbin
 
 xclbinutil --add-section DEBUG_IP_LAYOUT:JSON:../_x/link/int/debug_ip_layout.rtd \
 --add-section BITSTREAM:RAW:${bitstream} \

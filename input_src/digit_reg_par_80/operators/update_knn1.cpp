@@ -49,7 +49,7 @@ static void update_knn( WholeDigitType test_inst, WholeDigitType train_inst, int
 }
 
 
-static void knn_vote_small( int knn_set[SIZE * K_CONST],
+static void knn_vote_small( int knn_set[OP_SIZE * K_CONST],
 		                  int min_distance_list[K_CONST],
 						  int label_list[K_CONST],
 						  LabelType label_in)
@@ -68,7 +68,7 @@ static void knn_vote_small( int knn_set[SIZE * K_CONST],
 
   // go through all the lanes
   // do an insertion sort to keep a sorted neighbor list
-  LANES: for (int i = 0; i < SIZE; i ++ )
+  LANES: for (int i = 0; i < OP_SIZE; i ++ )
   {
     INSERTION_SORT_OUTER: for (int j = 0; j < K_CONST; j ++ )
     {
@@ -127,13 +127,13 @@ void update_knn1(hls::stream<ap_uint<512> > & Input_1,
 #pragma HLS INTERFACE axis register port=Output_1
 
 static WholeDigitType training_set [NUM_TRAINING / PAR_FACTOR_NEW];
-const int unroll_factor = SIZE;
+const int unroll_factor = OP_SIZE;
 #pragma HLS array_partition variable=training_set block factor=unroll_factor dim=0
 
 static WholeDigitType test_instance;
 bit32 tmp;
 
-static int knn_set[K_CONST*SIZE];
+static int knn_set[K_CONST*OP_SIZE];
 #pragma HLS array_partition variable=knn_set complete dim=0
 
 static bit512 in_tmp;
@@ -266,7 +266,7 @@ static int index = 0;
   }
 
   // Initialize the knn set
-   SET_KNN_SET: for ( int i = 0; i < K_CONST * SIZE ; ++i )
+   SET_KNN_SET: for ( int i = 0; i < K_CONST * OP_SIZE ; ++i )
    {
 #pragma HLS unroll
      // Note that the max distance is 256
@@ -276,7 +276,7 @@ static int index = 0;
    TRAINING_LOOP : for ( int i = 0; i < NUM_TRAINING / PAR_FACTOR; ++i )
    {
        #pragma HLS pipeline
-       LANES : for ( int j = 0; j < SIZE; j++ )
+       LANES : for ( int j = 0; j < OP_SIZE; j++ )
        {
          #pragma HLS unroll
          WholeDigitType training_instance = training_set[j * NUM_TRAINING / PAR_FACTOR + i];

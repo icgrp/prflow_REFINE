@@ -1,1 +1,1 @@
-scp -i ~/.ssh/id_rsa_zcu102 -r ./workspace/F005_bits_digit_reg_par_80/sd_card/* root@10.10.7.1:/media/sd-mmcblk0p1/
+scp -i ~/.ssh/id_rsa_zcu102 -r ./workspace/F005_bits_rendering_par_2/sd_card/* root@10.10.7.1:/run/media/mmcblk0p1/

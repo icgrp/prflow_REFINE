@@ -16,9 +16,7 @@ module write_b_in#(
     input [NUM_PORT_BITS-1:0] port,
     input [NUM_ADDR_BITS-1:0] addr,
     input vldBit,
-    input [PAYLOAD_BITS-1:0] payload,
-    
-    input ap_start);
+    input [PAYLOAD_BITS-1:0] payload);
     
     always@(posedge clk) begin
         if(reset) begin

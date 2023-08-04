@@ -26,9 +26,7 @@ module read_b_in #(
     output reg freespace_update,
     // b_in_web invalidates used data by deassert the valid bit
     output reg web_0,
-    output reg web_1,
-    
-    input ap_start
+    output reg web_1
     );
 
     reg [NUM_ADDR_BITS-2:0] numConsumed;

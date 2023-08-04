@@ -11,7 +11,7 @@ import json
 class xclbin(gen_basic):
   
   # create one directory for each page 
-  def create_page(self, operator, frequency):
+  def create_page(self, operator, overlay_freq):
     self.shell.cp_file('common/script_src/gen_xclbin_'+self.prflow_params['board']+'.sh', self.bit_dir+'/run_'+operator+'.sh')
     tmp_dict = {'bitstream=' : 'bitstream='+operator+'.bit',
                 'xmlfile=' : 'xmlfile='+operator+'.xml',
@@ -23,7 +23,7 @@ class xclbin(gen_basic):
     if self.prflow_params['overlay_type'] == 'hipr':
       tmp_dict = {'./ydma/' : '../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'}
     else:
-      tmp_dict = {'./ydma/'+self.prflow_params['board'] : '../F001_overlay/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'}
+      tmp_dict = {'./ydma/'+self.prflow_params['board'] : '../F001_overlay/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'}
 
     self.shell.my_sed(self.bit_dir+'/run_'+operator+'.sh', tmp_dict)
 
@@ -48,7 +48,7 @@ class xclbin(gen_basic):
   #   qsub_main.sh <-|_ Qsubmit each qsub_run.sh <- impl_page.tcl
     pass   
 
-  def run(self, operator, frequency="200"):
+  def run(self, operator, overlay_freq="400"):
     # mk work directory
     if self.prflow_params['gen_xclbin']==True:
       self.shell.mkdir(self.bit_dir)
@@ -66,5 +66,5 @@ class xclbin(gen_basic):
     # if page_num_exist==True:
     #   self.create_page(operator, page_num)
 
-    self.create_page(operator, frequency)
+    self.create_page(operator, overlay_freq)
 

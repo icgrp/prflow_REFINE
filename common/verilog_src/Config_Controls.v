@@ -33,18 +33,25 @@ module Config_Controls # (
     parameter NUM_BRAM_ADDR_BITS = 7,
     localparam OUT_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS+NUM_ADDR_BITS+NUM_ADDR_BITS+3,
     localparam IN_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS,
-    localparam REG_CONTROL_BITS = OUT_PORTS_REG_BITS*NUM_OUT_PORTS+IN_PORTS_REG_BITS*NUM_IN_PORTS
+    localparam REG_CONTROL_BITS = OUT_PORTS_REG_BITS*NUM_OUT_PORTS+IN_PORTS_REG_BITS*NUM_IN_PORTS,
+    localparam IS_DONE_CODE = 4 // magic code
     )(
     output [REG_CONTROL_BITS-1:0] control_reg,
     input clk,
     input reset,
-    input [PACKET_BITS-1:0] configure_in
+    input [PACKET_BITS-1:0] configure_in,
+    output reg is_done,
+    output reg [NUM_LEAF_BITS-1:0] self_leaf_reg,
+    output reg self_leaf_reg_src_send,
+    input self_leaf_reg_src_rcv
     );
     
     wire vldBit;
     wire [NUM_LEAF_BITS-1:0] leaf;
     wire [NUM_PORT_BITS-1:0] port;
     wire [PAYLOAD_BITS-1:0]  payload;
+    wire [PACKET_BITS-1-NUM_PORT_BITS-NUM_PORT_BITS-PAYLOAD_BITS-1:0]  fifo_addr;
+
     wire [NUM_PORT_BITS-1:0] self_port;
     wire [NUM_LEAF_BITS-1:0] dst_src_leaf;
     wire [NUM_PORT_BITS-1:0] dst_src_port;
@@ -54,6 +61,8 @@ module Config_Controls # (
     assign vldBit           = configure_in[PACKET_BITS-1]; // 1 bit
     assign leaf             = configure_in[PACKET_BITS-2:PACKET_BITS-2-NUM_LEAF_BITS+1];
     assign port             = configure_in[PACKET_BITS-2-NUM_LEAF_BITS:PACKET_BITS-2-NUM_LEAF_BITS-NUM_PORT_BITS+1];
+    assign fifo_addr        = configure_in[PACKET_BITS-2-NUM_LEAF_BITS-NUM_PORT_BITS:PAYLOAD_BITS];
+
     assign payload          = configure_in[PAYLOAD_BITS-1:0];
     assign self_port        = payload[PAYLOAD_BITS-1:PAYLOAD_BITS-NUM_PORT_BITS];
     assign dst_src_leaf     = payload[PAYLOAD_BITS-NUM_PORT_BITS-1:PAYLOAD_BITS-NUM_PORT_BITS-NUM_LEAF_BITS];
@@ -145,9 +154,35 @@ module Config_Controls # (
                     add_freespace_en[gv_k] <= 0;
                 end                       
             end          
-                       
+
         end
     endgenerate
+
+    // common for all output ports
+    always@(posedge clk) begin
+        if(reset) begin
+            self_leaf_reg <= 0;
+            self_leaf_reg_src_send <= 0;
+        end else if(vldBit && (port == 0) && (fifo_addr != IS_DONE_CODE)) begin
+            self_leaf_reg <= leaf; // fifo_addr != IS_DONE_CODE is not neccessary.. "leaf" value doesn't change
+            self_leaf_reg_src_send <= 1;
+        end
+        else begin
+            if(self_leaf_reg_src_rcv) self_leaf_reg_src_send <= 0;
+        end
+    end
+
+    always@(posedge clk) begin
+        if(reset) begin
+            is_done <= 0;
+        end else if(vldBit && (port == 0) && fifo_addr == IS_DONE_CODE) begin
+            is_done <= 1;                   
+        end
+        else begin
+            is_done <= 0;
+        end                       
+    end                                 
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////   
 
 

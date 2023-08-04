@@ -36,7 +36,9 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CONFIG_SIZE 12
 #define INPUT_SIZE (NUM_3D_TRI/4)
+#define NUM_OPS 7
 #define OUTPUT_SIZE (NUM_FB/16)
+#define NUM_TOTAL_CNT 62
 
 
 // Forward declaration of utility functions included at the end of this file
@@ -142,7 +144,7 @@ int main(int argc, char **argv)
     // Create the buffers and allocate memory
     cl::Buffer in1_buf(context, CL_MEM_READ_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
     cl::Buffer in2_buf(context, CL_MEM_READ_ONLY, sizeof(bit512) * INPUT_SIZE, NULL, &err);
-    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
+    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
     cl::Buffer out2_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
 
     // Map buffers to kernel arguments, thereby assigning them to specific device memory banks
@@ -154,7 +156,7 @@ int main(int argc, char **argv)
     // Map host-side buffer memory to user-space pointers
     bit64 *in1 = (bit64 *)q.enqueueMapBuffer(in1_buf, CL_TRUE, CL_MAP_WRITE, 0, sizeof(bit64) * CONFIG_SIZE);
     bit512 *in2 = (bit512 *)q.enqueueMapBuffer(in2_buf, CL_TRUE, CL_MAP_WRITE, 0, sizeof(bit512) * INPUT_SIZE);
-    bit64 *out1 = (bit64 *)q.enqueueMapBuffer(out1_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit64) * CONFIG_SIZE);
+    bit64 *out1 = (bit64 *)q.enqueueMapBuffer(out1_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit64) * NUM_TOTAL_CNT);
     bit512 *out2 = (bit512 *)q.enqueueMapBuffer(out2_buf, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, sizeof(bit512) * OUTPUT_SIZE);
 
     // Initialize the vectors used in the test
@@ -165,6 +167,13 @@ int main(int argc, char **argv)
     in1[0].range(31,  0) = 0x00000000;
     in1[1].range(63, 32) = 0x00000000;
     in1[1].range(31,  0) = INPUT_SIZE;
+    in1[2].range(63, 32) = 0x00000000;
+    in1[2].range(31,  0) = NUM_OPS;
+    in1[3].range(63, 32) = 0x00000000;
+    in1[3].range(31,  0) = OUTPUT_SIZE;
+    in1[4].range(63, 32) = 0x00000000;
+    in1[4].range(31,  0) = NUM_TOTAL_CNT;
+
     // send input data buf size
 
     // configure packets
@@ -201,6 +210,7 @@ int main(int argc, char **argv)
 	krnl_ydma.setArg(5, INPUT_SIZE);
 	//krnl_ydma.setArg(6, INPUT_SIZE);
 	krnl_ydma.setArg(6, OUTPUT_SIZE);
+    krnl_ydma.setArg(7, NUM_TOTAL_CNT);
 
     // std::cout << "1st iteration " << std::endl;
 	// Schedule transfer of inputs to device memory, execution of kernel, and transfer of outputs back to host memory
@@ -217,10 +227,11 @@ int main(int argc, char **argv)
     bool match = true;
     check_results(out2);
     // for(int i=0; i<CONFIG_SIZE; i++){
-    int max_config = CONFIG_SIZE > 20 ? 20: CONFIG_SIZE;
-    for(int i=0; i<max_config; i++){
-        printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
-    	//std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
+    // int max_config = CONFIG_SIZE > 20 ? 20: CONFIG_SIZE;
+    for(int i=0; i<NUM_TOTAL_CNT; i++){
+        // printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
+    	// std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
+        printf("out1[%d] = %08x%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
     }
     
     // print time

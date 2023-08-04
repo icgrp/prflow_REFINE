@@ -17,7 +17,7 @@
 
 
 
-import os  
+import os, json
 import subprocess
 from pr_flow.gen_basic import gen_basic
 
@@ -66,7 +66,13 @@ class hls(gen_basic):
       self.shell.write_lines(hls_path+'/run_'+fun_name+'.sh', self.shell.return_empty_sh_list(), True)
       self.shell.write_lines(hls_path+'/runLog'+fun_name+'.log', ['hls: 0 senconds'], False)
 
-  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False, frequency="200"):
+  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False):
+
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
+      # pblock_operators_list = json.load(infile)
+      pblock_operators_dict = json.load(infile)
+    frequency = pblock_operators_dict[operator]
+
     if path == None:
       hls_path = self.hls_dir
     else:

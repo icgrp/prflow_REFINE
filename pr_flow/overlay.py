@@ -78,7 +78,7 @@ class overlay(gen_basic):
       # self.shell.write_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_hipr/src4level2/ydma_bb/'+operator+'.v', self.verilog.return_place_holder_v_list(operator, in_width_list, out_width_list, is_dummy=True)) 
 
   # run.sh will be used for generating the overlay.dcp 
-  def return_run_sh_list_local(self, operators, bft_n, tandem_mode, frequency):
+  def return_run_sh_list_local(self, operators, bft_n, tandem_mode, overlay_freq):
     lines_list = []
     lines_list.append('#!/bin/bash -e')
     lines_list.append('#place_holder anchor')
@@ -96,7 +96,7 @@ class overlay(gen_basic):
     # if not the 1st overlay gen, remove previously generated utilization*.rpt
     # lines_list.append('rm -rf utilization*.rpt') 
 
-    lines_list.append('cd ydma/'+self.prflow_params['board']+'/'+frequency+'MHz')
+    lines_list.append('cd ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz')
     lines_list.append('./build.sh')
 
     # generate the 2nd-level DFX regions 
@@ -140,12 +140,12 @@ class overlay(gen_basic):
     return lines_list
 
  
-  def create_shell_file(self, operators, bft_n, tandem_mode, frequency):
+  def create_shell_file(self, operators, bft_n, tandem_mode, overlay_freq):
     # copy the shell script to generate xclbin
     self.shell.cp_file('./common/script_src/gen_xclbin_'+self.prflow_params['board']+'.sh ', self.overlay_dir)
 
     # generate the shell script to generate the overlay
-    self.shell.write_lines(self.overlay_dir+'/run.sh', self.return_run_sh_list_local(operators, bft_n, tandem_mode, frequency), True)
+    self.shell.write_lines(self.overlay_dir+'/run.sh', self.return_run_sh_list_local(operators, bft_n, tandem_mode, overlay_freq), True)
     
     # generate the shell script to call run.sh depends on the scheduler.
     # scheduler: slurm, qsub, local 
@@ -162,21 +162,21 @@ class overlay(gen_basic):
 
 
 
-  def update_cad_path(self, operators, frequency):
+  def update_cad_path(self, operators, overlay_freq):
     # update the cad path for build.sh
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh', 
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh', 
                             {'export ROOTFS'      : 'export ROOTFS='+self.prflow_params['ROOTFS']})
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh',
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh',
                             {'export PLATFORM_REPO_PATHS=': 'export PLATFORM_REPO_PATHS='+self.prflow_params['PLATFORM_REPO_PATHS']})
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh', 
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh', 
                             {'export PLATFORM='   : 'export PLATFORM='+self.prflow_params['PLATFORM']})
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh', 
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh', 
                             {'xrt_dir'            : 'source '+self.prflow_params['xrt_dir']})
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh', 
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh', 
                             {'sdk_dir'            : 'source '+self.prflow_params['sdk_dir']})
-    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh', 
+    self.shell.replace_lines(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh', 
                             {'Xilinx_dir'         : 'source '+self.prflow_params['Xilinx_dir']})
-    os.system('chmod +x '+self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+'/build.sh')
+    os.system('chmod +x '+self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+'/build.sh')
 
     # replace device definistion in cfg file
     self.shell.replace_lines(self.overlay_dir+'/ydma/src/'+self.prflow_params['board']+'_dfx.cfg', {'platform'         : 'platform='+self.prflow_params['PLATFORM']})
@@ -384,12 +384,12 @@ class overlay(gen_basic):
     #   file.write(filedata)
 
 
-  def update_main_overlay(self, directory, bft_n, frequency):
+  def update_main_overlay(self, directory, bft_n, overlay_freq):
     mainfile = directory+"main.sh"
     with open(mainfile, "r") as file:
       filedata = file.read()
 
-    check_file = './ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'+\
+    check_file = './ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'+\
                   '/'+self.prflow_params['board']+'_dfx_manual'+'/overlay_p'+str(bft_n) + '/overlay.dcp'
     new_str = 'if [ ! -f "' + check_file + '" ]; then ./run.sh "$@"; fi'
     filedata = filedata.replace('./run.sh "$@"', new_str)
@@ -459,7 +459,7 @@ class overlay(gen_basic):
 
 
 
-  def run(self, operators, bft_n=23, tandem_mode=False, frequency="200"):
+  def run(self, operators, bft_n=23, tandem_mode=False, overlay_freq="400"):
     # initial run
     if(not os.path.isdir(self.overlay_dir)):
       # self.shell.mkdir(self.prflow_params['workspace'])
@@ -477,26 +477,26 @@ class overlay(gen_basic):
       # self.shell.cp_dir('./common/script_src/parse_ovly_util.py', self.overlay_dir)
 
       # modifications for single-overlay-version to multiple-overlays-version
-      self.update_makefile_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+      self.update_makefile_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                     +'/'+self.prflow_params['board']+'_dfx_manual'+'/',bft_n)
-      self.update_py_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+      self.update_py_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                     +'/'+self.prflow_params['board']+'_dfx_manual'+'/python/',bft_n)
-      self.update_sh_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+      self.update_sh_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                     +'/'+self.prflow_params['board']+'_dfx_manual'+'/shell/',bft_n)
-      self.update_tcl_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+      self.update_tcl_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                     +'/'+self.prflow_params['board']+'_dfx_manual'+'/tcl/',bft_n)
       # self.update_ydma_bb(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual'+'/src4level2/ydma_bb/', bft_n)
 
     
       # update the cad tool path
-      self.update_cad_path(operators, frequency)
+      self.update_cad_path(operators, overlay_freq)
 
       # update the pragma for hipr ovelay generation
       # self.update_resource_pragma(operators)
 
       # generate shell files for local run
-      self.create_shell_file(operators,bft_n, tandem_mode, frequency)
-      self.update_main_overlay(self.overlay_dir+'/',bft_n,frequency)
+      self.create_shell_file(operators,bft_n, tandem_mode, overlay_freq)
+      self.update_main_overlay(self.overlay_dir+'/',bft_n,overlay_freq)
 
       # create dummy logic place and route the overlay.dcp
       self.create_place_holder(operators)
@@ -507,7 +507,7 @@ class overlay(gen_basic):
 
     else:
       # subsequent overlay generations
-      if(not os.path.exists(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+      if(not os.path.exists(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                              +self.prflow_params['board']+'_dfx_manual'+'/overlay_p'+str(bft_n)+'/overlay.dcp')):
         # self.shell.cp_dir('./common/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/Makefile', \
         #   self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/Makefile')        
@@ -533,25 +533,25 @@ class overlay(gen_basic):
         # self.shell.cp_dir('./common/script_src/parse_ovly_util.py', self.overlay_dir)
 
         # modifications for single-overlay-version to multiple-overlays-version
-        self.update_makefile_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+        self.update_makefile_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                       +'/'+self.prflow_params['board']+'_dfx_manual'+'/',bft_n)
-        self.update_py_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+        self.update_py_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                       +'/'+self.prflow_params['board']+'_dfx_manual'+'/python/',bft_n)
-        self.update_sh_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+        self.update_sh_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                       +'/'+self.prflow_params['board']+'_dfx_manual'+'/shell/',bft_n)
-        self.update_tcl_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+frequency+'MHz'\
+        self.update_tcl_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                       +'/'+self.prflow_params['board']+'_dfx_manual'+'/tcl/',bft_n)
         # self.update_ydma_bb(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual'+'/src4level2/ydma_bb/', bft_n)
 
         # update the cad tool path
-        self.update_cad_path(operators, frequency)
+        self.update_cad_path(operators, overlay_freq)
 
         # update the pragma for hipr ovelay generation
         # self.update_resource_pragma(operators)
 
         # generate shell files for local run
-        self.create_shell_file(operators,bft_n, tandem_mode, frequency)
-        self.update_main_overlay(self.overlay_dir+'/',bft_n,frequency)
+        self.create_shell_file(operators,bft_n, tandem_mode, overlay_freq)
+        self.update_main_overlay(self.overlay_dir+'/',bft_n,overlay_freq)
 
         # create dummy logic place and route the overlay.dcp
         self.create_place_holder(operators)
