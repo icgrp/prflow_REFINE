@@ -17,14 +17,15 @@ def main():
 	# print(rpt_files)
 	# filedata=''
 	util_dict = {}
-	(num_lut, num_ff, num_ram36, num_ram18, num_dsp) = (0, 0, 0, 0, 0)	
+	(num_lut_logic, num_lut_mem, num_ff, num_ram36, num_ram18, num_dsp) = (0, 0, 0, 0, 0, 0)	
 	for rpt_file in rpt_files:
 		with open(rpt_file, 'r') as file:
 			is_reg_done = False # there exist two | CLB Registers
 			for line in file:
-				if(line.startswith('| CLB LUTs')):
-					num_lut = int(line.split()[16]) # 16 is magic number for "Available"
-					# print(line.split()[16]) # 16 is magic number for "Available"
+				if(line.startswith('|   LUT as Logic')):
+					num_lut_logic = int(line.split()[17]) # 17 is magic number for "Available"
+				elif(line.startswith('|   LUT as Memory')):
+					num_lut_mem = int(line.split()[17]) # 17 is magic number for "Available"
 				elif(line.startswith('| CLB Registers') and not is_reg_done):
 					is_reg_done = True
 					num_ff = int(line.split()[16]) # 16 is magic number for "Available"
@@ -47,7 +48,7 @@ def main():
 					# print(rpt_file)
 					# print(num_ff)
 
-		util_dict[get_n_rpt(rpt_file)] = (num_lut, num_ff, num_ram36, num_ram18, num_dsp)
+		util_dict[get_n_rpt(rpt_file)] = (num_lut_logic, num_lut_mem, num_ff, num_ram36, num_ram18, num_dsp)
 		# filedata = filedata + rpt_file + ': ' + str((num_clb, num_ram36, num_ram18, num_dsp)) + '\n'
 
 	# print(util_dict)
@@ -61,18 +62,21 @@ def main():
 	# print(blocked_resource_count_dict)
 
 	for pblock_name in util_dict:
-		num_blocked_lut = blocked_resource_count_dict[pblock_name]['SLICE_LUT']
+		num_blocked_lut_logic = blocked_resource_count_dict[pblock_name]['SLICEL']
+		num_blocked_lut_mem = blocked_resource_count_dict[pblock_name]['SLICEM']
 		num_blocked_ff = blocked_resource_count_dict[pblock_name]['SLICE_FF']
 		num_blocked_ram36 = blocked_resource_count_dict[pblock_name]['RAMB36']
 		num_blocked_ram18_extra = blocked_resource_count_dict[pblock_name]['RAMB18_extra']
 		num_blocked_dsp = blocked_resource_count_dict[pblock_name]['DSP48E2']
 
-		num_lut = str(util_dict[pblock_name][0] - int(num_blocked_lut))
-		num_ff = str(util_dict[pblock_name][1] - int(num_blocked_ff))
-		num_ram36 = str(util_dict[pblock_name][2] - int(num_blocked_ram36))
-		num_ram18 = str(util_dict[pblock_name][3] - int(num_blocked_ram36)*2 - int(num_blocked_ram18_extra))
-		num_dsp = str(util_dict[pblock_name][4] - int(num_blocked_dsp))
-		util_dict[pblock_name] = (num_lut, num_ff, num_ram36, num_ram18, num_dsp) # rewrite util_dict reflecting blocked resources
+		num_lut_logic = str(util_dict[pblock_name][0] - int(num_blocked_lut_logic))
+		num_lut_mem = str(util_dict[pblock_name][1] - int(num_blocked_lut_mem))
+		num_ff = str(util_dict[pblock_name][2] - int(num_blocked_ff))
+		num_ram36 = str(util_dict[pblock_name][3] - int(num_blocked_ram36))
+		num_ram18 = str(util_dict[pblock_name][4] - int(num_blocked_ram36)*2 - int(num_blocked_ram18_extra))
+		num_dsp = str(util_dict[pblock_name][5] - int(num_blocked_dsp))
+
+		util_dict[pblock_name] = (num_lut_logic, num_lut_mem, num_ff, num_ram36, num_ram18, num_dsp) # rewrite util_dict reflecting blocked resources
 	print(util_dict)
 	with open('util_all.json', 'w') as outfile:
 		json.dump(util_dict, outfile)

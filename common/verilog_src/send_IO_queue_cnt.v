@@ -3,6 +3,9 @@
 // input_port_full_cnt from Input_Port_Cluster
 // output_port_empty_cnt from Output_Port_Cluster are in clk(_bft) domain,
 // but they are guaranteed to be static by the time they are sampled in clk_user
+`define INPUT_PORT_MAX_NUM 8
+`define OUTPUT_PORT_MIN_NUM 9
+
 module send_IO_queue_cnt #(
     parameter NUM_PORT_BITS = 4,
     parameter PAYLOAD_BITS = 32, 
