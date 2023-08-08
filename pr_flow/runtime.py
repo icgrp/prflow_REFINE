@@ -276,10 +276,10 @@ class runtime(gen_basic):
   # operators_impl_list has representative op only
   def get_operators_impl_list(self):
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+    with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-      pblock_operators_dict = json.load(infile)
-    pblock_operators_list = pblock_operators_dict.keys()
+      specs_dict = json.load(infile)
+    pblock_operators_list = specs_dict.keys()
 
     operators_impl_list = []
     for pblock_op in pblock_operators_list:
@@ -303,10 +303,10 @@ class runtime(gen_basic):
                 'fi']
 
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+    with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-      pblock_operators_dict = json.load(infile)
-    pblock_operators_list = pblock_operators_dict.keys()
+      specs_dict = json.load(infile)
+    pblock_operators_list = specs_dict.keys()
 
     recombined_pblock_xclbin_list = self.get_recombined_pblock_xclbin_list(syn_directory, pblock_operators_list)
     # need to load from higher level DFX xclbins first
@@ -421,11 +421,12 @@ class runtime(gen_basic):
 
 
  
-  def run(self, operators, overlay_freq="400"):
+  def run(self, operators):
     # mk work directory
     if self.prflow_params['gen_runtime']==True:
       self.shell.mkdir(self.bit_dir)
     
+    overlay_freq = self.prflow_params['overlay_freq']
     # prepare the host driver source for vitis runtime
     self.shell.cp_file('input_src/'+self.prflow_params['benchmark_name'], self.bit_dir)
 

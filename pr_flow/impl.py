@@ -180,19 +180,19 @@ class impl(gen_basic):
   #   qsub_main.sh <-|_ Qsubmit each qsub_run.sh <- impl_page.tcl
     pass   
 
-  def run(self, operator_impl, syn_dcp, monitor_on=False, overlay_freq="400"):
+  def run(self, operator_impl, syn_dcp, monitor_on=False):
     # mk work directory
     if self.prflow_params['gen_impl']==True:
       print("gen_impl")
       self.shell.mkdir(self.pr_dir)
       self.shell.mkdir(self.bit_dir)
     
-
+    overlay_freq = self.prflow_params['overlay_freq']
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+    with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-        pblock_operators_dict = json.load(infile)
-    pblock_operators_list = pblock_operators_dict.keys()
+        specs_dict = json.load(infile)
+    pblock_operators_list = specs_dict.keys()
 
     for pblock_op in pblock_operators_list:
       if(operator_impl in pblock_op.split()):
@@ -214,10 +214,10 @@ class impl(gen_basic):
     print("############################ PBLOCK NAME: " + pblock_name)
     # print("############################ OVERLAY_N: " + overlay_n)
 
-    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-      pblock_operators_dict = json.load(infile)
-    frequency = pblock_operators_dict[operator_impl]
+      specs_dict = json.load(infile)
+    frequency = specs_dict[operator_impl]['kernel_clk']
 
     # if pblock_name_exist==True:
     #   self.create_page(pblock_op_impl, pblock_name, overlay_n, monitor_on)

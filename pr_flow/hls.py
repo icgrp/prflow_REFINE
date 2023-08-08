@@ -68,10 +68,10 @@ class hls(gen_basic):
 
   def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False):
 
-    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-      pblock_operators_dict = json.load(infile)
-    frequency = pblock_operators_dict[operator]
+      specs_dict = json.load(infile)
+    frequency = specs_dict[operator]['kernel_clk']
 
     if path == None:
       hls_path = self.hls_dir

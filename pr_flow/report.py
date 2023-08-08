@@ -14,10 +14,10 @@ class report(gen_basic):
 
   def get_pblock_op_impl(self, operator_impl):
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
-    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+    with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
-      pblock_operators_dict = json.load(infile)
-    pblock_operators_list = pblock_operators_dict.keys()
+      specs_dict = json.load(infile)
+    pblock_operators_list = specs_dict.keys()
 
     for pblock_op in pblock_operators_list:
       if(operator_impl in pblock_op.split()):

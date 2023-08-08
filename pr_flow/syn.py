@@ -170,14 +170,18 @@ class syn(gen_basic):
  
 
 
-  def prepare_HW(self, operator, page_num, monitor_on, frequency):
-    # Update target clock
+  def prepare_HW(self, operator, page_num, monitor_on, specs_dict):
+    frequency = specs_dict[operator]['kernel_clk']
+    num_leaf_interface = specs_dict[operator]['num_leaf_interface']
+
+    # # Update target clock, edit: now each kernel different kernel clk
     # clk_period = '{:.1f}'.format(1000 / int(frequency))
-    # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
-    #   filedata = infile.readlines()
-    # assert(len(filedata) == 1)
-    # filedata = filedata[0]
-    # filedata = filedata.replace('TARGET_CLK', clk_period)
+    # # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
+    # #   filedata = infile.readlines()
+    # # assert(len(filedata) == 1)
+    # # filedata = filedata[0]
+    # # filedata = filedata.replace('TARGET_CLK', clk_period)
+    # filedata = "create_clock -period " + str(clk_period) + " -name clk_user [get_ports clk_user]"
     # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
     #   outfile.write(filedata)
 
@@ -194,6 +198,7 @@ class syn(gen_basic):
                   'Output_Port.v',     'read_b_in.v',           'ram0.v',                'single_ram.v',       'SynFIFO.v',
                   'xram_triple.v',     'Stream_Flow_Control.v', 'write_b_in.v',          'write_b_out.v',
                   'stream_shell.v',    'expand_queue.v',        'shrink_queue.v',        'send_IO_queue_cnt.v']
+    # file_list = ['expand_queue.v',        'shrink_queue.v']
 
     # copy the necessary leaf interface verilog files for out-of-context compilation
     for name in file_list: self.shell.cp_file(self.overlay_dir+'/src/'+name, self.syn_dir+'/'+operator+'/src/'+name)
@@ -204,6 +209,13 @@ class syn(gen_basic):
                                                                                                           ['./leaf.v'], 
                                                                                                           rpt_name='utilization.rpt', 
                                                                                                           frequency=frequency))
+      # self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
+      #                                                                                                     ['./user_kernel.v'], 
+      #                                                                                                     top_name='user_kernel',
+      #                                                                                                     dcp_name='user_kernel.dcp',
+      #                                                                                                     rpt_name='utilization.rpt', 
+      #                                                                                                     frequency=frequency))
+
     elif self.prflow_params['overlay_type'] == 'hipr':
       self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
                                                                                                           [], 
@@ -226,17 +238,44 @@ class syn(gen_basic):
 
     # prepare the leaf Verilog file for the DFX page
     if self.prflow_params['overlay_type'] == 'psnoc':
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
-                           self.verilog.return_page_v_list(page_num,
-                                                           operator,
-                                                           input_num,
-                                                           output_num,
-                                                           operator_arg_dict[operator],
-                                                           operator_width_dict[operator],
-                                                           frequency,
-                                                           for_syn=True,
-                                                           is_riscv=False),
-                           False)
+      if num_leaf_interface == 1:
+        self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
+                             self.verilog.return_single_page_v_list(page_num,
+                                                             operator,
+                                                             input_num,
+                                                             output_num,
+                                                             operator_arg_dict[operator],
+                                                             operator_width_dict[operator],
+                                                             frequency,
+                                                             num_leaf_interface,
+                                                             for_syn=True,
+                                                             is_riscv=False),
+                             False)
+      else:
+        self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
+                             self.verilog.return_non_single_page_v_list(page_num,
+                                                             operator,
+                                                             input_num,
+                                                             output_num,
+                                                             operator_arg_dict[operator],
+                                                             operator_width_dict[operator],
+                                                             frequency,
+                                                             num_leaf_interface,
+                                                             for_syn=True,
+                                                             is_riscv=False),
+                             False)        
+
+      # self.shell.write_lines(self.syn_dir+'/'+operator+'/user_kernel.v',
+      #                      self.verilog.return_user_kernel_v_list(page_num,
+      #                                                      operator,
+      #                                                      input_num,
+      #                                                      output_num,
+      #                                                      operator_arg_dict[operator],
+      #                                                      operator_width_dict[operator],
+      #                                                      frequency,
+      #                                                      for_syn=True),
+      #                      False)
+
     elif self.prflow_params['overlay_type'] == 'hipr':
       addr_width_dict = {}
       for i in range(1, 8):  addr_width_dict['Output_'+str(i)] = self.prflow_params['bram_addr_bits']
@@ -274,7 +313,7 @@ class syn(gen_basic):
 
 
   # create one directory for each page 
-  def create_page(self, operator, monitor_on, frequency):
+  def create_page(self, operator, monitor_on, specs_dict):
     self.shell.re_mkdir(self.syn_dir+'/'+operator)
 
     # map_target_exist, map_target = self.pragma.return_pragma(self.hls_dir+'/'+operator+'_prj/operator/'+operator+'.h', 'map_target')
@@ -297,7 +336,7 @@ class syn(gen_basic):
     self.shell.cp_dir('./common/script_src/monitor_syn.sh', self.syn_dir+'/monitor.sh')
     self.shell.cp_dir('./common/script_src/parse_htop.py', self.syn_dir)
     # copy the script to assign operator to an appropriate page based on resource util after synthesis
-    self.shell.cp_dir('./common/script_src/nested_pg_assign.py', self.syn_dir)
+    # self.shell.cp_dir('./common/script_src/nested_pg_assign.py', self.syn_dir)
     dest_dir = self.overlay_dir +'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual'+'/'
     dest_dir = os.path.abspath(dest_dir)
     # self.update_pg_assign(self.syn_dir, dest_dir) # don't need anymore
@@ -306,7 +345,7 @@ class syn(gen_basic):
     self.shell.cp_dir('./common/script_src/syn.xdc', self.syn_dir + '/' + operator + '/syn.xdc')
 
     # Not using RISC-V
-    self.prepare_HW(operator, page_num, monitor_on, frequency)
+    self.prepare_HW(operator, page_num, monitor_on, specs_dict)
     # if map_target == 'HW': 
     #   self.prepare_HW(operator, page_num, monitor_on)
     # else:
@@ -317,14 +356,13 @@ class syn(gen_basic):
 
 
   def run(self, operator, monitor_on=False):
-    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/kernel_clk.json', 'r') as infile:
-        # pblock_operators_list = json.load(infile)
-        pblock_operators_dict = json.load(infile)
-    frequency = pblock_operators_dict[operator]
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
+      # pblock_operators_list = json.load(infile)
+      specs_dict = json.load(infile)
 
     # mk work directory
     self.shell.mkdir(self.syn_dir)
     # create ip directories for the operator
-    self.create_page(operator, monitor_on, frequency)
+    self.create_page(operator, monitor_on, specs_dict)
 
      

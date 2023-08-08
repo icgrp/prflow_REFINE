@@ -10,10 +10,10 @@ def get_num_op(operator):
 def main():
     project_name = args.project_name
     pblock_ops_dir = './input_src/' + project_name + '/operators'
-    with open(pblock_ops_dir + '/kernel_clk.json', 'r') as infile:
+    with open(pblock_ops_dir + '/specs.json', 'r') as infile:
         # pblock_operators_list = json.load(infile)
-        pblock_operators_dict = json.load(infile)
-    pblock_operators_list = pblock_operators_dict.keys()
+        specs_dict = json.load(infile)
+    pblock_operators_list = specs_dict.keys()
     operators_impl = ''
     for pblock_op in pblock_operators_list:
         if(get_num_op(pblock_op)==1):

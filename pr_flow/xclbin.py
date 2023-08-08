@@ -48,11 +48,12 @@ class xclbin(gen_basic):
   #   qsub_main.sh <-|_ Qsubmit each qsub_run.sh <- impl_page.tcl
     pass   
 
-  def run(self, operator, overlay_freq="400"):
+  def run(self, operator):
     # mk work directory
     if self.prflow_params['gen_xclbin']==True:
       self.shell.mkdir(self.bit_dir)
-    
+
+    overlay_freq = self.prflow_params['overlay_freq']    
     # create ip directories for all the pages
     # with open(self.syn_dir+'/page_assignment.json', 'r') as infile:
     #   (overlay_n, assign_dict) = json.load(infile)

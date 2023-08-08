@@ -537,38 +537,38 @@ LUT_MARGIN_quad_dict_200MHz = {
 
 
 # TODO: fix these hard numbers
-BRAM_MARGIN_single_dict = {"400": BRAM_MARGIN_single_dict_400MHz,
-                           "350": BRAM_MARGIN_single_dict_350MHz,
-                           "300": BRAM_MARGIN_single_dict_300MHz,
-                           "250": BRAM_MARGIN_single_dict_250MHz,
-                           "200": BRAM_MARGIN_single_dict_200MHz}
+BRAM_MARGIN_single_dict = {400: BRAM_MARGIN_single_dict_400MHz,
+                           350: BRAM_MARGIN_single_dict_350MHz,
+                           300: BRAM_MARGIN_single_dict_300MHz,
+                           250: BRAM_MARGIN_single_dict_250MHz,
+                           200: BRAM_MARGIN_single_dict_200MHz}
 
-BRAM_MARGIN_double_dict = {"400": BRAM_MARGIN_double_dict_400MHz,
-                           "350": BRAM_MARGIN_double_dict_350MHz,
-                           "300": BRAM_MARGIN_double_dict_300MHz,
-                           "250": BRAM_MARGIN_double_dict_250MHz,
-                           "200": BRAM_MARGIN_double_dict_200MHz}
+BRAM_MARGIN_double_dict = {400: BRAM_MARGIN_double_dict_400MHz,
+                           350: BRAM_MARGIN_double_dict_350MHz,
+                           300: BRAM_MARGIN_double_dict_300MHz,
+                           250: BRAM_MARGIN_double_dict_250MHz,
+                           200: BRAM_MARGIN_double_dict_200MHz}
 
-BRAM_MARGIN_quad_dict = {"400": BRAM_MARGIN_quad_dict_400MHz,
-                         "350": BRAM_MARGIN_quad_dict_350MHz,
-                         "300": BRAM_MARGIN_quad_dict_300MHz,
-                         "250": BRAM_MARGIN_quad_dict_250MHz,
-                         "200": BRAM_MARGIN_quad_dict_200MHz}
+BRAM_MARGIN_quad_dict = {400: BRAM_MARGIN_quad_dict_400MHz,
+                         350: BRAM_MARGIN_quad_dict_350MHz,
+                         300: BRAM_MARGIN_quad_dict_300MHz,
+                         250: BRAM_MARGIN_quad_dict_250MHz,
+                         200: BRAM_MARGIN_quad_dict_200MHz}
 
-LUT_MARGIN_single_dict = {"400": LUT_MARGIN_single_dict_400MHz,
-                          "350": LUT_MARGIN_single_dict_350MHz,
-                          "300": LUT_MARGIN_single_dict_300MHz,
-                          "250": LUT_MARGIN_single_dict_250MHz,
-                          "200": LUT_MARGIN_single_dict_200MHz}
+LUT_MARGIN_single_dict = {400: LUT_MARGIN_single_dict_400MHz,
+                          350: LUT_MARGIN_single_dict_350MHz,
+                          300: LUT_MARGIN_single_dict_300MHz,
+                          250: LUT_MARGIN_single_dict_250MHz,
+                          200: LUT_MARGIN_single_dict_200MHz}
 
-LUT_MARGIN_double_dict = {"400": LUT_MARGIN_double_dict_400MHz,
-                          "350": LUT_MARGIN_double_dict_350MHz,
-                          "300": LUT_MARGIN_double_dict_300MHz,
-                          "250": LUT_MARGIN_double_dict_250MHz,
-                          "200": LUT_MARGIN_double_dict_200MHz}
+LUT_MARGIN_double_dict = {400: LUT_MARGIN_double_dict_400MHz,
+                          350: LUT_MARGIN_double_dict_350MHz,
+                          300: LUT_MARGIN_double_dict_300MHz,
+                          250: LUT_MARGIN_double_dict_250MHz,
+                          200: LUT_MARGIN_double_dict_200MHz}
 
-LUT_MARGIN_quad_dict = {"400": LUT_MARGIN_quad_dict_400MHz,
-                        "350": LUT_MARGIN_quad_dict_350MHz,
-                        "300": LUT_MARGIN_quad_dict_300MHz,
-                        "250": LUT_MARGIN_quad_dict_250MHz,
-                        "200": LUT_MARGIN_quad_dict_200MHz}
+LUT_MARGIN_quad_dict = {400: LUT_MARGIN_quad_dict_400MHz,
+                        350: LUT_MARGIN_quad_dict_350MHz,
+                        300: LUT_MARGIN_quad_dict_300MHz,
+                        250: LUT_MARGIN_quad_dict_250MHz,
+                        200: LUT_MARGIN_quad_dict_200MHz}
