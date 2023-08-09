@@ -36,7 +36,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CONFIG_SIZE 12
 #define INPUT_SIZE (NUM_3D_TRI/4)
-#define NUM_OPS 7
+#define NUM_IS_DONE 7
 #define OUTPUT_SIZE (NUM_FB/16)
 #define NUM_TOTAL_CNT 62
 
@@ -168,7 +168,7 @@ int main(int argc, char **argv)
     in1[1].range(63, 32) = 0x00000000;
     in1[1].range(31,  0) = INPUT_SIZE;
     in1[2].range(63, 32) = 0x00000000;
-    in1[2].range(31,  0) = NUM_OPS;
+    in1[2].range(31,  0) = NUM_IS_DONE;
     in1[3].range(63, 32) = 0x00000000;
     in1[3].range(31,  0) = OUTPUT_SIZE;
     in1[4].range(63, 32) = 0x00000000;

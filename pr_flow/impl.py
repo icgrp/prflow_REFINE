@@ -31,7 +31,14 @@ class impl(gen_basic):
     return page_inst
 
   # create one directory for each page
-  def create_page(self, pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency, overlay_freq):
+  def create_page(self, pblock_op_impl, pblock_name, syn_dcp, specs_dict, operator):
+    overlay_freq = self.prflow_params['overlay_freq']
+    overlay_n = self.prflow_params['overlay_n']
+    frequency = specs_dict[operator]['kernel_clk']
+    num_leaf_interface = specs_dict[operator]['num_leaf_interface']
+
+    # DJP: num_op is artifact of when we plan to include multiple ops in single pblock
+    #      Probably won't use it.
     num_op = self.get_num_op(pblock_op_impl)
     if(num_op > 1): # if pblock_op_impl="coloringFB_bot_m coloringFB_top_m", operator_impl=coloringFB_bot_m
       operator_impl = pblock_op_impl.split()[0]
@@ -88,39 +95,65 @@ class impl(gen_basic):
                                                 +'report_utilization -hierarchical -file ' \
                                                 + operator_impl + '_' + str(pblock_name) + '.rpt'
                 }
-    if frequency == "400":
+    if frequency == 400:
       tmp_dict["set_max_delay "] = "" # remove this constraint
     else:
-      clk_src = clk_src_list["clk_" + frequency]
+      clk_src = clk_src_list["clk_" + str(frequency)]
       tmp_dict["set_max_delay "] = "set_max_delay -datapath_only 2.5 -from [get_clocks clk_out6_pfm_top_clkwiz_sysclks_0] -to [get_clocks " +\
                                     clk_src + "]"
+
 
     if(self.get_page_size(pblock_name) == 1):
       tmp_dict['set leaf_dcp']     = ''
     elif(self.get_page_size(pblock_name) == 2):
-      if(num_op == 1):
+      if(num_leaf_interface == 1):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
                                      +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_1.dcp"'
-      elif(num_op == 2):
-        tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_2.dcp"'
+      elif(num_leaf_interface == 2):
+        tmp_dict['set leaf_dcp']     = ''
       else:
-        raise Exception("Invalid num_op")
+        raise Exception("Invalid num_leaf_interface")
     elif(self.get_page_size(pblock_name) == 4):
-      if(num_op == 1):
+      if(num_leaf_interface == 1):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
                                      +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_1.dcp"'
-      elif(num_op == 2):
+      elif(num_leaf_interface == 2):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
                                      +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_2.dcp"'
-      elif(num_op == 3):
+      elif(num_leaf_interface == 3):
         tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
                                      +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_3.dcp"'
-      elif(num_op == 4):
-        tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                     +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_4.dcp"'
+      elif(num_leaf_interface == 4):
+        tmp_dict['set leaf_dcp']     = ''
       else:
-        raise Exception("Invalid num_op")
+        raise Exception("Invalid num_leaf_interface")
+
+    # if(self.get_page_size(pblock_name) == 1):
+    #   tmp_dict['set leaf_dcp']     = ''
+    # elif(self.get_page_size(pblock_name) == 2):
+    #   if(num_op == 1):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_1.dcp"'
+    #   elif(num_op == 2):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_2.dcp"'
+    #   else:
+    #     raise Exception("Invalid num_op")
+    # elif(self.get_page_size(pblock_name) == 4):
+    #   if(num_op == 1):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_1.dcp"'
+    #   elif(num_op == 2):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_2.dcp"'
+    #   elif(num_op == 3):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_3.dcp"'
+    #   elif(num_op == 4):
+    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_4.dcp"'
+    #   else:
+    #     raise Exception("Invalid num_op")
     #elif(self.get_page_size(pblock_name) == 8):
     #  tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']+\
     #                                    '/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_oct.dcp"'
@@ -132,17 +165,62 @@ class impl(gen_basic):
       tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'+\
                                     self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
     else:
-      if(self.get_page_size(pblock_name) == 1): # don't need leaf_dcp
-        tmp_dict['add_files $leaf_dcp'] = ''
+      if(self.get_page_size(pblock_name) == 1): 
+        tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
         tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
                                       page_inst + '} [get_files $user_logic_dcp_0]'
-      else:
-        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                      page_inst + '} [get_files $leaf_dcp]\n'
-        for i in range(num_op):
+      elif(self.get_page_size(pblock_name) == 2):
+        if(num_leaf_interface == 1):
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst + '} [get_files $leaf_dcp]\n'
           tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']\
-                                      +'/'+page_inst+ '/leaf_single_inst_'+str(i)+'} [get_files $user_logic_dcp_'+str(i)+']\n'
+                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+        elif(num_leaf_interface == 2):
+          tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+                                        page_inst + '} [get_files $user_logic_dcp_0]'
+        else:
+          raise Exception("Invalid num_leaf_interface")  
+      elif(self.get_page_size(pblock_name) == 4):
+        if(num_leaf_interface == 1):
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst + '} [get_files $leaf_dcp]\n'
+          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+        elif(num_leaf_interface == 2):
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst + '} [get_files $leaf_dcp]\n'
+          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst+ '/leaf_double_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+        elif(num_leaf_interface == 3):
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst + '} [get_files $leaf_dcp]\n'
+          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                        page_inst+ '/leaf_tri_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+        elif(num_leaf_interface == 4):
+          tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
+          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+                                        page_inst + '} [get_files $user_logic_dcp_0]'
+        else:
+          raise Exception("Invalid num_leaf_interface")  
+      else:
+        raise Exception("Invalid pblock size")  
+
+      # if(self.get_page_size(pblock_name) == 1): # don't need leaf_dcp
+      #   tmp_dict['add_files $leaf_dcp'] = ''
+      #   tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+      #                                 page_inst + '} [get_files $user_logic_dcp_0]'
+      # else:
+      #   tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+      #                                 page_inst + '} [get_files $leaf_dcp]\n'
+      #   for i in range(num_op):
+      #     tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+      #                                 + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']\
+      #                                 +'/'+page_inst+ '/leaf_single_inst_'+str(i)+'} [get_files $user_logic_dcp_'+str(i)+']\n'
  
       tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/' + page_inst + '"'
       tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
@@ -159,8 +237,8 @@ class impl(gen_basic):
     self.shell.replace_lines(self.pr_dir+'/'+operator_impl+'/impl_'+operator_impl+'.tcl', tmp_dict)    
     self.shell.write_lines(self.pr_dir+'/'+operator_impl+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 
                                                                                  'impl_'+operator_impl+'.tcl', 
-                                                                                 self.prflow_params['back_end'], 
-                                                                                 monitor_on), True)
+                                                                                 self.prflow_params['back_end'],
+                                                                                 ), True)
     self.shell.write_lines(self.pr_dir+'/'+operator_impl+'/main.sh', self.shell.return_main_sh_list('./run.sh', 
                                                                                  self.prflow_params['back_end'], 
                                                                                  'syn_'+operator_impl, 
@@ -180,14 +258,13 @@ class impl(gen_basic):
   #   qsub_main.sh <-|_ Qsubmit each qsub_run.sh <- impl_page.tcl
     pass   
 
-  def run(self, operator_impl, syn_dcp, monitor_on=False):
+  def run(self, operator_impl, syn_dcp):
     # mk work directory
     if self.prflow_params['gen_impl']==True:
       print("gen_impl")
       self.shell.mkdir(self.pr_dir)
       self.shell.mkdir(self.bit_dir)
     
-    overlay_freq = self.prflow_params['overlay_freq']
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
     with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
@@ -204,12 +281,13 @@ class impl(gen_basic):
         'test_quad_' in self.prflow_params['benchmark_name']):
       # For routing test...
       with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-        (overlay_n, pblock_assign_dict) = json.load(infile)
-      pblock_name = pblock_assign_dict[pblock_op_impl]
+        pblock_assign_dict = json.load(infile)
+      pblock_name = pblock_assign_dict[pblock_op_impl]["pblock"]
     else:
       # For incremental compile, each op has its own pblock.json
       with open(self.syn_dir+'/'+operator_impl+'/pblock.json', 'r') as infile:
-        (overlay_n, pblock_name, page_num) = json.load(infile)
+        pblock_dict = json.load(infile)
+        pblock_name = pblock_dict["pblock"]
 
     print("############################ PBLOCK NAME: " + pblock_name)
     # print("############################ OVERLAY_N: " + overlay_n)
@@ -217,8 +295,5 @@ class impl(gen_basic):
     with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
       specs_dict = json.load(infile)
-    frequency = specs_dict[operator_impl]['kernel_clk']
 
-    # if pblock_name_exist==True:
-    #   self.create_page(pblock_op_impl, pblock_name, overlay_n, monitor_on)
-    self.create_page(pblock_op_impl, pblock_name, overlay_n, syn_dcp, monitor_on, frequency, overlay_freq)
+    self.create_page(pblock_op_impl, pblock_name, syn_dcp, specs_dict, operator_impl)

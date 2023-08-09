@@ -30,7 +30,7 @@ class hls(gen_basic):
       return files  
 
   # create one directory for each page 
-  def create_page(self, fun_name, hls_path, src_path, syn_tcl_file, monitor_on, frequency):
+  def create_page(self, fun_name, hls_path, src_path, syn_tcl_file, frequency):
     map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'map_target')
     self.shell.re_mkdir(hls_path+'/'+fun_name+'_prj')
     self.shell.re_mkdir(hls_path+'/'+fun_name+'_prj/'+fun_name)
@@ -58,15 +58,14 @@ class hls(gen_basic):
                                                                                                 './'+fun_name+'_prj/'+fun_name+'/script.tcl', 
                                                                                                 syn_tcl_file, 
                                                                                                 self.prflow_params['back_end'],
-                                                                                                fun_name+'_prj', 
-                                                                                                monitor_on
+                                                                                                fun_name+'_prj'
                                                                                                 ), True)
     else:
       # if the map target is riscv, we can still generate a psuedo shell script and generate the runLog<operator>.log for Makefile to process the rest flow
       self.shell.write_lines(hls_path+'/run_'+fun_name+'.sh', self.shell.return_empty_sh_list(), True)
       self.shell.write_lines(hls_path+'/runLog'+fun_name+'.log', ['hls: 0 senconds'], False)
 
-  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[], monitor_on=False):
+  def run(self, operator, path=None, src_path='../..', syn_tcl_file=[]):
 
     with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
       # pblock_operators_list = json.load(infile)
@@ -81,7 +80,7 @@ class hls(gen_basic):
     self.shell.mkdir(hls_path)
     
     # create ip directories for all the pages
-    self.create_page(operator, hls_path, src_path, syn_tcl_file, monitor_on, frequency)
+    self.create_page(operator, hls_path, src_path, syn_tcl_file, frequency)
     
  
 

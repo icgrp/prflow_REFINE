@@ -1,0 +1,7 @@
+{"coloringFB_bot_m":{"kernel_clk": 200, "num_leaf_interface": 1}, 
+ "coloringFB_top_m":{"kernel_clk": 200, "num_leaf_interface": 1}, 
+ "data_redir_m":{"kernel_clk": 200, "num_leaf_interface": 1}, 
+ "data_transfer":{"kernel_clk": 200, "num_leaf_interface": 1}, 
+ "rasterization2_m":{"kernel_clk": 200, "num_leaf_interface": 2}, 
+ "zculling_bot":{"kernel_clk": 200, "num_leaf_interface": 1}, 
+ "zculling_top":{"kernel_clk": 200, "num_leaf_interface": 1}}

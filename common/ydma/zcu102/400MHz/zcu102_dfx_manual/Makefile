@@ -7,7 +7,7 @@ kl_name=ydma
 workspace=..
 impl_dir=$(workspace)/_x/link/vivado/vpl/prj/prj.runs/impl_1
 final_route_design=./checkpoint/sub_p20_p1/p20_p1_subdivide_route_design.dcp
-leaves=leaf_double_1 leaf_double_2 leaf_quad_1 leaf_quad_2 leaf_quad_3 leaf_quad_4
+leaves=leaf_double_1 leaf_quad_1 leaf_quad_2 leaf_quad_3
 leaf_dcps=$(foreach leaf, $(leaves), ./checkpoint/$(leaf).dcp)
 
 leaf_shells=leaf_i1o1 leaf_i1o2 leaf_i1o3 leaf_i1o4 leaf_i1o5 leaf_i1o6 leaf_i1o7 $\
@@ -48,7 +48,7 @@ all: ../__overlay_this_freq_is_ready__
 	touch ../../../../__overlay_is_ready__ # at least one overlay is ready
 
 
-all_nested: gen_abs_shells pr_recombine_dynamic pr_recombine gen_leaf_dcps gen_abs_analysis_rpts blocked_resources gen_leaf_shell_dcps
+all_nested: gen_abs_shells pr_recombine_dynamic pr_recombine gen_leaf_dcps gen_abs_analysis_rpts blocked_resources
 
 
 #####################

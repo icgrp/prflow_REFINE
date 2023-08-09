@@ -442,7 +442,7 @@ class page_assign(gen_basic):
     for op, pblock in pblock_assign_dict.items():
       node_weight_dict[op] = str(self.get_page_size(pblock))
       num_leaf_interface = specs_dict[op]['num_leaf_interface']
-      assert(node_weight_dict[op] >= num_leaf_interface)
+      assert(int(node_weight_dict[op]) >= num_leaf_interface)
     return node_weight_dict, pblock_assign_dict
 
 
@@ -902,7 +902,7 @@ class page_assign(gen_basic):
   def is_prev_map_works(self, operators_list, specs_dict, overlay_util_dict, util_dict):
     if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
       with open(self.syn_dir + '/pblock_assignment.json', 'r') as infile:
-        _, pblock_assign_dict = json.load(infile)
+        pblock_assign_dict = json.load(infile)
 
       is_ops_all_fit = True
       for op in operators_list:
@@ -911,7 +911,7 @@ class page_assign(gen_basic):
         if op not in pblock_assign_dict: # new operator
           is_ops_all_fit = False
         else:
-          pblock_name = pblock_assign_dict[op]
+          pblock_name = pblock_assign_dict[op]['pblock']
           overlay_resource_tuple = overlay_util_dict[pblock_name]
           op_resource_tuple = util_dict[op][0]
           if_fit_result = self.is_fit_hard(op_resource_tuple, overlay_resource_tuple, pblock_name, frequency)
@@ -1045,23 +1045,44 @@ class page_assign(gen_basic):
     if(not self.is_assigned_all(pblock_assign_dict, operators_list)):
       raise Exception("SHOULD NOT REACH HERE, SHOULD HAVE CAUGHT EARLIER")    
 
-    # In pblock_assignment, both "coloringFB_bot_m" and "coloringFB_top_m" belong to the same pblock, p2
+    # Add leaf interface mapping to pblock_assign_dict
+    new_pblock_assign_dict = {} 
+    for op in pblock_assign_dict.keys():
+      new_pblock_assign_dict[op] = {}
+      new_pblock_assign_dict[op]["pblock"] = pblock_assign_dict[op]
+      new_pblock_assign_dict[op]["page_num"] = page_assign_dict[op]
+
+      with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
+        print(op)
+        leaf_interface_mapping_dict = json.load(infile)
+      new_pblock_assign_dict[op]["leaf_interface"] = leaf_interface_mapping_dict
+
     with open(self.syn_dir + '/pblock_assignment.json', 'w') as outfile:
-      json.dump((self.prflow_params['overlay_n'], pblock_assign_dict), outfile)
+      json.dump(new_pblock_assign_dict, outfile)
 
     # For incremental compile, let each operator to have separate .json file
     for op_impl in pblock_assign_dict:
-        ops = op_impl.split()
-        for op in ops:
-            pblock_name = pblock_assign_dict[op_impl]
-            page_num = page_assign_dict[op]
-            # IMPORTANT!, update pblock.json only when the contents have been changed
-            if(os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
-                with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
-                    (overlay_n_old, pblock_name_old, page_num_old) = json.load(infile)
-                if(self.prflow_params['overlay_n'] != overlay_n_old or pblock_name != pblock_name_old or page_num != page_num_old):
-                    with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
-                        json.dump((self.prflow_params['overlay_n'], pblock_name, page_num), outfile)
-            else: # first time
-                with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
-                    json.dump((self.prflow_params['overlay_n'], pblock_name, page_num), outfile)
+      ops = op_impl.split()
+      for op in ops:
+        pblock_name = new_pblock_assign_dict[op_impl]["pblock"]
+        page_num = new_pblock_assign_dict[op_impl]["page_num"]
+        # IMPORTANT!, update pblock.json only when the contents have been changed
+        if(os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
+          with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
+            pblock_dict = json.load(infile)
+            pblock_name_old = pblock_dict['pblock']
+            page_num_old = pblock_dict['page_num']
+            # if leaf interface has changed, netlist has changed. And definitely runs a new impl => don't need to check here
+          if(pblock_name != pblock_name_old or page_num != page_num_old):
+            with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
+              json.dump((self.prflow_params['overlay_n'], pblock_name, page_num), outfile)
+        else: # first time
+          pblock_dict = {}
+          pblock_dict['pblock'] = pblock_name
+          pblock_dict['page_num'] = page_num
+          with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
+            leaf_interface_mapping_dict = json.load(infile)
+          pblock_dict['leaf_interface'] = leaf_interface_mapping_dict
+
+          with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
+            json.dump(pblock_dict, outfile)

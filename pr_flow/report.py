@@ -12,6 +12,7 @@ from pr_flow.gen_basic import gen_basic
 class report(gen_basic):
 
 
+  # Probably be outdated
   def get_pblock_op_impl(self, operator_impl):
     pblock_ops_dir = './input_src/' + self.prflow_params['benchmark_name'] + '/operators'
     with open(pblock_ops_dir + '/specs.json', 'r') as infile:
@@ -29,11 +30,7 @@ class report(gen_basic):
     time_data_dict = {}
 
     with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-      (overlay_n, pblock_assign_dict) = json.load(infile)
-    page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
-    # with open(self.syn_dir+'/page_assignment.json', 'r') as infile:
-    #   (overlay_n, page_assign_dict) = json.load(infile)
-
+      pblock_assign_dict = json.load(infile)
 
     t_hls_syn_max = 0
     for fun_name in sorted(operators_list):
@@ -62,9 +59,9 @@ class report(gen_basic):
       # page_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'page_num')
       map_target = 'HW'
 
-      page_num = page_assign_dict[fun_name]
+      page_num = pblock_assign_dict[fun_name]["page_num"]
       pblock_op_impl = self.get_pblock_op_impl(fun_name)
-      pblock_name = pblock_assign_dict[pblock_op_impl]
+      pblock_name = pblock_assign_dict[pblock_op_impl]['pblock']
 
       #process hls timing
       try:
@@ -129,20 +126,16 @@ class report(gen_basic):
     resource_report_dict = {}
 
     with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-      (overlay_n, pblock_assign_dict) = json.load(infile)
-    page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
-    # with open(self.syn_dir+'/page_assignment.json', 'r') as infile:
-    #   (overlay_n, page_assign_dict) = json.load(infile)
-
+      pblock_assign_dict = json.load(infile)
 
     for fun_name in operators_list:
       # map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'map_target')
       # page_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'page_num')
       map_target = 'HW'
 
-      page_num = page_assign_dict[fun_name]
+      page_num = pblock_assign_dict[fun_name]["page_num"]
       pblock_op_impl = self.get_pblock_op_impl(fun_name)
-      pblock_name = pblock_assign_dict[pblock_op_impl]
+      pblock_name = pblock_assign_dict[pblock_op_impl]['pblock']
 
       # resource_report_dict[fun_name] = fun_name.ljust(30) + '\t' + map_target + '\t' + pblock_name + tab_str + page_num
       #####################################################################################
@@ -180,19 +173,16 @@ class report(gen_basic):
     timing_report_dict = {}
 
     with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-      (overlay_n, pblock_assign_dict) = json.load(infile)
-    page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
-    # with open(self.syn_dir+'/page_assignment.json', 'r') as infile:
-    #   (overlay_n, page_assign_dict) = json.load(infile)
+      pblock_assign_dict = json.load(infile)
 
     for fun_name in operators_list:
       # map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'map_target')
       # page_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+fun_name+'.h', 'page_num')
       map_target = 'HW'
 
-      page_num = page_assign_dict[fun_name]
+      page_num = pblock_assign_dict[fun_name]["page_num"]
       pblock_op_impl = self.get_pblock_op_impl(fun_name)
-      pblock_name = pblock_assign_dict[pblock_op_impl]
+      pblock_name = pblock_assign_dict[pblock_op_impl]['pblock']
 
       #####################################################################################
       #process timing report

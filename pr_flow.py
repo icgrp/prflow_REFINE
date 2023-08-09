@@ -40,11 +40,8 @@ if __name__ == '__main__':
   parser.add_argument('-rpt',       '--gen_report',        help="default: don't generate the report",               action='store_true')
   parser.add_argument('-rpt_m',     '--gen_report_mono',   help="default: don't generate the report for monolithic",action='store_true')
   parser.add_argument('-op',        '--operator',          help="choose which function to be regenrated", type=str, default="no_func")
-  parser.add_argument('-bft_n',     '--bft_n',             help="default: bft_n=23",                                default="23")
   parser.add_argument('-m',         '--monitor_on',        help="default: monitor_on=False", type=bool,             default=False)
   parser.add_argument('-incr',      '--gen_incremental',   help="default: don't do incremental compile",            action='store_true')
-  parser.add_argument('-w',         '--winner',            help="default: WINNER=0, invalid val for WINNER",        default="77")
-  parser.add_argument('-tdm',       '--tandem_mode',       help="default: tandem_mode=False",                       action='store_true')
   parser.add_argument('-s_dcp',     '--syn_dcp',           help="default: syn_dcp=None",                            default=None)
   parser.add_argument('-rt',        '--routing_test',      help="default: routing_test=False",                      action='store_true')
   parser.add_argument('-pg',        '--gen_page_assign',   help="default: gen_page_assign=False",                   action='store_true')
@@ -70,44 +67,41 @@ if __name__ == '__main__':
   prflow_params['gen_report_mono'] = args.gen_report_mono
   prflow_params['input_file_name'] = input_file_name
   prflow_params['workspace']       = './workspace'
-  bft_n = args.bft_n  
   operator = args.operator
-  monitor_on = args.monitor_on
+  monitor_on = args.monitor_on # maybe outdated
   prflow_params['gen_incremental'] = args.gen_incremental
-  winner = args.winner
-  tandem_mode = args.tandem_mode
-  syn_dcp = args.syn_dcp
-  is_routing_test = args.routing_test
+  syn_dcp = args.syn_dcp # maybe outdated
+  is_routing_test = args.routing_test # maybe outdated
   prflow_params['gen_page_assign'] = args.gen_page_assign
-  freq = args.frequency
+  freq = args.frequency # outdated
   prflow_params['check_impl_result'] = args.check_impl_result
-  overlay_freq = "400" # fixed to highest frequency
-
+  prflow_params['overlay_freq'] = "400" # fixed to highest frequency
+  prflow_params['overlay_n'] = 'overlay_p23' # maybe just fix the overlay
 
   if prflow_params['gen_overlay'] == True and prflow_params['overlay_type'] == 'psnoc':
     overlay_inst = overlay.overlay(prflow_params)
-    overlay_inst.run(operator, bft_n, tandem_mode = tandem_mode, overlay_freq = overlay_freq)
+    overlay_inst.run(operator, bft_n, overlay_freq = overlay_freq)
     print ('psnoc')
 
   if prflow_params['gen_hls'] == True:
     hls_inst = hls.hls(prflow_params)
-    hls_inst.run(operator, monitor_on = monitor_on)
+    hls_inst.run(operator)
 
   if prflow_params['gen_syn'] == True:
     syn_inst = syn.syn(prflow_params)
-    syn_inst.run(operator, monitor_on = monitor_on)
+    syn_inst.run(operator)
 
   if prflow_params['gen_impl'] == True:
     impl_inst = impl.impl(prflow_params)
-    impl_inst.run(operator, syn_dcp, monitor_on = monitor_on, overlay_freq = overlay_freq)
+    impl_inst.run(operator, syn_dcp)
 
   if prflow_params['gen_xclbin'] == True:
     xclbin_inst = xclbin.xclbin(prflow_params)
-    xclbin_inst.run(operator, overlay_freq = overlay_freq)
+    xclbin_inst.run(operator)
 
   if prflow_params['gen_runtime'] == True:
     runtime_inst = runtime.runtime(prflow_params)
-    runtime_inst.run(operator, overlay_freq = overlay_freq)
+    runtime_inst.run(operator)
 
   if prflow_params['gen_monolithic'] == True:
     mono_inst = monolithic.monolithic(prflow_params)
@@ -131,7 +125,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_page_assign'] == True:
     pg_inst = page_assign.page_assign(prflow_params)
-    pg_inst.run(operator, bft_n, overlay_freq = overlay_freq) # TODO: add overlay_freq
+    pg_inst.run(operator)
 
   if prflow_params['check_impl_result'] == True:
     pg_inst = check_impl_result.check_impl_result(prflow_params)

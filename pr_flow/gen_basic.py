@@ -127,7 +127,7 @@ class _shell:
   def cp_file(self, src_file, dst_file):
      os.system('cp -rf '+src_file+' '+dst_file)
 
-  def return_run_sh_list(self, vivado_dir, tcl_file, back_end='qsub', monitor_on=False):
+  def return_run_sh_list(self, vivado_dir, tcl_file, back_end='qsub'):
     out_file = []
     out_file.append('#!/bin/bash -e')
     if (back_end == 'slurm'):
@@ -136,18 +136,18 @@ class _shell:
       out_file.append('srun vivado -mode batch -source  ' + tcl_file)
     else:
       out_file.append('source ' + vivado_dir)
-      if(monitor_on == True):
-        out_file.append('if [ ! -f ../__monitoring_running__ ]; then')
-        out_file.append('    ../monitor.sh "$@" &')
-        out_file.append('    touch ../__monitoring_running__')
-        out_file.append('fi')
+      # if(monitor_on == True):
+      #   out_file.append('if [ ! -f ../__monitoring_running__ ]; then')
+      #   out_file.append('    ../monitor.sh "$@" &')
+      #   out_file.append('    touch ../__monitoring_running__')
+      #   out_file.append('fi')
       out_file.append('vivado -mode batch -source  ' + tcl_file)
-      if(monitor_on == True):
-        out_file.append('touch __done__')
+      # if(monitor_on == True):
+      #   out_file.append('touch __done__')
     return out_file 
 
 
-  def return_run_hls_sh_list(self, vivado_dir, hls_tcl_file=None, syn_tcl_file_list=[], back_end='qsub', operator_dir='test_prj', monitor_on=False):
+  def return_run_hls_sh_list(self, vivado_dir, hls_tcl_file=None, syn_tcl_file_list=[], back_end='qsub', operator_dir='test_prj'):
     out_file = []
     out_file.append('#!/bin/bash -e')
     if (back_end == 'slurm'):
@@ -159,16 +159,16 @@ class _shell:
       out_file.append('source ' + vivado_dir)
 
       out_file.append('')
-      if(monitor_on == True):
-        out_file.append('# The earliest impl run launches ../monitor.sh and marks ../__monitoring_running__')
-        out_file.append('# Following impl runs are blocked')
-        out_file.append('if [ ! -f __monitoring_running__ ]; then')
-        out_file.append('    ./monitor.sh "$@" &')
-        out_file.append('    touch __monitoring_running__')
-        out_file.append('fi')
+      # if(monitor_on == True):
+      #   out_file.append('# The earliest impl run launches ../monitor.sh and marks ../__monitoring_running__')
+      #   out_file.append('# Following impl runs are blocked')
+      #   out_file.append('if [ ! -f __monitoring_running__ ]; then')
+      #   out_file.append('    ./monitor.sh "$@" &')
+      #   out_file.append('    touch __monitoring_running__')
+      #   out_file.append('fi')
       out_file.append('vitis_hls -f ' + hls_tcl_file)
-      if(monitor_on == True):
-        out_file.append('touch '+'./'+operator_dir+'/'+'__done__')
+      # if(monitor_on == True):
+      #   out_file.append('touch '+'./'+operator_dir+'/'+'__done__')
       # if(hls_tcl_file != None): out_file.append('vitis_hls -f ' + hls_tcl_file)
       # for syn_tcl_file in syn_tcl_file_list: out_file.append('vivado -mode batch -source ' + syn_tcl_file)
     return out_file 
@@ -638,14 +638,6 @@ class _verilog:
 
     return lines_list
 
-  # generates leaf interface mapping for user operator's IO
-  # e.g.: num_leaf_interface = 2
-  # operator_input_width_dict, e.g. {'Input_1':96, 'Input_2':32, 'Input_3':128}
-  # operator_output_width_dict, e.g. {'Output_1':32}
-  # returns {0: ['Input_1', 'Input_2', 'Output_1'], 
-  #          1: ['Input_3']}
-  def gen_leaf_interface_mapping(self, operator_input_width_dict, operator_output_width_dict, num_leaf_interface):
-    return leaf_interface_mapping_dict
 
   # creates verilog file that includes leaf interface + expand/shrink queue + user operator
   # Highly redundant with return_single_page_v_list
@@ -658,6 +650,7 @@ class _verilog:
                          operator_width_list,
                          frequency,
                          num_leaf_interface,
+                         leaf_interface_mapping_dict,
                          for_syn=False,
                          is_riscv=False,
                          PAYLOAD_BITS=None,
@@ -675,18 +668,6 @@ class _verilog:
     NUM_ADDR_BITS=self.prflow_params['bram_addr_bits'] if NUM_ADDR_BITS == None else NUM_ADDR_BITS
     NUM_BRAM_ADDR_BITS=self.prflow_params['bram_addr_bits'] if NUM_BRAM_ADDR_BITS == None else NUM_BRAM_ADDR_BITS
     FREESPACE_UPDATE_SIZE=self.prflow_params['freespace'] if FREESPACE_UPDATE_SIZE == None  else FREESPACE_UPDATE_SIZE
-
-    operator_input_width_dict = {}
-    operator_output_width_dict = {}
-    for idx, io_port in enumerate(operator_arg_list):
-      if io_port.startswith('Input_'):
-        operator_input_width_dict[io_port] = operator_width_list[idx]
-      else:
-        assert(io_port.startswith('Output_'))
-        operator_output_width_dict[io_port] = operator_width_list[idx]
-
-    # TODO!!
-    leaf_interface_mapping_dict = self.gen_leaf_interface_mapping(operator_input_width_dict, operator_output_width_dict, num_leaf_interface)
 
     lines_list = []
     lines_list.append('`timescale 1ns / 1ps')
@@ -717,9 +698,12 @@ class _verilog:
     dout_str_dict = {}
     val_out_str_dict = {}
     ack_out_str_dict = {}
+    dout_list_dict = {}
+    val_out_list_dict = {}
+    ack_out_list_dict = {}
 
     for j in range(num_leaf_interface):
-      dout_list_dict[j] = []
+      dout_list_dict[j] = [] # each item is list
       val_out_list_dict[j] = []
       ack_out_list_dict[j] = []
 
@@ -752,6 +736,9 @@ class _verilog:
     din_str_dict = {}
     val_in_str_dict = {}
     ack_in_str_dict = {}
+    din_list_dict = {}
+    val_in_list_dict = {}
+    ack_in_list_dict = {}
 
     for j in range(num_leaf_interface):
       din_list_dict[j] = []
@@ -783,19 +770,19 @@ class _verilog:
     lines_list.append('    wire clk_user;')
     # lines_list.append('    wire reset_user;')
     if frequency == 200:
-      lines_list.append('    assign clk_user = clk_200;')
+      lines_list.append('    assign clk_user = clk_200_0;')
       # lines_list.append('    assign reset_user = reset_200;')
     elif frequency == 250:
-      lines_list.append('    assign clk_user = clk_250;')
+      lines_list.append('    assign clk_user = clk_250_0;')
       # lines_list.append('    assign reset_user = reset_250;')
     elif frequency == 300:
-      lines_list.append('    assign clk_user = clk_300;')
+      lines_list.append('    assign clk_user = clk_300_0;')
       # lines_list.append('    assign reset_user = reset_300;')
     elif frequency == 350:
-      lines_list.append('    assign clk_user = clk_350;')
+      lines_list.append('    assign clk_user = clk_350_0;')
       # lines_list.append('    assign reset_user = reset_350;')
     elif frequency == 400:
-      lines_list.append('    assign clk_user = clk_400;')
+      lines_list.append('    assign clk_user = clk_400_0;')
       # lines_list.append('    assign reset_user = reset_400;')
 
     if int(input_num) == 0: lines_list.append('    assign ack_user2interface_1_user = 0;')
@@ -805,12 +792,12 @@ class _verilog:
 
     for j in range(num_leaf_interface):
       mapped_IO_ports = leaf_interface_mapping_dict[j]
-      num_mapped_I_ports = len([for port in mapped_IO_ports if port.startswith('Input_')])
-      num_mapped_O_ports = len([for port in mapped_IO_ports if port.startswith('Output_')])
+      num_mapped_I_ports = len([port for port in mapped_IO_ports if port.startswith('Input_')])
+      num_mapped_O_ports = len([port for port in mapped_IO_ports if port.startswith('Output_')])
 
       lines_list.append('    ')
       lines_list.append('    wire [48:0] dout_leaf_interface2bft_tmp_' + str(j) + ';')
-      lines_list.append('    assign dout_leaf_interface2bft_' + str(j) + ' = resend_' + str(j) + ' ? 0 : dout_leaf_interface2bft_tmp' + str(j) + ';')
+      lines_list.append('    assign dout_leaf_interface2bft_' + str(j) + ' = resend_' + str(j) + ' ? 0 : dout_leaf_interface2bft_tmp_' + str(j) + ';')
       lines_list.append('    ')
       lines_list.append('    leaf_interface #(')
       lines_list.append('        .PACKET_BITS('+str(PACKET_BITS)+'),')
@@ -827,7 +814,7 @@ class _verilog:
       lines_list.append('        .clk_user(clk_user), // common')
       lines_list.append('        .reset(reset_400_0), // use first port') # clk_bft is fixed to max freq, which is 400MHz
       lines_list.append('        .din_leaf_bft2interface(din_leaf_bft2interface_' + str(j) + '),')
-      lines_list.append('        .dout_leaf_interface2bft(dout_leaf_interface2bft_tmp' + str(j) + '),')
+      lines_list.append('        .dout_leaf_interface2bft(dout_leaf_interface2bft_tmp_' + str(j) + '),')
       lines_list.append('        .ap_start_user(), // not used') 
       lines_list.append('        .resend(resend_' + str(j) + '),')
       lines_list.append('        .dout_leaf_interface2user('+dout_str_dict[j]+'),')
@@ -960,7 +947,6 @@ class _verilog:
                          operator_arg_list,
                          operator_width_list,
                          frequency,
-                         num_leaf_interface,
                          for_syn=False,
                          is_riscv=False,
                          PAYLOAD_BITS=None,
@@ -1832,13 +1818,13 @@ class gen_basic:
       return True
 
   # Returns page_assign_dict from pblock_assign_dict
-  def get_page_assign_dict(self, pblock_assign_dict):
-    page_assign_dict = {}
-    for op, pblock in pblock_assign_dict.items():
-      page_num_list = pblock_page_dict[pblock]
-      min_page = str(min(int(p) for p in page_num_list))
-      page_assign_dict[op] = min_page
-    return page_assign_dict
+  # def get_page_assign_dict(self, pblock_assign_dict):
+  #   page_assign_dict = {}
+  #   for op, pblock in pblock_assign_dict.items():
+  #     page_num_list = pblock_page_dict[pblock]
+  #     min_page = str(min(int(p) for p in page_num_list))
+  #     page_assign_dict[op] = min_page
+  #   return page_assign_dict
 
 
   # help functions end

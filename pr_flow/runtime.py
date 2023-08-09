@@ -152,7 +152,13 @@ class runtime(gen_basic):
     return connection_list
 
 
-  def return_config_packet_list_local(self, page_assign_dict, connection_list, operators):
+  # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
+  # port_page_assign_dict, (page num, port number in the leaf interface)
+  # , e.g. {'DMA.Input_1': (1, 2), 
+  #         'DMA.Output_1': (1, 9), 
+  #         'data_redir_m.Input_1': (4, 2), 
+  #         'data_redir_m.Input_2': (5, 2), ...}
+  def return_config_packet_list_local(self, port_page_assign_dict, connection_list, operators):
     packet_list = []
     # packet_num = 2
     packet_num = 5 # changed for bottleneck identification
@@ -160,13 +166,23 @@ class runtime(gen_basic):
     for str_value in connection_list:
       packet_list.append('//'+str_value)
       str_list = str_value.split('->')
+      src_op_port_name = str_list[0]
+      dest_op_port_name = str_list[1]
+
       [src_operator, src_output] = str_list[0].split('.')
       [dest_operator, dest_input] = str_list[1].split('.')
-      src_page = int(page_assign_dict[src_operator])
-      src_port = int(src_output.replace('Output_',''))+int(self.prflow_params['output_port_base'])-1
-      dest_page = int(page_assign_dict[dest_operator])
-      dest_port = int(dest_input.replace('Input_',''))+int(self.prflow_params['input_port_base'])-1
+
+      # src_page = int(page_assign_dict[src_operator])
+      # src_port = int(src_output.replace('Output_',''))+int(self.prflow_params['output_port_base'])-1
+      # dest_page = int(page_assign_dict[dest_operator])
+      # dest_port = int(dest_input.replace('Input_',''))+int(self.prflow_params['input_port_base'])-1
+
+      src_page = port_page_assign_dict[src_op_port_name][0]
+      src_port = port_page_assign_dict[src_op_port_name][1]
+      dest_page = port_page_assign_dict[dest_op_port_name][0]
+      dest_port = port_page_assign_dict[dest_op_port_name][1]
       print(src_page,src_port,'->',dest_page,dest_port) 
+
       src_page_packet =                   (src_page  << self.page_addr_offset)
       src_page_packet = src_page_packet + (       0  << self.port_offset)
       src_page_packet = src_page_packet + (src_port  << self.config_port_offset)
@@ -198,48 +214,47 @@ class runtime(gen_basic):
     operator_list = operators.split()
     bft_addr_shift = int(self.prflow_params['pks']) - int(self.prflow_params['payload_bits']) - 1 - int(self.prflow_params['addr_bits'])
     include_str = '#include \"typedefs.h\"\n'
-    for op in operator_list: 
-      HW_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+op+'.h', 'map_target')
-      instr_size_exist, instr_size = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+op+'.h', 'inst_mem_size')
-      if target == 'RISCVV': 
-        value_high = (int(page_assign_dict[op]) << bft_addr_shift) + 1 
-        packet_list.append('      for( int i=0; i<'+str(int(instr_size)/4)+'; i++){')
-        packet_list.append("        in1["+str(packet_num)+"+i*4+0].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
-        packet_list.append("        in1["+str(packet_num)+"+i*4+0].range(31,  0) = ((i*4+0) << 8) + ((instr_data"+str(page_assign_dict[op])+"[i]>>0 )  & 0x000000ff);")
-        packet_list.append("        in1["+str(packet_num)+"+i*4+1].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
-        packet_list.append("        in1["+str(packet_num)+"+i*4+1].range(31,  0) = ((i*4+1) << 8) + ((instr_data"+str(page_assign_dict[op])+"[i]>>8 )  & 0x000000ff);")
-        packet_list.append("        in1["+str(packet_num)+"+i*4+2].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
-        packet_list.append("        in1["+str(packet_num)+"+i*4+2].range(31,  0) = ((i*4+2) << 8) + ((instr_data"+str(page_assign_dict[op])+"[i]>>16)  & 0x000000ff);")
-        packet_list.append("        in1["+str(packet_num)+"+i*4+3].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
-        packet_list.append("        in1["+str(packet_num)+"+i*4+3].range(31,  0) = ((i*4+3) << 8) + ((instr_data"+str(page_assign_dict[op])+"[i]>>24)  & 0x000000ff);")
-        packet_list.append("      }")
-        packet_num += int(instr_size)
-        include_str += '#include \"instr_data'+str(page_assign_dict[op])+'.h\"\n'
-        self.shell.cp_dir(self.syn_dir+'/'+op+'/instr_data'+str(page_assign_dict[op])+'.h', self.bit_dir)
- 
-    self.shell.replace_lines(self.bit_dir+'/'+self.prflow_params['benchmark_name']+'/host/host.cpp', {'typedefss.h': include_str}) 
 
-    for op in operator_list: 
-      value_high = (int(page_assign_dict[op]) << bft_addr_shift) + 2 
-      value_low  = 0
-      packet_list.append('    // start page'+str(page_assign_dict[op])+'; ')
-      packet_list.append("    in1["+str(packet_num)+"].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
-      packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = 0x" + str(hex(value_low )).replace('L', '').replace('0x','').zfill(8) + ";")
-      packet_num += 1
+    op_page_dict = {}
+    # op_page_dict[op] = list of page num that op's leaf interface is connected to
+    # e.g. op_page_dict = {'data_redir_m': [4, 5], 'data_transfer': [6], ...}
+    for op_port_name in port_page_assign_dict.keys():
+      op = op_port_name.split('.')[0]
+      page_num = port_page_assign_dict[op_port_name][0]
+      if op not in op_page_dict.keys():
+        op_page_dict[op] = []
+      else:
+        if page_num not in op_page_dict[op]:
+          op_page_dict[op].append(page_num)
+    print("op_page_dict:")
+    print(op_page_dict)
+    print()
+
+    # start page, DJP: probably not necessary if we are not using risc-v processor ver.
+    for op in op_page_dict.keys(): 
+      if op != 'DMA' and op != 'ARM':
+        for page_num in op_page_dict[op]:
+          value_high = (page_num << bft_addr_shift) + 2 # 2 is magic number in ExtractCtrl.v
+          value_low  = 0
+          packet_list.append('    // start page'+str(page_num)+'; ')
+          packet_list.append("    in1["+str(packet_num)+"].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
+          packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = 0x" + str(hex(value_low )).replace('L', '').replace('0x','').zfill(8) + ";")
+          packet_num += 1
 
     # is_done configuration
-    for op in operator_list: 
+    num_is_done_config = 0
+    for op in op_page_dict.keys(): 
       if op != 'DMA' and op != 'ARM':
-        page_num = int(page_assign_dict[op])
-        value_high_hex = is_done_config_dict[page_num][0]
-        value_low_hex = is_done_config_dict[page_num][1]
-        packet_list.append('    // is_done config for ' + op + ', page_num:' + str(page_num))
-        packet_list.append("    in1["+str(packet_num)+"].range(63, 32) = " + value_high_hex + '; ')
-        packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = " + value_low_hex + ";")
-        packet_num += 1
+        for page_num in op_page_dict[op]:
+          value_high_hex = is_done_config_dict[page_num][0]
+          value_low_hex = is_done_config_dict[page_num][1]
+          packet_list.append('    // is_done config for ' + op + ', page_num:' + str(page_num))
+          packet_list.append("    in1["+str(packet_num)+"].range(63, 32) = " + value_high_hex + '; ')
+          packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = " + value_low_hex + ";")
+          packet_num += 1
+          num_is_done_config += 1
 
-
-    return packet_list, packet_num
+    return packet_list, packet_num, num_is_done_config
 
   def return_run_sdk_sh_list_local(self, vivado_dir, tcl_file):
     return ([
@@ -254,13 +269,13 @@ class runtime(gen_basic):
       command,
       ''])
 
-  def get_recombined_pblock_xclbin_list(self, syn_directory, pblock_operators_list):
-    with open(syn_directory+'/pblock_assignment.json', 'r') as infile:
-      (overlay_n, pblock_assign_dict) = json.load(infile)
+  def get_recombined_pblock_xclbin_list(self, pblock_operators_list):
+    with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
+      pblock_assign_dict = json.load(infile)
 
     recombined_pblock_xclbin_list = []
-    for pblock_op in pblock_operators_list:
-      pblock_name = pblock_assign_dict[pblock_op]
+    for op in pblock_operators_list:
+      pblock_name = pblock_assign_dict[op]["pblock"]
       recombined_pblock_xclbin_list = recombined_pblock_xclbin_list + pblock_xclbin_dict[pblock_name]
     recombined_pblock_xclbin_list = list(set(recombined_pblock_xclbin_list))
     print(recombined_pblock_xclbin_list)
@@ -292,7 +307,7 @@ class runtime(gen_basic):
     return operators_impl_list
 
   # prepare the run_app.sh for embedded system
-  def gen_sd_run_app_sh(self, operators, overlay_n, syn_directory, overlay_freq):
+  def gen_sd_run_app_sh(self, operators, overlay_freq):
     tmp_list = ['#!/bin/bash -e', \
                 'date', \
                 'if [ ! -f __static_loaded__ ]; then', \
@@ -308,7 +323,7 @@ class runtime(gen_basic):
       specs_dict = json.load(infile)
     pblock_operators_list = specs_dict.keys()
 
-    recombined_pblock_xclbin_list = self.get_recombined_pblock_xclbin_list(syn_directory, pblock_operators_list)
+    recombined_pblock_xclbin_list = self.get_recombined_pblock_xclbin_list(pblock_operators_list)
     # need to load from higher level DFX xclbins first
     for re_xclbin in recombined_pblock_xclbin_list:
       if(self.get_dfx_lvl(re_xclbin) == 2):
@@ -337,15 +352,10 @@ class runtime(gen_basic):
 
     self.shell.re_mkdir(self.bit_dir+'/sd_card')
     self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+"/"+overlay_freq+"MHz"+'/xrt.ini', self.bit_dir)
-    # self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/load.exe', self.bit_dir+'/sd_card')
-
-    # self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/dynamic_region.xclbin', self.bit_dir+'/sd_card')
-    # self.shell.cp_file(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/*.xclbin', self.bit_dir+'/sd_card')
     self.shell.write_lines(self.bit_dir+ '/sd_card/run_app.sh', tmp_list, True)
 
     self.shell.cp_file('common/script_src/compile_next.sh', self.bit_dir+'/sd_card')
     self.shell.cp_file('common/script_src/run_on_fpga.sh', self.bit_dir)
-
 
 
   # prepare the run_app.sh for Data Center Card 
@@ -387,8 +397,7 @@ class runtime(gen_basic):
 
 
 
-
-  def add_bft_config_to_host_cpp(self, operators, page_assign_dict):
+  def add_bft_config_to_host_cpp(self, operators, port_page_assign_dict):
 
     # page_assign_dict, overlay_n = self.return_page_assign_dict_local(self.syn_dir, operators)
     # page_assign_dict, e.g. {'DMA': 1, 'rasterization2_m_1': 7, 'coloringFB_bot_m': 2, 'zculling_bot': 12, ... }
@@ -398,24 +407,26 @@ class runtime(gen_basic):
 
     operator_var_dict = self.return_operator_inst_dict_local(operators)
     # operator_var_dict, e.g. {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
-    print(operator_arg_dict)
-    print(operator_var_dict)
+    # print(operator_arg_dict)
+    # print(operator_var_dict)
 
     connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict)
     # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
-    print(connection_list)
+    # print(connection_list)
 
-    packet_list, packet_num = self.return_config_packet_list_local(page_assign_dict, connection_list, operators)
-    num_ops = len(page_assign_dict) - 2 # -2 for DMA, ARM
-    # -5 for five constants, num_ops for is_done configurations
-    tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num-5-num_ops)).replace('L', '').replace('0x','').zfill(8)+';',
-                '#define CONFIG_SIZE': '#define CONFIG_SIZE '+str(packet_num)} 
+    packet_list, packet_num, num_is_done_config = self.return_config_packet_list_local(port_page_assign_dict, connection_list, operators)
+    num_total_counter = 0
+    num_total_ports = 0
+    for op in operator_var_dict:
+      num_total_ports += len(operator_var_dict[op])
+    num_total_counter = int(2.5*num_total_ports + num_is_done_config)
 
-    # tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num-2)).replace('L', '').replace('0x','').zfill(8)+';',
-    #             '#define CONFIG_SIZE': '#define CONFIG_SIZE '+str(packet_num)} 
+    # -5 for five constants
+    tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num - 5 - num_is_done_config)).replace('L', '').replace('0x','').zfill(8)+';',
+                '#define CONFIG_SIZE': '#define CONFIG_SIZE '+str(packet_num),
+                '#define NUM_IS_DONE': '#define NUM_IS_DONE '+str(num_is_done_config),
+                '#define NUM_TOTAL_CNT': '#define NUM_TOTAL_CNT '+str(num_total_counter)} 
 
-    # tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num-2)).replace('L', '').replace('0x','').zfill(8)+';',
-    #             '#define CONFIG_SIZE': '#define CONFIG_SIZE '+str(packet_num)} 
     self.shell.replace_lines(self.bit_dir+'/'+self.prflow_params['benchmark_name']+'/host/host.cpp', tmp_dict) 
     self.shell.add_lines(self.bit_dir+'/'+self.prflow_params['benchmark_name']+'/host/host.cpp', '// configure packets', packet_list)
 
@@ -431,19 +442,49 @@ class runtime(gen_basic):
     self.shell.cp_file('input_src/'+self.prflow_params['benchmark_name'], self.bit_dir)
 
     with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-      (overlay_n, pblock_assign_dict) = json.load(infile)
-    page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
-    page_assign_dict['DMA'] = '1'
-    page_assign_dict['ARM'] = '0'
-    print("############################ page_assign_dict: ")
-    print(page_assign_dict)
- 
+      pblock_assign_dict = json.load(infile)
+    # page_assign_dict = self.get_page_assign_dict(pblock_assign_dict)
+
+    port_page_assign_dict = {}
+    # port_page_assign_dict, (page num, port number in the leaf interface)
+    # , e.g. {'DMA.Input_1': (1, 2), 
+    #         'DMA.Output_1': (1, 9), 
+    #         'data_redir_m.Input_1': (4, 2), 
+    #         'data_redir_m.Input_2': (5, 2), ...}
+    port_page_assign_dict['DMA.Input_1'] = (1, int(self.prflow_params['input_port_base']))
+    port_page_assign_dict['DMA.Output_1'] = (1, int(self.prflow_params['output_port_base']))
+    for op in pblock_assign_dict.keys():
+      page_num = pblock_assign_dict[op]['page_num']
+      leaf_interface_dict = pblock_assign_dict[op]['leaf_interface']
+      num_leaf_interface = len(leaf_interface_dict.keys())
+      for i in range(num_leaf_interface):
+        i_port_cnt = 0
+        o_port_cnt = 0
+        io_ports = leaf_interface_dict[str(i)]
+        for io_port in io_ports:
+          op_io_port = op + '.' + io_port
+
+          if io_port.startswith('Input_'):
+            port_num = int(self.prflow_params['input_port_base']) + i_port_cnt
+            i_port_cnt += 1
+          else:
+            assert(io_port.startswith('Output_'))
+            port_num = int(self.prflow_params['output_port_base']) + o_port_cnt
+            o_port_cnt += 1
+          port_page_assign_dict[op_io_port] = (page_num + i, port_num)
+
+
+    # page_assign_dict['DMA'] = '1'
+    # page_assign_dict['ARM'] = '0'
+    print("############################ port_page_assign_dict: ")
+    print(port_page_assign_dict)
+
     # add configuration packets to host.cpp
     # and reads overlay_n from syn_dir/page_assignment.pickle
-    self.add_bft_config_to_host_cpp(operators, page_assign_dict)
+    self.add_bft_config_to_host_cpp(operators, port_page_assign_dict)
 
     # prepare the gen_runtime.sh to generate the app.exe 
     self.gen_runtime_sh()
 
     # generate the run_app.sh for embedded platform
-    self.gen_sd_run_app_sh(operators, overlay_n, self.syn_dir, overlay_freq)
+    self.gen_sd_run_app_sh(operators, overlay_freq)
