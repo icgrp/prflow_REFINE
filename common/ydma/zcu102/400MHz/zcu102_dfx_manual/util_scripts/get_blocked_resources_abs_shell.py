@@ -417,30 +417,19 @@ def main():
     blocked_resource_count_dict = {}
     for pblock_name in pblock_resource_dict:
         blocked_resource_count_dict[pblock_name] = {}
-        blocked_resource_count_dict[pblock_name]['SLICEL'] = []
-        blocked_resource_count_dict[pblock_name]['SLICEM'] = []
-        blocked_resource_count_dict[pblock_name]['SLICE_FF'] = []
-        blocked_resource_count_dict[pblock_name]['DSP48E2'] = []
-        blocked_resource_count_dict[pblock_name]['RAMB18'] = []
-        blocked_resource_count_dict[pblock_name]['RAMB36'] = []
 
     # Count the number of blocked resources, RAMB is important!
     for pblock_name in blocked_resource_loc_dict.keys():
-        # print(pblock_name)
-        for resource_type in blocked_resource_loc_dict[pblock_name]:
-            if(resource_type == 'SLICEL'):
-                blocked_resource_count_dict[pblock_name]['SLICEL'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
-            elif(resource_type == 'SLICEM'):
-                blocked_resource_count_dict[pblock_name]['SLICEM'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
-            elif(resource_type == 'SLICE_FF'):
-                blocked_resource_count_dict[pblock_name]['SLICE_FF'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
-            elif(resource_type == 'DSP48E2'):
-                blocked_resource_count_dict[pblock_name]['DSP48E2'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
-            elif(resource_type == 'RAMB36'):
-                blocked_resource_count_dict[pblock_name]['RAMB36'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
-            elif(resource_type == 'RAMB18'): # IMPORTANT!
-                num_ramb18_extra = get_num_ramb18_extra(blocked_resource_loc_dict, pblock_name)
-                blocked_resource_count_dict[pblock_name]['RAMB18_extra'] = num_ramb18_extra
+        blocked_resource_count_dict[pblock_name]['LUT']          = len(blocked_resource_loc_dict[pblock_name]['SLICEL']) +\
+                                                                   len(blocked_resource_loc_dict[pblock_name]['SLICEM'])
+        blocked_resource_count_dict[pblock_name]['LUT_mem']      = len(blocked_resource_loc_dict[pblock_name]['SLICEM'])
+        blocked_resource_count_dict[pblock_name]['FF']           = len(blocked_resource_loc_dict[pblock_name]['SLICE_FF'])
+        blocked_resource_count_dict[pblock_name]['DSP48E2']      = len(blocked_resource_loc_dict[pblock_name]['DSP48E2'])
+        blocked_resource_count_dict[pblock_name]['RAMB36']       = len(blocked_resource_loc_dict[pblock_name]['RAMB36'])
+
+        num_ramb18_extra = get_num_ramb18_extra(blocked_resource_loc_dict, pblock_name)
+        blocked_resource_count_dict[pblock_name]['RAMB18_extra'] = num_ramb18_extra
+
     print("- Count blocked resources")
     # print(blocked_resource_count_dict)
     # {'p8_p0': {'SLICE_LUTs': 33, 'DSP48E2': 11, 'RAMB18_extra': 0, 'RAMB36': 0}, ... }
@@ -451,7 +440,7 @@ def main():
 
     print(blocked_resource_count_dict)
     with open('blocked_util.json', 'w') as outfile:
-        json.dump(blocked_resource_count_dict, outfile) # json for human readable file
+        json.dump(blocked_resource_count_dict, outfile, sort_keys=True, indent=4) # json for human readable file
 
 
 if __name__ == '__main__':

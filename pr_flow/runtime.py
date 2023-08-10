@@ -327,7 +327,7 @@ class runtime(gen_basic):
     # need to load from higher level DFX xclbins first
     for re_xclbin in recombined_pblock_xclbin_list:
       if(self.get_dfx_lvl(re_xclbin) == 2):
-        tmp_list[4] = tmp_list[4] + " " + re_xclbin
+        tmp_list[4] = tmp_list[4] + " " + re_xclbin # 4,6 are just line numbers in run_app.sh
         tmp_list[6] = tmp_list[6] + " " + re_xclbin
 
     for re_xclbin in recombined_pblock_xclbin_list:
@@ -397,7 +397,7 @@ class runtime(gen_basic):
 
 
 
-  def add_bft_config_to_host_cpp(self, operators, port_page_assign_dict):
+  def add_bft_config_to_host_cpp(self, operators, port_page_assign_dict, num_total_counter):
 
     # page_assign_dict, overlay_n = self.return_page_assign_dict_local(self.syn_dir, operators)
     # page_assign_dict, e.g. {'DMA': 1, 'rasterization2_m_1': 7, 'coloringFB_bot_m': 2, 'zculling_bot': 12, ... }
@@ -415,11 +415,12 @@ class runtime(gen_basic):
     # print(connection_list)
 
     packet_list, packet_num, num_is_done_config = self.return_config_packet_list_local(port_page_assign_dict, connection_list, operators)
-    num_total_counter = 0
-    num_total_ports = 0
-    for op in operator_var_dict:
-      num_total_ports += len(operator_var_dict[op])
-    num_total_counter = int(2.5*num_total_ports + num_is_done_config)
+    # num_total_counter = 0
+    # num_total_ports = 0
+    # for op in operator_var_dict:
+    #   num_total_ports += len(operator_var_dict[op])
+    # num_total_counter = int(2.5*num_total_ports + num_is_done_config)
+    num_total_counter += num_is_done_config
 
     # -5 for five constants
     tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num - 5 - num_is_done_config)).replace('L', '').replace('0x','').zfill(8)+';',
@@ -453,6 +454,9 @@ class runtime(gen_basic):
     #         'data_redir_m.Input_2': (5, 2), ...}
     port_page_assign_dict['DMA.Input_1'] = (1, int(self.prflow_params['input_port_base']))
     port_page_assign_dict['DMA.Output_1'] = (1, int(self.prflow_params['output_port_base']))
+
+    num_i_ports_include_dummy = 0 # includes dummy ports
+    num_o_ports_include_dummy = 0 # includes dummy ports
     for op in pblock_assign_dict.keys():
       page_num = pblock_assign_dict[op]['page_num']
       leaf_interface_dict = pblock_assign_dict[op]['leaf_interface']
@@ -473,6 +477,20 @@ class runtime(gen_basic):
             o_port_cnt += 1
           port_page_assign_dict[op_io_port] = (page_num + i, port_num)
 
+        if i_port_cnt == 0:
+          num_i_ports_include_dummy += 1
+        else:
+          num_i_ports_include_dummy += i_port_cnt
+        if o_port_cnt == 0:
+          num_o_ports_include_dummy += 1
+        else:
+          num_o_ports_include_dummy += o_port_cnt
+
+    # read, empty, full cnt for input port
+    # empty, full cnt for output port
+    # stall cnt not included in num_total_counter yet
+    num_total_counter = 3*num_i_ports_include_dummy + 2*num_o_ports_include_dummy
+
 
     # page_assign_dict['DMA'] = '1'
     # page_assign_dict['ARM'] = '0'
@@ -481,7 +499,7 @@ class runtime(gen_basic):
 
     # add configuration packets to host.cpp
     # and reads overlay_n from syn_dir/page_assignment.pickle
-    self.add_bft_config_to_host_cpp(operators, port_page_assign_dict)
+    self.add_bft_config_to_host_cpp(operators, port_page_assign_dict, num_total_counter)
 
     # prepare the gen_runtime.sh to generate the app.exe 
     self.gen_runtime_sh()

@@ -429,7 +429,7 @@ class syn(gen_basic):
     leaf_interface_mapping_dict = self.gen_leaf_interface_mapping(operator_input_width_dict, operator_output_width_dict, num_leaf_interface)
     # print(leaf_interface_mapping_dict)
     with open(self.syn_dir + '/' + operator + '/leaf_interface_mapping.json', 'w') as outfile:
-      json.dump(leaf_interface_mapping_dict, outfile)
+      json.dump(leaf_interface_mapping_dict, outfile, sort_keys=True, indent=4)
 
     # prepare the leaf Verilog file for the DFX page
     if self.prflow_params['overlay_type'] == 'psnoc':
@@ -508,9 +508,6 @@ class syn(gen_basic):
   def create_page(self, operator, specs_dict):
     self.shell.re_mkdir(self.syn_dir+'/'+operator)
 
-    # map_target_exist, map_target = self.pragma.return_pragma(self.hls_dir+'/'+operator+'_prj/operator/'+operator+'.h', 'map_target')
-    # page_num_exist,   page_num   =  self.pragma.return_pragma(self.hls_dir+'/'+operator+'_prj/operator/'+operator+'.h', 'map_target') # TODO: remove this line
-
     # map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
     # page_num_exist,   page_num   =  self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
     self.shell.write_lines(self.syn_dir+'/'+operator+'/main.sh', self.shell.return_main_sh_list(
@@ -532,7 +529,7 @@ class syn(gen_basic):
     dest_dir = os.path.abspath(dest_dir)
     # self.update_pg_assign(self.syn_dir, dest_dir) # don't need anymore
     # copy resource data for the board
-    self.shell.cp_dir('./common/script_src/resource_' + self.prflow_params['board'] + '.txt', self.syn_dir + '/resource.txt')
+    self.shell.cp_dir('./common/script_src/resource_' + self.prflow_params['board'] + '.json', self.syn_dir + '/resource.json')
     self.shell.cp_dir('./common/script_src/syn.xdc', self.syn_dir + '/' + operator + '/syn.xdc')
 
     # Not using RISC-V

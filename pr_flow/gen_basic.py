@@ -728,9 +728,18 @@ class _verilog:
           ack_out_list_dict[j].append('ack_user2interface_'+str(i))
 
     for j in range(num_leaf_interface):
-      dout_str_dict[j] = '{'+','.join(dout_list_dict[j])+'}'
-      val_out_str_dict[j] = '{'+','.join(val_out_list_dict[j])+'}'
-      ack_out_str_dict[j] = '{'+','.join(ack_out_list_dict[j])+'}'
+      if len(dout_list_dict[j]) == 0:
+        dout_str_dict[j] = ''
+      else:
+        dout_str_dict[j] = '{'+','.join(dout_list_dict[j])+'}'
+      if len(val_out_list_dict[j]) == 0:
+        val_out_str_dict[j] = ''
+      else:
+        val_out_str_dict[j] = '{'+','.join(val_out_list_dict[j])+'}'
+      if len(ack_out_list_dict[j]) == 0:
+        ack_out_str_dict[j] = ''
+      else:
+        ack_out_str_dict[j] = '{'+','.join(ack_out_list_dict[j])+'}'
 
     # user -> interface, wire declaration
     din_str_dict = {}
@@ -792,8 +801,9 @@ class _verilog:
 
     for j in range(num_leaf_interface):
       mapped_IO_ports = leaf_interface_mapping_dict[j]
-      num_mapped_I_ports = len([port for port in mapped_IO_ports if port.startswith('Input_')])
-      num_mapped_O_ports = len([port for port in mapped_IO_ports if port.startswith('Output_')])
+      # In leaf interface implementation, NUM_IN_PORTS and NUM_OUT_PORTS are > 0
+      num_mapped_I_ports = max(1,len([port for port in mapped_IO_ports if port.startswith('Input_')]))
+      num_mapped_O_ports = max(1,len([port for port in mapped_IO_ports if port.startswith('Output_')]))
 
       lines_list.append('    ')
       lines_list.append('    wire [48:0] dout_leaf_interface2bft_tmp_' + str(j) + ';')

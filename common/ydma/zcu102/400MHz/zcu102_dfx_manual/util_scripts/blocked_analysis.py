@@ -31,27 +31,27 @@ print("util_all_pre_blocked")
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 1): 
         # LUT_logic, LUT_mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][4]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name]['LUT']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['FF']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 2): 
         # LUT_logic, LUT_mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][4]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name]['LUT']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['FF']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(util_all_pre_blocked):
     if(len(pblock_page_dict[pblock_name]) == 4): 
         # LUT_logic, LUT_mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name][0]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][1]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][2]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][4]) +\
-                            ', ' + str(util_all_pre_blocked[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all_pre_blocked[pblock_name]['LUT']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['FF']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all_pre_blocked[pblock_name]['DSP48E2']))
 print()
 
 with open('blocked_util.json', 'r') as infile:
@@ -66,23 +66,23 @@ for pblock_name in natsorted(blocked_resource_count_dict):
     # print()
     # DJP: 'RAMB18_extra' value seems to be 0 always
     if(len(pblock_page_dict[pblock_name]) == 1): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEL']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEM']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['LUT_mem']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(blocked_resource_count_dict):
     if(len(pblock_page_dict[pblock_name]) == 2): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEL']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEM']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['LUT_mem']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(blocked_resource_count_dict):
     if(len(pblock_page_dict[pblock_name]) == 4): 
-        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEL']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICEM']) +\
-                            ', ' + str(blocked_resource_count_dict[pblock_name]['SLICE_FF']) +\
+        print(pblock_name + ', ' + str(blocked_resource_count_dict[pblock_name]['LUT']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['LUT_mem']) +\
+                            ', ' + str(blocked_resource_count_dict[pblock_name]['FF']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['RAMB36']) +\
                             ', ' + str(blocked_resource_count_dict[pblock_name]['DSP48E2']))
 print()
@@ -95,27 +95,27 @@ print("util_all")
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 1): 
         # LUT logic, LUT mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][1]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][4]) +\
-                            ', ' + str(util_all[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all[pblock_name]['LUT']) +\
+                            ', ' + str(util_all[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all[pblock_name]['FF']) +\
+                            ', ' + str(util_all[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 2): 
         # LUT logic, LUT mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][1]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][4]) +\
-                            ', ' + str(util_all[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all[pblock_name]['LUT']) +\
+                            ', ' + str(util_all[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all[pblock_name]['FF']) +\
+                            ', ' + str(util_all[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all[pblock_name]['DSP48E2']))
 for pblock_name in natsorted(util_all):
     if(len(pblock_page_dict[pblock_name]) == 4): 
         # LUT logic, LUT mem, FF, RAM36, RAM18, DSP
-        print(pblock_name + ', ' + str(util_all[pblock_name][0]) +\
-                            ', ' + str(util_all[pblock_name][1]) +\
-                            ', ' + str(util_all[pblock_name][2]) +\
-                            ', ' + str(util_all[pblock_name][4]) +\
-                            ', ' + str(util_all[pblock_name][5]))
+        print(pblock_name + ', ' + str(util_all[pblock_name]['LUT']) +\
+                            ', ' + str(util_all[pblock_name]['LUT_mem']) +\
+                            ', ' + str(util_all[pblock_name]['FF']) +\
+                            ', ' + str(util_all[pblock_name]['RAMB18']) +\
+                            ', ' + str(util_all[pblock_name]['DSP48E2']))
 
 
 # with open('blocked_util_p2.json', 'r') as infile:
