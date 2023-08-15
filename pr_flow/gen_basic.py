@@ -266,26 +266,26 @@ class _verilog:
     out_list = ['module mono(',
                 '  input         ap_clk,',
                 '  input         ap_rst_n,',
-                '  input [511:0]  Input_1_V_TDATA,',
-                '  input         Input_1_V_TVALID,',
-                '  output        Input_1_V_TREADY,',
-                '  output [511:0] Output_1_V_TDATA,',
-                '  output        Output_1_V_TVALID,',
-                '  input         Output_1_V_TREADY,',
+                '  input [511:0]  Input_1_TDATA,',
+                '  input         Input_1_TVALID,',
+                '  output        Input_1_TREADY,',
+                '  output [511:0] Output_1_TDATA,',
+                '  output        Output_1_TVALID,',
+                '  input         Output_1_TREADY,',
                 '  input         ap_start);']
-    out_list.append('wire [511:0] DMA_Input_1_V_TDATA;')
-    out_list.append('wire        DMA_Input_1_V_TVALID;')
-    out_list.append('wire        DMA_Input_1_V_TREADY;')
-    out_list.append('wire [511:0] DMA_Output_1_V_TDATA;')
-    out_list.append('wire        DMA_Output_1_V_TVALID;')
-    out_list.append('wire        DMA_Output_1_V_TREADY;')
+    out_list.append('wire [511:0] DMA_Input_1_TDATA;')
+    out_list.append('wire        DMA_Input_1_TVALID;')
+    out_list.append('wire        DMA_Input_1_TREADY;')
+    out_list.append('wire [511:0] DMA_Output_1_TDATA;')
+    out_list.append('wire        DMA_Output_1_TVALID;')
+    out_list.append('wire        DMA_Output_1_TREADY;')
  
     for op in operator_arg_dict:
       for idx, port in enumerate(operator_arg_dict[op]):
         width = int(operator_width_dict[op][idx].split('<')[1].split('>')[0])
-        out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_V_TDATA;')
-        out_list.append('wire        '+op+'_'+port+'_V_TVALID;')
-        out_list.append('wire        '+op+'_'+port+'_V_TREADY;')
+        out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_TDATA;')
+        out_list.append('wire        '+op+'_'+port+'_TVALID;')
+        out_list.append('wire        '+op+'_'+port+'_TREADY;')
     for idx, connect_str in enumerate(connection_list):
       connect_str_list = connect_str.split('->')      
       if connect_str_list[1] == 'DMA.Input_1': out_list.append('\nstream_shell #(')
@@ -294,12 +294,12 @@ class _verilog:
       out_list.append('  .NUM_BRAM_ADDR_BITS(7)')
       out_list.append('  )stream_link_'+str(idx)+'(')
       out_list.append('  .clk(ap_clk),')
-      out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_V_TDATA),')
-      out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_V_TVALID),')
-      out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_V_TREADY),')
-      out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_V_TDATA),')
-      out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_V_TVALID),')
-      out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_V_TREADY),')
+      out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_TDATA),')
+      out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_TVALID),')
+      out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_TREADY),')
+      out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_TDATA),')
+      out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_TVALID),')
+      out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_TREADY),')
       out_list.append('  .reset(~ap_rst_n));')
     for op in operator_arg_dict:
       out_list.append('\n  '+op+' '+op+'_inst(')
@@ -309,17 +309,17 @@ class _verilog:
       out_list.append('    .ap_idle(),')
       out_list.append('    .ap_ready(),')
       for port in operator_arg_dict[op]:
-        out_list.append('    .'+port+'_V_TDATA(' +op+'_'+port+'_V_TDATA),')
-        out_list.append('    .'+port+'_V_TVALID('+op+'_'+port+'_V_TVALID),')
-        out_list.append('    .'+port+'_V_TREADY('+op+'_'+port+'_V_TREADY),')
+        out_list.append('    .'+port+'_TDATA(' +op+'_'+port+'_TDATA),')
+        out_list.append('    .'+port+'_TVALID('+op+'_'+port+'_TVALID),')
+        out_list.append('    .'+port+'_TREADY('+op+'_'+port+'_TREADY),')
       out_list.append('    .ap_rst_n(ap_rst_n)')
       out_list.append('  );')
-    out_list.append('assign Output_1_V_TDATA  = DMA_Input_1_V_TDATA;')
-    out_list.append('assign Output_1_V_TVALID = DMA_Input_1_V_TVALID;')
-    out_list.append('assign DMA_Input_1_V_TREADY = Output_1_V_TREADY;')
-    out_list.append('assign DMA_Output_1_V_TDATA  = Input_1_V_TDATA;')
-    out_list.append('assign DMA_Output_1_V_TVALID = Input_1_V_TVALID;')
-    out_list.append('assign Input_1_V_TREADY = DMA_Output_1_V_TREADY;')
+    out_list.append('assign Output_1_TDATA  = DMA_Input_1_TDATA;')
+    out_list.append('assign Output_1_TVALID = DMA_Input_1_TVALID;')
+    out_list.append('assign DMA_Input_1_TREADY = Output_1_TREADY;')
+    out_list.append('assign DMA_Output_1_TDATA  = Input_1_TDATA;')
+    out_list.append('assign DMA_Output_1_TVALID = Input_1_TVALID;')
+    out_list.append('assign Input_1_TREADY = DMA_Output_1_TREADY;')
     out_list.append('endmodule')
  
     return out_list
@@ -1786,20 +1786,22 @@ class gen_basic:
     self.prflow_params = prflow_params
     self.bft_dir       = self.prflow_params['workspace']+'/F000_bft_gen'
     #self.overlay_dir  = self.prflow_params['workspace']+'/F001_overlay_' + self.prflow_params['nl'] + '_leaves'
-    if self.prflow_params['overlay_type'] == 'hipr':
-      self.overlay_dir = self.prflow_params['workspace']+'/F001_overlay_'+self.prflow_params['benchmark_name']
-    else:
-      self.overlay_dir = self.prflow_params['workspace']+'/F001_overlay'
+    # if self.prflow_params['overlay_type'] == 'hipr':
+    #   self.overlay_dir = self.prflow_params['workspace']+'/F001_overlay_'+self.prflow_params['benchmark_name']
+    # else:
+    #   self.overlay_dir = self.prflow_params['workspace']+'/F001_overlay'
+    self.overlay_dir = self.prflow_params['workspace']+'/F001_overlay'
     # print ('inside:', self.overlay_dir)
-    self.hls_dir       = self.prflow_params['workspace']+'/F002_hls_'+self.prflow_params['benchmark_name']
-    self.syn_dir       = self.prflow_params['workspace']+'/F003_syn_'+self.prflow_params['benchmark_name']
-    self.pr_dir        = self.prflow_params['workspace']+'/F004_impl_'+self.prflow_params['benchmark_name']
-    self.bit_dir       = self.prflow_params['workspace']+'/F005_bits_'+self.prflow_params['benchmark_name']
-    self.mono_dir      = self.prflow_params['workspace']+'/F007_mono_'+self.prflow_params['benchmark_name']
-    self.mono_bft_dir  = self.prflow_params['workspace']+'/F007_mono_bft_'+self.prflow_params['benchmark_name']
-    self.sdk_dir       = self.prflow_params['workspace']+'/F008_sdk_'+self.prflow_params['benchmark_name']
-    self.rpt_dir       = self.prflow_params['workspace']+'/report'
-    self.net_list      = ['1', '1', '1', '1', '1', '2', '2', '2',
+    self.hls_dir          = self.prflow_params['workspace']+'/F002_hls_'+self.prflow_params['benchmark_name']
+    self.syn_dir          = self.prflow_params['workspace']+'/F003_syn_'+self.prflow_params['benchmark_name']
+    self.pr_dir           = self.prflow_params['workspace']+'/F004_impl_'+self.prflow_params['benchmark_name']
+    self.bit_dir          = self.prflow_params['workspace']+'/F005_bits_'+self.prflow_params['benchmark_name']
+    self.mono_dir         = self.prflow_params['workspace']+'/F007_mono_'+self.prflow_params['benchmark_name']
+    self.overlay_mono_dir = self.prflow_params['workspace']+'/F007_overlay_mono'
+    self.mono_bft_dir     = self.prflow_params['workspace']+'/F007_mono_bft_'+self.prflow_params['benchmark_name']
+    self.sdk_dir          = self.prflow_params['workspace']+'/F008_sdk_'+self.prflow_params['benchmark_name']
+    self.rpt_dir          = self.prflow_params['workspace']+'/report'
+    self.net_list         = ['1', '1', '1', '1', '1', '2', '2', '2',
                          '2', '2', '2', '0', '3', '3', '3', '3',
                          '3', '3', '4', '4', '4', '4', '4', '4',
                          '5', '5', '5', '5', '5', '5', '5', '5']

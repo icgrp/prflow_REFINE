@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <!--specifications for pr_flow tool-->
-  <spec name = "PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_dfx_202210_1" />
+
   <spec name = "ROOTFS"              value = "/opt/platforms/xilinx-zynqmp-common-v2022.1" />
   <spec name = "sdk_dir"             value = "/opt/platforms/xilinx-zynqmp-common-v2022.1/environment-setup-cortexa72-cortexa53-xilinx-linux" />
+  <spec name = "PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_dfx_202210_1" />
   <spec name = "PLATFORM"            value = "xilinx_zcu102_base_dfx_202210_1" />
+
+  <spec name = "BASE_PLATFORM_REPO_PATHS" value=  "/opt/platforms/xilinx_zcu102_base_202210_1" />
+  <spec name = "BASE_PLATFORM"            value = "xilinx_zcu102_base_202210_1" />
 
   <spec name = "board"               value = "zcu102" />
   <spec name = "device"              value = "xczcu9_0" />
@@ -20,5 +24,6 @@
   <spec name = "packet_bits"         value = "49" />
   <spec name = "addr_bits"           value = "5" />
 
+  <!-- below may need to be removed -->
   <spec name = "mono_freq_MHz"       value = "200" />
 </configuration>

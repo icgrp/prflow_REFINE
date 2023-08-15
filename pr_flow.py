@@ -29,7 +29,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('benchmark_name')
   parser.add_argument('-q',         '--run_qsub',          help="default: don't submit the qsub job to icgrid",     action='store_true')
-  parser.add_argument('-g',         '--gen_overlay',       help="default: don't compile the static region",         action='store_true')
+  parser.add_argument('-g',         '--gen_overlay',       help="default: don't compile the static region",         default=None)
   parser.add_argument('-hls',       '--gen_hls',           help="default: don't compile the static region",         action='store_true')
   parser.add_argument('-syn',       '--gen_syn',           help="default: don't perform out-of-context synthesis",  action='store_true')
   parser.add_argument('-impl',      '--gen_impl',          help="default: don't perform placement/routing/bit gen", action='store_true')
@@ -78,10 +78,15 @@ if __name__ == '__main__':
   prflow_params['overlay_freq'] = "400" # fixed to highest frequency
   prflow_params['overlay_n'] = 'overlay_p23' # maybe just fix the overlay
 
-  if prflow_params['gen_overlay'] == True and prflow_params['overlay_type'] == 'psnoc':
+  if prflow_params['gen_overlay'] == 'psnoc':
     overlay_inst = overlay.overlay(prflow_params)
-    overlay_inst.run(operator, bft_n, overlay_freq = overlay_freq)
+    overlay_inst.run(operator)
     print ('psnoc')
+
+  if prflow_params['gen_overlay'] == 'mono':
+    overlay_inst = overlay.overlay(prflow_params)
+    overlay_inst.run(operator, is_mono = True)
+    print ('mono')
 
   if prflow_params['gen_hls'] == True:
     hls_inst = hls.hls(prflow_params)
@@ -105,7 +110,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_monolithic'] == True:
     mono_inst = monolithic.monolithic(prflow_params)
-    mono_inst.run(operator, monitor_on = monitor_on, frequency = freq)
+    mono_inst.run(operator)
 
   if prflow_params['gen_ip_repo'] == True:
     ip_repo_inst = ip_repo.ip_repo(prflow_params)

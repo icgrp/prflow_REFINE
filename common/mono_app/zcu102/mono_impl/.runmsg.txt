@@ -1,0 +1,2 @@
+Compiling (bitstream) accelerator binary: ydma
+Log file: /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F007_mono_rendering_par_2/mono_impl/runme.log

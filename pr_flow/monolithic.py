@@ -166,6 +166,7 @@ class monolithic(gen_basic):
       'xsdk -batch -source ' + tcl_file,
       ''])
 
+
   def return_sh_list_local(self, command):
     return ([
       '#!/bin/bash -e',
@@ -177,26 +178,26 @@ class monolithic(gen_basic):
     out_list = ['module mono(',
                 '  input         ap_clk,',
                 '  input         ap_rst_n,',
-                '  input [511:0]  Input_1_V_TDATA,',
-                '  input         Input_1_V_TVALID,',
-                '  output        Input_1_V_TREADY,',
-                '  output [511:0] Output_1_V_TDATA,',
-                '  output        Output_1_V_TVALID,',
-                '  input         Output_1_V_TREADY,',
+                '  input [511:0]  Input_1_TDATA,',
+                '  input         Input_1_TVALID,',
+                '  output        Input_1_TREADY,',
+                '  output [511:0] Output_1_TDATA,',
+                '  output        Output_1_TVALID,',
+                '  input         Output_1_TREADY,',
                 '  input         ap_start);']
-    out_list.append('wire [511:0] DMA_Input_1_V_TDATA;')
-    out_list.append('wire        DMA_Input_1_V_TVALID;')
-    out_list.append('wire        DMA_Input_1_V_TREADY;')
-    out_list.append('wire [511:0] DMA_Output_1_V_TDATA;')
-    out_list.append('wire        DMA_Output_1_V_TVALID;')
-    out_list.append('wire        DMA_Output_1_V_TREADY;')
+    out_list.append('wire [511:0] DMA_Input_1_TDATA;')
+    out_list.append('wire        DMA_Input_1_TVALID;')
+    out_list.append('wire        DMA_Input_1_TREADY;')
+    out_list.append('wire [511:0] DMA_Output_1_TDATA;')
+    out_list.append('wire        DMA_Output_1_TVALID;')
+    out_list.append('wire        DMA_Output_1_TREADY;')
  
     for op in operator_arg_dict:
       for idx, port in enumerate(operator_arg_dict[op]):
         width = int(operator_width_dict[op][idx].split('<')[1].split('>')[0])
-        out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_V_TDATA;')
-        out_list.append('wire        '+op+'_'+port+'_V_TVALID;')
-        out_list.append('wire        '+op+'_'+port+'_V_TREADY;')
+        out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_TDATA;')
+        out_list.append('wire        '+op+'_'+port+'_TVALID;')
+        out_list.append('wire        '+op+'_'+port+'_TREADY;')
     for idx, connect_str in enumerate(connection_list):
       connect_str_list = connect_str.split('->')      
       out_list.append('\nstream_shell #(')
@@ -204,12 +205,12 @@ class monolithic(gen_basic):
       out_list.append('  .NUM_BRAM_ADDR_BITS(7)')
       out_list.append('  )stream_shell_'+str(idx)+'(')
       out_list.append('  .clk(ap_clk),')
-      out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_V_TDATA),')
-      out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_V_TVALID),')
-      out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_V_TREADY),')
-      out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_V_TDATA),')
-      out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_V_TVALID),')
-      out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_V_TREADY),')
+      out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_TDATA),')
+      out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_TVALID),')
+      out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_TREADY),')
+      out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_TDATA),')
+      out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_TVALID),')
+      out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_TREADY),')
       out_list.append('  .reset(~ap_rst_n));')
     for op in operator_arg_dict:
       out_list.append('\n  '+op+' '+op+'_inst(')
@@ -219,56 +220,67 @@ class monolithic(gen_basic):
       out_list.append('    .ap_idle(),')
       out_list.append('    .ap_ready(),')
       for port in operator_arg_dict[op]:
-        out_list.append('    .'+port+'_V_TDATA(' +op+'_'+port+'_V_TDATA),')
-        out_list.append('    .'+port+'_V_TVALID('+op+'_'+port+'_V_TVALID),')
-        out_list.append('    .'+port+'_V_TREADY('+op+'_'+port+'_V_TREADY),')
+        out_list.append('    .'+port+'_TDATA(' +op+'_'+port+'_TDATA),')
+        out_list.append('    .'+port+'_TVALID('+op+'_'+port+'_TVALID),')
+        out_list.append('    .'+port+'_TREADY('+op+'_'+port+'_TREADY),')
       out_list.append('    .ap_rst_n(ap_rst_n)')
       out_list.append('  );')
-    out_list.append('assign Output_1_V_TDATA  = DMA_Input_1_V_TDATA;')
-    out_list.append('assign Output_1_V_TVALID = DMA_Input_1_V_TVALID;')
-    out_list.append('assign DMA_Input_1_V_TREADY = Output_1_V_TREADY;')
-    out_list.append('assign DMA_Output_1_V_TDATA  = Input_1_V_TDATA;')
-    out_list.append('assign DMA_Output_1_V_TVALID = Input_1_V_TVALID;')
-    out_list.append('assign Input_1_V_TREADY = DMA_Output_1_V_TREADY;')
+    out_list.append('assign Output_1_TDATA  = DMA_Input_1_TDATA;')
+    out_list.append('assign Output_1_TVALID = DMA_Input_1_TVALID;')
+    out_list.append('assign DMA_Input_1_TREADY = Output_1_TREADY;')
+    out_list.append('assign DMA_Output_1_TDATA  = Input_1_TDATA;')
+    out_list.append('assign DMA_Output_1_TVALID = Input_1_TVALID;')
+    out_list.append('assign Input_1_TREADY = DMA_Output_1_TREADY;')
     out_list.append('endmodule')
  
     return out_list
 
-  def update_cad_path(self, frequency):
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'export ROOTFS'              : 'export ROOTFS='+self.prflow_params['ROOTFS']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'export PLATFORM_REPO_PATHS=': 'export PLATFORM_REPO_PATHS='+self.prflow_params['PLATFORM_REPO_PATHS']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'export PLATFORM='           : 'export PLATFORM='+self.prflow_params['PLATFORM']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'xrt_dir'                    : 'source '+self.prflow_params['xrt_dir']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'sdk_dir'                    : 'source '+self.prflow_params['sdk_dir']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh',    {'Xilinx_dir'                 : 'source '+self.prflow_params['Xilinx_dir']})
-      self.shell.replace_lines(self.mono_dir+'/ydma/src/'+self.prflow_params['board']+'_dfx.cfg', {'platform'                   : 'platform='+self.prflow_params['PLATFORM']})
 
-  def update_build_sh(self, frequency):
-      cwd = os.getcwd()
-      cwd = cwd.replace('/', '\/')
-      cwd += '\/workspace\/F007_mono_'+self.prflow_params['benchmark_name']+'\/ydma\/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'
-      str_line=''
-      str_line+='make ydma.xo || true\n'
-      str_line+='# abs_dir=$(pwd)\n'
-      str_line+='python3 ./replace.py\n'
-      str_line+='cp ./../../../mono.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog/\n'
-      str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/config_parser* ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog/\n'
-      str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/data32to512* ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
-      str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/stream_shell.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
-      str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
-      str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.dat ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
-      str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.tcl ./_x/ydma/ydma/ydma/solution/impl/ip/subcore\n'
-      str_line+='cd ./_x/ydma/ydma/ydma/solution/impl/ip/ \n'
-      str_line+='sed -i \'s/set kernel_xo ""/set kernel_xo "'+cwd+'\/ydma.xo"/g\' run_ippack.tcl\n'
-      str_line+='sed -i \'s/2201/2101/g\' run_ippack.tcl\n'
-      str_line+='./pack.sh\n'
-      str_line+='cd -\n'
-      str_line+='make ydma.xclbin\n'
-      # str_line+='cp ./ydma.xclbin ../../\n'
-      str_line+='make all\n'
-      self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh', {'make all': str_line}) 
-      # self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/Makefile', {'kernel_frequency': '\t\t\t--kernel_frequency '+self.prflow_params['mono_freq_MHz']+' \\'}) 
-      os.system('chmod +x '+self.mono_dir+'/ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz'+'/build.sh')
+  def update_cad_path(self, base_dir, operators, overlay_freq):
+    if not is_mono:
+      sub_dir = overlay_freq + 'MHz'
+    else:
+      sub_dir = 'mono'
+
+    self.shell.replace_lines(base_dir + '/build.sh',
+                            {'export PLATFORM_REPO_PATHS=': 'export PLATFORM_REPO_PATHS='+self.prflow_params['BASE_PLATFORM_REPO_PATHS']})
+    self.shell.replace_lines(base_dir + '/build.sh',
+                            {'export ROOTFS'      : 'export ROOTFS='+self.prflow_params['ROOTFS']})
+    self.shell.replace_lines(base_dir + '/build.sh',
+                            {'export PLATFORM='   : 'export PLATFORM='+self.prflow_params['BASE_PLATFORM']})
+    self.shell.replace_lines(base_dir + '/build.sh',
+                            {'Xilinx_dir'         : 'source '+self.prflow_params['Xilinx_dir']})
+    self.shell.replace_lines(base_dir + '/build.sh',
+                            {'sdk_dir'            : 'source '+self.prflow_params['sdk_dir']})
+    os.system('chmod +x '+base_dir + '/ydma/'+self.prflow_params['board']+'/'+ sub_dir +'/build.sh')
+
+
+  # def update_build_sh(self, frequency):
+  #   cwd = os.getcwd()
+  #   cwd = cwd.replace('/', '\/')
+  #   cwd += '\/workspace\/F007_mono_'+self.prflow_params['benchmark_name']+'\/ydma\/'+self.prflow_params['board']+'/mono'
+  #   str_line=''
+  #   str_line+='make ydma.xo || true\n'
+  #   str_line+='# abs_dir=$(pwd)\n'
+  #   str_line+='python3 ./replace_for_mono.py\n' # IMPORTANT!
+  #   str_line+='cp ./../../../mono.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog/\n'
+  #   # str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/config_parser* ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog/\n'
+  #   # str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/data32to512* ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
+  #   str_line+='cp ./'+self.prflow_params['board']+'_dfx_manual/src4level2/ydma_bb/stream_shell.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
+  #   str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.v ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
+  #   str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.dat ./_x/ydma/ydma/ydma/solution/impl/ip/hdl/verilog\n'
+  #   str_line+='cp ./../../../../F002_hls_'+self.prflow_params['benchmark_name']+'/*/*/syn/verilog/*.tcl ./_x/ydma/ydma/ydma/solution/impl/ip/subcore\n'
+  #   str_line+='cd ./_x/ydma/ydma/ydma/solution/impl/ip/ \n'
+  #   str_line+='sed -i \'s/set kernel_xo ""/set kernel_xo "'+cwd+'\/ydma.xo"/g\' run_ippack.tcl\n'
+  #   # str_line+='sed -i \'s/2201/2101/g\' run_ippack.tcl\n'
+  #   str_line+='./pack.sh\n'
+  #   str_line+='cd -\n'
+  #   str_line+='make ydma.xclbin\n'
+  #   # str_line+='cp ./ydma.xclbin ../../\n'
+  #   str_line+='make all\n'
+  #   self.shell.replace_lines(self.mono_dir+'/ydma/'+self.prflow_params['board']+'/mono/build.sh', {'make all': str_line}) 
+  #   os.system('chmod +x '+self.mono_dir+'/ydma/'+self.prflow_params['board']+'/mono/build.sh')
+
 
   # main.sh will be used for local compilation
   def return_main_sh_list_local(self, input_list):
@@ -279,47 +291,41 @@ class monolithic(gen_basic):
 
 
 
- 
-  def run(self, operators, monitor_on=False, frequency="200"):
+  def run(self, operators):
+    overlay_freq = self.prflow_params['overlay_freq']
+
     # mk work directory
     if self.prflow_params['gen_monolithic']==True:
       self.shell.re_mkdir(self.mono_dir)
 
-    # prepare the source for vitis monolithic run
-    self.shell.cp_dir("./common/ydma", self.mono_dir) 
 
-    self.shell.cp_dir('./common/script_src/monitor_mono.sh', self.mono_dir+"/monitor.sh")
-    self.shell.cp_dir('./common/script_src/parse_htop.py', self.mono_dir)
-    if(monitor_on):
-      self.shell.write_lines(self.mono_dir+'/run.sh',  self.return_main_sh_list_local(['./monitor.sh &',
-                                                                                    'cd ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/',
-                                                                                    './build.sh',
-                                                                                    'cd ../../../',
-                                                                                    'touch __done__',
-                                                                                    'mkdir -p logs/' + str(frequency),
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/v++.log ./logs/' + str(frequency),
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/vivado.log ./logs/' + str(frequency)
-                                                                                    ]), True)
-    else:
-      self.shell.write_lines(self.mono_dir+'/run.sh',  self.return_main_sh_list_local([
-                                                                                    'cd ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/',
-                                                                                    './build.sh',
-                                                                                    'cd ../../../',
-                                                                                    'mkdir -p logs/' + str(frequency),
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/v++.log ./logs/' + str(frequency),
-                                                                                    'cp ./ydma/'+self.prflow_params['board']+'/'+str(frequency)+'MHz/_x/logs/link/vivado.log ./logs/' + str(frequency)
-                                                                                    ]), True)      
+    # prepare the source for vitis monolithic run
+    self.shell.cp_dir("./common/mono_app/"+ self.prflow_params['board'], self.mono_dir) 
+
+    self.shell.write_lines(self.mono_dir+'/run.sh',  
+                           self.return_main_sh_list_local([
+                                  './build.sh',
+                                  ]), True)      
 
     self.shell.write_lines(self.mono_dir+'/main.sh', self.return_main_sh_list_local(['./run.sh']), True)
 
+    self.update_cad_path(self.mono_dir, operators, overlay_freq, is_mono=True)
+    # self.update_build_sh(frequency) 
 
-    self.update_cad_path(frequency)
-    self.update_build_sh(frequency) 
+    # Copy hls results for synthesis
+    os.system('cp ' + self.hls_dir + '*/*/syn/verilog*.v ' + self.mono_dir + '/mono_syn/app_src/')
+    os.system('cp ' + self.hls_dir + '*/*/syn/verilog*.dat ' + self.mono_dir + '/mono_syn/app_src/')
+    os.system('cp ' + self.hls_dir + '*/*/syn/verilog*.tcl ' + self.mono_dir + '/mono_syn/app_src/')
 
-    page_num_dict = self.return_page_num_dict_local(operators)
+    # Generate mono.v for synthesis
     operator_arg_dict, operator_width_dict = self.return_operator_io_argument_dict_local(operators)
     operator_var_dict = self.return_operator_inst_dict_local(operators)
     connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict, operator_width_dict)
     mono_v_list = self.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict)
     self.shell.write_lines(self.mono_dir+'/mono.v', mono_v_list)
+
+    # Copy for host executable gen
+    os.system('cp -r ' + './input_src/'+self.prflow_params['benchmark_name'] + ' ' + self.mono_dir + '/mono_host')
+
+    # TODO: modify NUM_TOTAL_CNT in host.cpp
 

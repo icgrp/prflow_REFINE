@@ -32,6 +32,7 @@ ws_syn=$(ws)/F003_syn_$(prj_name)
 ws_impl=$(ws)/F004_impl_$(prj_name)
 ws_bit=$(ws)/F005_bits_$(prj_name)
 ws_mono=$(ws)/F007_mono_$(prj_name)
+ws_mono_overlay=$(ws)/F007_overlay_mono
 
 host_dir=./input_src/$(prj_name)/host
 operators_dir=./input_src/$(prj_name)/operators
@@ -103,7 +104,7 @@ sync_pg_assign:$(operators_pblocks)
 $(operators_pblocks):$(ws_syn)/%/pblock.json: pg_assign
 
 pg_assign:$(ws_syn)/pblock_assignment.json
-$(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/kernel_clk.json
+$(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/specs.json
 	python pr_flow.py $(prj_name) -pg -op '$(operators_impl)'
 # 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
 
@@ -124,8 +125,15 @@ $(operators_hls_targets):$(ws_hls)/runLog%.log:$(operators_dir)/%.cpp $(operator
 bft_n=23
 overlay: $(ws_overlay)/__overlay_is_ready__
 $(ws_overlay)/__overlay_is_ready__:
-	python pr_flow.py $(prj_name) -g -op '$(basename $(notdir $(operators)))' -bft_n=$(bft_n)
+	python pr_flow.py $(prj_name) -g 'psnoc' -op '$(basename $(notdir $(operators)))'
 	cd ./workspace/F001_overlay && ./main.sh
+
+overlay_mono: $(ws_mono_overlay)/__overlay_mono_is_ready__
+$(ws_mono_overlay)/__overlay_mono_is_ready__:
+	python pr_flow.py $(prj_name) -g 'mono' -op '$(basename $(notdir $(operators)))'
+	cd $(ws_mono_overlay) && ./main_overlay_mono.sh
+
+
 
 .PHONY: report 
 report: 

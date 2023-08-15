@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 <!--   <spec name = "riscv_dir"          value = "/opt/riscv32" /> -->
-  <spec name = "overlay_type"       value = "psnoc" />
+  <!-- <spec name = "overlay_type"       value = "psnoc" /> -->
+  <!-- <spec name = "overlay_type"       value = "psnoc" /> -->
 <!--   <spec name = "overlay_type"       value = "hipr" /> -->
   <!--spec name = "riscv_dir"          value = "/scratch/unsafe/RISCV/riscv32i" -->
   <!--specifications for pr_flow tool-->
@@ -47,7 +48,7 @@
   <spec name = "input_port_bram_cost"  value = "5" />
   <spec name = "output_port_bram_cost" value = "1" />
 
-
+  <!-- below may need to be removed -->
   <clock name = 'clk_bft' period = "2.5" />
   <clock name = 'clk_user' period = "2.5" />
  
