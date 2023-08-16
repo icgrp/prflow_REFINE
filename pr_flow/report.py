@@ -144,7 +144,7 @@ class report(gen_basic):
         file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/utilization.rpt'
         file_list = self.shell.file_to_list(file_name)
         for idx, line in enumerate(file_list):
-          if self.shell.have_target_string(line, 'Instance'):
+          if 'Instance' in line:
             resource_list =  file_list[idx+2].replace(' ', '').split('|')
             num_luts = resource_list[3]
             num_ffs = resource_list[7]

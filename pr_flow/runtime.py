@@ -55,12 +55,12 @@ class runtime(gen_basic):
       def_valid = False # Ture if function definition begins
       def_str = ''
       for line in file_list:
-        if self.shell.have_target_string(line, '('): def_valid = True
+        if '(' in line: def_valid = True
         if def_valid: 
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           def_str=def_str+line_str
-        if self.shell.have_target_string(line, ')'): def_valid = False
+        if ')' in line: def_valid = False
 
       # a list for the stream arguments functions
       arg_str_list = def_str.split(',')
@@ -88,13 +88,13 @@ class runtime(gen_basic):
       inst_cnt = 0 
       inst_str = ''
       for line in file_list:
-        if self.shell.have_target_string(line, operator+'('): inst_cnt = inst_cnt + 1
+        if operator+'(' in line: inst_cnt = inst_cnt + 1
         if inst_cnt == 1: 
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           line_str=re.sub('//.*', '', line_str)
           inst_str=inst_str+line_str
-        if self.shell.have_target_string(line, ')') and inst_cnt == 1: inst_cnt = 2
+        if (')' in line) and inst_cnt == 1: inst_cnt = 2
       inst_str = inst_str.replace(operator+'(','')
       inst_str = inst_str.replace(');','')
       var_str_list = inst_str.split(',')
@@ -136,7 +136,7 @@ class runtime(gen_basic):
         for key_b in operator_var_dict:
           for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
             if var_value_a==var_value_b and key_a!=key_b:
-              if self.shell.have_target_string(operator_arg_dict[key_a][i_a], 'Input'):
+              if 'Input' in operator_arg_dict[key_a][i_a]:
                 tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
               else:
                 tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]

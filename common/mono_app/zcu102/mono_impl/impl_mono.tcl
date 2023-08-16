@@ -156,7 +156,7 @@ OPTRACE "Design Initialization: pre hook" END { }
   set_param project.loadTopLevelOOCConstrs 1
 OPTRACE "create in-memory project" START { }
   create_project -in_memory -part xczu9eg-ffvb1156-2-e
-  set_property board_part_repo_paths {../../F007_overlay_mono/ydma/zcu102/mono/_x/link/vivado/vpl/.local/hw_platform/board} [current_project]
+  set_property board_part_repo_paths {../../../F007_overlay_mono/ydma/zcu102/mono/_x/link/vivado/vpl/.local/hw_platform/board} [current_project]
   set_property board_part xilinx.com:zcu102:part0:3.4 [current_project]
   set_property design_mode GateLvl [current_fileset]
   set_param project.singleFileAddWarning.threshold 0
@@ -184,7 +184,7 @@ OPTRACE "add files" START { }
   # add_files /home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1/workspace/F007_overlay_mono/ydma/zcu102/mono/_x/link/vivado/vpl/prj/prj.srcs/sources_1/bd/vitis_design/vitis_design.bd
   set_param project.isImplRun false  
 
-  add_files ../../F007_overlay_mono/ydma/zcu102/mono/overlay_mono/checkpoint/overlay_mono_syn.dcp
+  add_files ../../../F007_overlay_mono/ydma/zcu102/mono/overlay_mono/checkpoint/overlay_mono_syn.dcp
   add_files ../mono_syn/mono.dcp
   set_property SCOPED_TO_CELLS vitis_design_i/ydma_mono_0/inst/mono_inst [get_files ../mono_syn/mono.dcp]
 

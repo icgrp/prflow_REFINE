@@ -15,12 +15,6 @@ class _shell:
   def __init__(self, prflow_params):
     self.prflow_params = prflow_params
 
-
-  def have_target_string(self, string_in, target_string):
-    if string_in.replace(target_string, '') == string_in:
-      return False
-    else:
-      return True
       
   def file_to_list(self, file_name):
     file_list = []
@@ -262,121 +256,123 @@ class _verilog:
     if(a>b): return a
     else: return b
 
-  def return_operator_inst_v_list(self, operator_arg_dict, connection_list, operator_var_dict, operator_width_dict):
-    out_list = ['module mono(',
-                '  input         ap_clk,',
-                '  input         ap_rst_n,',
-                '  input [511:0]  Input_1_TDATA,',
-                '  input         Input_1_TVALID,',
-                '  output        Input_1_TREADY,',
-                '  output [511:0] Output_1_TDATA,',
-                '  output        Output_1_TVALID,',
-                '  input         Output_1_TREADY,',
-                '  input         ap_start);']
-    out_list.append('wire [511:0] DMA_Input_1_TDATA;')
-    out_list.append('wire        DMA_Input_1_TVALID;')
-    out_list.append('wire        DMA_Input_1_TREADY;')
-    out_list.append('wire [511:0] DMA_Output_1_TDATA;')
-    out_list.append('wire        DMA_Output_1_TVALID;')
-    out_list.append('wire        DMA_Output_1_TREADY;')
- 
-    for op in operator_arg_dict:
-      for idx, port in enumerate(operator_arg_dict[op]):
-        width = int(operator_width_dict[op][idx].split('<')[1].split('>')[0])
-        out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_TDATA;')
-        out_list.append('wire        '+op+'_'+port+'_TVALID;')
-        out_list.append('wire        '+op+'_'+port+'_TREADY;')
-    for idx, connect_str in enumerate(connection_list):
-      connect_str_list = connect_str.split('->')      
-      if connect_str_list[1] == 'DMA.Input_1': out_list.append('\nstream_shell #(')
-      else:                                    out_list.append('\nRelayStation #(')
-      out_list.append('  .PAYLOAD_BITS('+str(int(connect_str_list[2]))+'),')
-      out_list.append('  .NUM_BRAM_ADDR_BITS(7)')
-      out_list.append('  )stream_link_'+str(idx)+'(')
-      out_list.append('  .clk(ap_clk),')
-      out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_TDATA),')
-      out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_TVALID),')
-      out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_TREADY),')
-      out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_TDATA),')
-      out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_TVALID),')
-      out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_TREADY),')
-      out_list.append('  .reset(~ap_rst_n));')
-    for op in operator_arg_dict:
-      out_list.append('\n  '+op+' '+op+'_inst(')
-      out_list.append('    .ap_clk(ap_clk),')
-      out_list.append('    .ap_start(1\'b1),')
-      out_list.append('    .ap_done(),')
-      out_list.append('    .ap_idle(),')
-      out_list.append('    .ap_ready(),')
-      for port in operator_arg_dict[op]:
-        out_list.append('    .'+port+'_TDATA(' +op+'_'+port+'_TDATA),')
-        out_list.append('    .'+port+'_TVALID('+op+'_'+port+'_TVALID),')
-        out_list.append('    .'+port+'_TREADY('+op+'_'+port+'_TREADY),')
-      out_list.append('    .ap_rst_n(ap_rst_n)')
-      out_list.append('  );')
-    out_list.append('assign Output_1_TDATA  = DMA_Input_1_TDATA;')
-    out_list.append('assign Output_1_TVALID = DMA_Input_1_TVALID;')
-    out_list.append('assign DMA_Input_1_TREADY = Output_1_TREADY;')
-    out_list.append('assign DMA_Output_1_TDATA  = Input_1_TDATA;')
-    out_list.append('assign DMA_Output_1_TVALID = Input_1_TVALID;')
-    out_list.append('assign Input_1_TREADY = DMA_Output_1_TREADY;')
-    out_list.append('endmodule')
- 
-    return out_list
 
-  def return_place_holder_v_list(self, operator, input_width_list, output_width_list, is_dummy = False):
-    input_num = len(input_width_list)
-    output_num = len(output_width_list) 
-    lines_list = []
-    lines_list.append('`timescale 1ns / 1ps')
-    lines_list.append('module '+operator+'(')
-    lines_list.append('    input wire ap_clk,')
-    lines_list.append('    input wire ap_start,')
-    lines_list.append('    output reg ap_done,')
-    lines_list.append('    output reg ap_idle,')
-    lines_list.append('    output reg ap_ready,')
-    for i in range(int(input_num)):
-      lines_list.append('    input wire ['+str(input_width_list[i]-1)+':0] Input_'+str(i+1)+'_V_TDATA,')
-      lines_list.append('    input wire Input_'+str(i+1)+'_V_TVALID,')
-      lines_list.append('    output reg Input_'+str(i+1)+'_V_TREADY,')
-    for i in range(int(output_num)):
-      lines_list.append('    output reg ['+str(output_width_list[i]-1)+':0] Output_'+str(i+1)+'_V_TDATA,')
-      lines_list.append('    output reg Output_'+str(i+1)+'_V_TVALID,')
-      lines_list.append('    input wire Output_'+str(i+1)+'_V_TREADY,')
-    lines_list.append('    input wire ap_rst_n')
-    lines_list.append('    );')
-    lines_list.append('')
-    lines_list.append('')
-    lines_list.append('')
-    if is_dummy == False:
-      lines_list.append('  always@(posedge ap_clk) begin')
-      lines_list.append('    if(ap_rst_n) begin')
-      lines_list.append('      ap_done  <= 1\'b0;')
-      lines_list.append('      ap_idle  <= 1\'b0;')
-      lines_list.append('      ap_ready <= 1\'b0;')
-      for i in range(int(input_num)):
-        lines_list.append('      Input_'+str(i+1)+'_V_TREADY  <= 0;')
-      for i in range(int(output_num)):
-        lines_list.append('      Output_'+str(i+1)+'_V_TVALID <= 0;')
-        lines_list.append('      Output_'+str(i+1)+'_V_TDATA  <= 0;')
-      lines_list.append('    end else begin')
-      lines_list.append('      ap_done  <= ap_start;')
-      lines_list.append('      ap_idle  <= ap_start;')
-      lines_list.append('      ap_ready <= ap_start;')
-      for i in range(int(input_num)):
-        lines_list.append('      Input_'+str(i+1)+'_V_TREADY  <= Input_'+str(i+1)+'_V_TVALID & (|Input_'+str(i+1)+'_V_TDATA['+str(input_width_list[i]-1)+':0]);')
-      for i in range(int(output_num)):
-        lines_list.append('      Output_'+str(i+1)+'_V_TVALID <= Output_'+str(i+1)+'_V_TREADY;')
-        lines_list.append('      Output_'+str(i+1)+'_V_TDATA  <= {('+str(output_width_list[i])+'){Output_'+str(i+1)+'_V_TREADY}} ;')
-      lines_list.append('    end')
-      lines_list.append('  end')
-      lines_list.append('')
-      lines_list.append('')
-    lines_list.append('endmodule')
-    lines_list.append('')
-  
 
-    return lines_list
+  # def return_place_holder_v_list(self, operator, input_width_list, output_width_list, is_dummy = False):
+  #   input_num = len(input_width_list)
+  #   output_num = len(output_width_list) 
+  #   lines_list = []
+  #   lines_list.append('`timescale 1ns / 1ps')
+  #   lines_list.append('module '+operator+'(')
+  #   lines_list.append('    input wire ap_clk,')
+  #   lines_list.append('    input wire ap_start,')
+  #   lines_list.append('    output reg ap_done,')
+  #   lines_list.append('    output reg ap_idle,')
+  #   lines_list.append('    output reg ap_ready,')
+  #   for i in range(int(input_num)):
+  #     lines_list.append('    input wire ['+str(input_width_list[i]-1)+':0] Input_'+str(i+1)+'_V_TDATA,')
+  #     lines_list.append('    input wire Input_'+str(i+1)+'_V_TVALID,')
+  #     lines_list.append('    output reg Input_'+str(i+1)+'_V_TREADY,')
+  #   for i in range(int(output_num)):
+  #     lines_list.append('    output reg ['+str(output_width_list[i]-1)+':0] Output_'+str(i+1)+'_V_TDATA,')
+  #     lines_list.append('    output reg Output_'+str(i+1)+'_V_TVALID,')
+  #     lines_list.append('    input wire Output_'+str(i+1)+'_V_TREADY,')
+  #   lines_list.append('    input wire ap_rst_n')
+  #   lines_list.append('    );')
+  #   lines_list.append('')
+  #   lines_list.append('')
+  #   lines_list.append('')
+  #   if is_dummy == False:
+  #     lines_list.append('  always@(posedge ap_clk) begin')
+  #     lines_list.append('    if(ap_rst_n) begin')
+  #     lines_list.append('      ap_done  <= 1\'b0;')
+  #     lines_list.append('      ap_idle  <= 1\'b0;')
+  #     lines_list.append('      ap_ready <= 1\'b0;')
+  #     for i in range(int(input_num)):
+  #       lines_list.append('      Input_'+str(i+1)+'_V_TREADY  <= 0;')
+  #     for i in range(int(output_num)):
+  #       lines_list.append('      Output_'+str(i+1)+'_V_TVALID <= 0;')
+  #       lines_list.append('      Output_'+str(i+1)+'_V_TDATA  <= 0;')
+  #     lines_list.append('    end else begin')
+  #     lines_list.append('      ap_done  <= ap_start;')
+  #     lines_list.append('      ap_idle  <= ap_start;')
+  #     lines_list.append('      ap_ready <= ap_start;')
+  #     for i in range(int(input_num)):
+  #       lines_list.append('      Input_'+str(i+1)+'_V_TREADY  <= Input_'+str(i+1)+'_V_TVALID & (|Input_'+str(i+1)+'_V_TDATA['+str(input_width_list[i]-1)+':0]);')
+  #     for i in range(int(output_num)):
+  #       lines_list.append('      Output_'+str(i+1)+'_V_TVALID <= Output_'+str(i+1)+'_V_TREADY;')
+  #       lines_list.append('      Output_'+str(i+1)+'_V_TDATA  <= {('+str(output_width_list[i])+'){Output_'+str(i+1)+'_V_TREADY}} ;')
+  #     lines_list.append('    end')
+  #     lines_list.append('  end')
+  #     lines_list.append('')
+  #     lines_list.append('')
+  #   lines_list.append('endmodule')
+  #   lines_list.append('')
+
+  #   return lines_list
+
+
+  # def return_operator_inst_v_list(self, operator_arg_dict, connection_list, operator_var_dict, operator_width_dict):
+  #   out_list = ['module mono(',
+  #               '  input         ap_clk,',
+  #               '  input         ap_rst_n,',
+  #               '  input [511:0]  Input_1_TDATA,',
+  #               '  input         Input_1_TVALID,',
+  #               '  output        Input_1_TREADY,',
+  #               '  output [511:0] Output_1_TDATA,',
+  #               '  output        Output_1_TVALID,',
+  #               '  input         Output_1_TREADY,',
+  #               '  input         ap_start);']
+  #   out_list.append('wire [511:0] DMA_Input_1_TDATA;')
+  #   out_list.append('wire        DMA_Input_1_TVALID;')
+  #   out_list.append('wire        DMA_Input_1_TREADY;')
+  #   out_list.append('wire [511:0] DMA_Output_1_TDATA;')
+  #   out_list.append('wire        DMA_Output_1_TVALID;')
+  #   out_list.append('wire        DMA_Output_1_TREADY;')
+ 
+  #   for op in operator_arg_dict:
+  #     for idx, port in enumerate(operator_arg_dict[op]):
+  #       width = int(operator_width_dict[op][idx].split('<')[1].split('>')[0])
+  #       out_list.append('wire ['+str(width-1)+':0] '+op+'_'+port+'_TDATA;')
+  #       out_list.append('wire        '+op+'_'+port+'_TVALID;')
+  #       out_list.append('wire        '+op+'_'+port+'_TREADY;')
+  #   for idx, connect_str in enumerate(connection_list):
+  #     connect_str_list = connect_str.split('->')      
+  #     if connect_str_list[1] == 'DMA.Input_1': out_list.append('\nstream_shell #(')
+  #     else:                                    out_list.append('\nRelayStation #(')
+  #     out_list.append('  .PAYLOAD_BITS('+str(int(connect_str_list[2]))+'),')
+  #     out_list.append('  .NUM_BRAM_ADDR_BITS(7)')
+  #     out_list.append('  )stream_link_'+str(idx)+'(')
+  #     out_list.append('  .clk(ap_clk),')
+  #     out_list.append('  .din('+connect_str_list[0].replace('.','_')+'_TDATA),')
+  #     out_list.append('  .val_in('+connect_str_list[0].replace('.','_')+'_TVALID),')
+  #     out_list.append('  .ready_upward('+connect_str_list[0].replace('.','_')+'_TREADY),')
+  #     out_list.append('  .dout('+connect_str_list[1].replace('.','_')+'_TDATA),')
+  #     out_list.append('  .val_out('+connect_str_list[1].replace('.','_')+'_TVALID),')
+  #     out_list.append('  .ready_downward('+connect_str_list[1].replace('.','_')+'_TREADY),')
+  #     out_list.append('  .reset(~ap_rst_n));')
+  #   for op in operator_arg_dict:
+  #     out_list.append('\n  '+op+' '+op+'_inst(')
+  #     out_list.append('    .ap_clk(ap_clk),')
+  #     out_list.append('    .ap_start(1\'b1),')
+  #     out_list.append('    .ap_done(),')
+  #     out_list.append('    .ap_idle(),')
+  #     out_list.append('    .ap_ready(),')
+  #     for port in operator_arg_dict[op]:
+  #       out_list.append('    .'+port+'_TDATA(' +op+'_'+port+'_TDATA),')
+  #       out_list.append('    .'+port+'_TVALID('+op+'_'+port+'_TVALID),')
+  #       out_list.append('    .'+port+'_TREADY('+op+'_'+port+'_TREADY),')
+  #     out_list.append('    .ap_rst_n(ap_rst_n)')
+  #     out_list.append('  );')
+  #   out_list.append('assign Output_1_TDATA  = DMA_Input_1_TDATA;')
+  #   out_list.append('assign Output_1_TVALID = DMA_Input_1_TVALID;')
+  #   out_list.append('assign DMA_Input_1_TREADY = Output_1_TREADY;')
+  #   out_list.append('assign DMA_Output_1_TDATA  = Input_1_TDATA;')
+  #   out_list.append('assign DMA_Output_1_TVALID = Input_1_TVALID;')
+  #   out_list.append('assign Input_1_TREADY = DMA_Output_1_TREADY;')
+  #   out_list.append('endmodule')
+ 
+  #   return out_list
 
   def return_hipr_page_v_list(self, 
                               fun_name,
@@ -1251,8 +1247,8 @@ class _dataflow:
     input_width_list = []
     output_width_list = []
     for idx, key in enumerate(operator_arg_list):
-      if self.shell.have_target_string(key, 'Input' ): input_width_list.append (int(operator_width_list[idx].split('<')[1].split('>')[0]))
-      if self.shell.have_target_string(key, 'Output'): output_width_list.append(int(operator_width_list[idx].split('<')[1].split('>')[0]))
+      if ('Input' in key): input_width_list.append (int(operator_width_list[idx].split('<')[1].split('>')[0]))
+      if ('Output' in key): output_width_list.append(int(operator_width_list[idx].split('<')[1].split('>')[0]))
     return input_width_list, output_width_list 
 
   # find all the operators arguments order
@@ -1268,12 +1264,12 @@ class _dataflow:
       def_valid = False # Ture if function definition begins
       def_str = ''
       for line in file_list:
-        if self.shell.have_target_string(line, '('): def_valid = True
+        if ('(' in line): def_valid = True
         if def_valid: 
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           def_str=def_str+line_str
-        if self.shell.have_target_string(line, ')'): def_valid = False
+        if (')' in line): def_valid = False
 
       # a list for the stream arguments functions
       arg_str_list = def_str.split(',')
@@ -1302,13 +1298,13 @@ class _dataflow:
       inst_cnt = 0 
       inst_str = ''
       for line in file_list:
-        if self.shell.have_target_string(line, operator+'('): inst_cnt = inst_cnt + 1
+        if (operator+'(' in line): inst_cnt = inst_cnt + 1
         if inst_cnt == 1: 
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           line_str=re.sub('//.*', '', line_str)
           inst_str=inst_str+line_str
-        if self.shell.have_target_string(line, ')') and inst_cnt == 1: inst_cnt = 2
+        if (')' in line) and inst_cnt == 1: inst_cnt = 2
       inst_str = inst_str.replace(operator+'(','')
       inst_str = inst_str.replace(');','')
       var_str_list = inst_str.split(',')
@@ -1341,7 +1337,7 @@ class _dataflow:
         for key_b in operator_var_dict:
           for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
             if var_value_a==var_value_b and key_a!=key_b:
-              if self.shell.have_target_string(operator_arg_dict[key_a][i_a], 'Input'):
+              if ('Input' in operator_arg_dict[key_a][i_a]):
                 tmp_str = operator_width_dict[key_b][i_b].replace('>','')
                 tmp_str = tmp_str.replace('ap_uint<','->')
                 tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]+tmp_str

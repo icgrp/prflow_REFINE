@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 export PLATFORM_REPO_PATHS=
 export ROOTFS=
@@ -32,3 +32,6 @@ cd ..
 # Generate sd card img
 make all
 
+echo ""
+echo "INFO-PRflow: Monolithic ver. is ready!"
+echo ""

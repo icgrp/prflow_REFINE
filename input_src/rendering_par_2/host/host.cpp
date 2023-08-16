@@ -34,11 +34,12 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "input_data.h"
 #include <sys/time.h>
 
-#define CONFIG_SIZE 12
+#define CONFIG_SIZE 1
 #define INPUT_SIZE (NUM_3D_TRI/4)
 #define NUM_IS_DONE 7
-#define OUTPUT_SIZE (NUM_FB/16)
-#define NUM_TOTAL_CNT 62
+// Please hardcode OUTPUT_SIZE
+#define OUTPUT_SIZE 1024
+#define NUM_TOTAL_CNT 1
 
 
 // Forward declaration of utility functions included at the end of this file

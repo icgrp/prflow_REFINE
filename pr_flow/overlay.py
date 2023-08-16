@@ -37,8 +37,8 @@ class overlay(gen_basic):
     # extract the how different operators are connected from top.cpp 
     connection_list=self.dataflow.return_operator_connect_list(operator_arg_dict, operator_var_dict, operator_width_dict)
 
-    # generate Verilog netlist for the dataflow graph
-    mono_v_list = self.verilog.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict)
+    # # generate Verilog netlist for the dataflow graph
+    # mono_v_list = self.verilog.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict)
 
     # Utilize hls class to prepare the high-level-synthesis work directory
     hls_inst = hls(self.prflow_params)
@@ -129,30 +129,34 @@ class overlay(gen_basic):
     if not is_mono:
       overlay_sub_dir = overlay_freq + 'MHz'
       cfg_file = self.prflow_params['board']+'_dfx.cfg'
+      platform_repo_path = self.prflow_params['PLATFORM_REPO_PATHS']
+      platform = self.prflow_params['PLATFORM']
     else:
       overlay_sub_dir = 'mono'
       cfg_file = self.prflow_params['board'] # use non-dfx platform
+      platform_repo_path = self.prflow_params['BASE_PLATFORM_REPO_PATHS']
+      platform = self.prflow_params['BASE_PLATFORM']
 
     # update the cad path for build.sh
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
-                            {'export ROOTFS'      : 'export ROOTFS='+self.prflow_params['ROOTFS']})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh', 
+                            {'export ROOTFS'      : 'export ROOTFS=' + self.prflow_params['ROOTFS']})
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh', 
                             {'export kl_name'      : 'export kl_name=' + kl_name})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh',
-                            {'export PLATFORM_REPO_PATHS=': 'export PLATFORM_REPO_PATHS='+self.prflow_params['PLATFORM_REPO_PATHS']})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
-                            {'export PLATFORM='   : 'export PLATFORM='+self.prflow_params['PLATFORM']})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
-                            {'xrt_dir'            : 'source '+self.prflow_params['xrt_dir']})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
-                            {'sdk_dir'            : 'source '+self.prflow_params['sdk_dir']})
-    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh', 
-                            {'Xilinx_dir'         : 'source '+self.prflow_params['Xilinx_dir']})
-    os.system('chmod +x '+base_dir + '/ydma/'+self.prflow_params['board']+'/'+ overlay_sub_dir +'/build.sh')
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh',
+                            {'export PLATFORM_REPO_PATHS=': 'export PLATFORM_REPO_PATHS=' + platform_repo_path})
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh', 
+                            {'export PLATFORM='   : 'export PLATFORM=' + platform})
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh', 
+                            {'xrt_dir'            : 'source ' + self.prflow_params['xrt_dir']})
+    self.shell.replace_lines(base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir + '/build.sh', 
+                            {'sdk_dir'            : 'source ' + self.prflow_params['sdk_dir']})
+    self.shell.replace_lines(base_dir + '/ydma/'+self.prflow_params['board'] + '/' +  overlay_sub_dir + '/build.sh', 
+                            {'Xilinx_dir'         : 'source ' + self.prflow_params['Xilinx_dir']})
+    os.system('chmod +x ' + base_dir + '/ydma/' + self.prflow_params['board'] + '/' + overlay_sub_dir +'/build.sh')
 
     # replace device definistion in cfg file
-    self.shell.replace_lines(base_dir + '/ydma/src/' + cfg_file, \
-                            {'platform'         : 'platform='+self.prflow_params['PLATFORM']})
+    # self.shell.replace_lines(base_dir + '/ydma/src/' + cfg_file, \
+    #                         {'platform'         : 'platform='+self.prflow_params['PLATFORM']})
 
 
   def update_makefile_overlay(self, directory, bft_n):
@@ -289,7 +293,11 @@ class overlay(gen_basic):
                             'cd ./overlay_mono',
                             'make overlay_mono_syn',
                             'cd ..',
-                            'rm -rf ./package' # not used
+                            'rm -rf ./package', # not used
+                            'touch ../../../__overlay_mono_is_ready__',
+                            'echo ""',
+                            'echo "INFO-PRflow: Overlay for monolithic flow is generated!"',
+                            'echo ""'
                             ]), True) 
 
       self.shell.write_lines(self.overlay_mono_dir+'/main_overlay_mono.sh', self.return_main_sh_list_local(['./run.sh']), True)
