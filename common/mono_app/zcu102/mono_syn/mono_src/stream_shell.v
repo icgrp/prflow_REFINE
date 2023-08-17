@@ -26,12 +26,15 @@ module stream_shell #(
     input state_rd,
     output reg [31:0] full_cnt_wr,
     output reg [31:0] empty_cnt_rd,
-    output reg [31:0] read_cnt_rd
+    output reg [31:0] read_cnt_rd,
+
+    output full,
+    output empty
     );
 
-    wire empty;
+    // wire empty;
     reg rd_en;
-    wire full;
+    // wire full;
     wire wr_en;
 
     wire [PAYLOAD_BITS-1:0] fifo_out;

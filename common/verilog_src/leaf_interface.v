@@ -6,7 +6,7 @@
 // port values == 0,1 reserved for initialization packets
 // in thise case, port values == 2,3,4,5,6,7,8 are BRAM_IN
 // port values == 9,10,11,12,13,14,15 are BRAM_OUT
-
+// STALL_CNT is set to 1 for only one leaf interface per user operator
 module leaf_interface #(
     
     parameter PACKET_BITS = 49,
@@ -18,6 +18,7 @@ module leaf_interface #(
     parameter NUM_OUT_PORTS = 1,
     parameter NUM_BRAM_ADDR_BITS = 7,
     parameter FREESPACE_UPDATE_SIZE = 64,
+    parameter STALL_CNT = 0,
     localparam OUT_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS+NUM_ADDR_BITS+NUM_BRAM_ADDR_BITS+3,
     localparam IN_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS,
     localparam REG_CONTROL_BITS = OUT_PORTS_REG_BITS*NUM_OUT_PORTS+IN_PORTS_REG_BITS*NUM_IN_PORTS
@@ -53,7 +54,15 @@ module leaf_interface #(
     output ap_start_user,
     // ap_start for leaf_interface
     input ap_start,
-    output reset_ap_start_user
+    output reset_ap_start_user,
+
+    // When operator uses multiple leaf interfaces, 
+    // stall conditions need to be sent to one leaf interface which
+    // counts the num of stalls
+    input input_port_cluster_stall_condition_others, 
+    input output_port_cluster_stall_condition_others,
+    output input_port_cluster_stall_condition_self,
+    output output_port_cluster_stall_condition_self
     );
    
     wire [PACKET_BITS-1:0] stream_ExCtrl2sfc;
@@ -329,7 +338,8 @@ module leaf_interface #(
         .NUM_IN_PORTS(NUM_IN_PORTS),
         .NUM_OUT_PORTS(NUM_OUT_PORTS),
         .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),
-        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE)
+        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),
+        .STALL_CNT(STALL_CNT)
     )sfc(
         .resend(resend_ExCtrl2sfc),
         .clk(clk),
@@ -348,7 +358,12 @@ module leaf_interface #(
 
         .is_done(is_done_0), // clk(_bft) domain
         .is_done_user(is_done_user), // clk_user domain
-        .self_leaf_reg(self_leaf_reg_user) // clk_user domain, as self_leaf_reg_0 is static, no problem in CDC
+        .self_leaf_reg(self_leaf_reg_user), // clk_user domain, as self_leaf_reg_0 is static, no problem in CDC
+
+        .input_port_cluster_stall_condition_others(input_port_cluster_stall_condition_others),
+        .output_port_cluster_stall_condition_others(output_port_cluster_stall_condition_others),
+        .input_port_cluster_stall_condition_self(input_port_cluster_stall_condition_self),
+        .output_port_cluster_stall_condition_self(output_port_cluster_stall_condition_self)
     );
         
     // instr_config riscv_config(

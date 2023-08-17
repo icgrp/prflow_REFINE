@@ -10,7 +10,8 @@ module send_IO_queue_cnt #(
     parameter NUM_PORT_BITS = 4,
     parameter PAYLOAD_BITS = 32, 
     parameter NUM_IN_PORTS = 7, 
-    parameter NUM_OUT_PORTS = 7
+    parameter NUM_OUT_PORTS = 7,
+    parameter STALL_CNT = 0
 )(
     input clk_user,
     input reset_user,
@@ -54,7 +55,7 @@ module send_IO_queue_cnt #(
             is_sending_full_cnt_reg <= 0;
             num_in_ports_remain <= NUM_IN_PORTS*3; // 3 is for full,empty,read cnt
             num_out_ports_remain <= NUM_OUT_PORTS*2; // 2 is for full,empty // write cnt is redundant with input's read
-            num_others_remain <= 1; // only stall counter for now
+            num_others_remain <= STALL_CNT; // only stall counter for now...
             cnt_val <= 0;
             input_port_cnt_tmp <= 0;
             output_port_cnt_tmp <= 0;

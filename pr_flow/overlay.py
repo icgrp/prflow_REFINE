@@ -76,9 +76,10 @@ class overlay(gen_basic):
     lines_list.append('./build.sh')
 
     # generate the 2nd-level DFX regions 
-    if self.prflow_params['overlay_type'] == 'hipr': # generate abstract shell dcps for hipr overlay 
+    if self.prflow_params['gen_overlay'] == 'hipr': # generate abstract shell dcps for hipr overlay 
       lines_list.append('cd '+self.prflow_params['board']+'_dfx_hipr')
     else: # generate abstract shell dcps for psnoc overlay
+      assert(self.prflow_params['gen_overlay'] == 'psnoc')
       lines_list.append('cd '+self.prflow_params['board']+'_dfx_manual')
     lines_list.append('source '+self.prflow_params['Xilinx_dir'])
     lines_list.append('make -j8') # to be safe

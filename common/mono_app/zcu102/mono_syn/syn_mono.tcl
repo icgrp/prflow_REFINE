@@ -3,6 +3,7 @@ set top_name mono
 add_files ./mono_src/mono.v
 add_files ./mono_src/stream_shell.v
 add_files ./mono_src/rise_detect.v
+add_files ./mono_src/stall_cnt.v
 
 set dir "./app_src/"
 set contents [glob -nocomplain -directory $dir *]

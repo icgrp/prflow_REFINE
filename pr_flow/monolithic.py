@@ -192,6 +192,15 @@ class monolithic(gen_basic):
       out_list.append('  wire [31:0] full_cnt_wr_' + str(idx) + ', empty_cnt_rd_' + str(idx) + ', read_cnt_rd_' + str(idx) + ';')
     out_list.append('')
 
+    out_list.append('  wire full_dummy, empty_dummy;')
+    for idx, connect_tup in enumerate(connection_list):
+      out_list.append('  wire full_' + str(idx) + ', empty_' + str(idx) + ';')
+    out_list.append('')
+
+    for op in operator_arg_dict.keys():
+      out_list.append('  wire [31:0] stall_cnt_' + op + ';')
+    out_list.append('')
+
     out_list.append('  ///////////////')
     out_list.append('  // reset CDC //')
     out_list.append('  ///////////////')
@@ -424,7 +433,10 @@ class monolithic(gen_basic):
     out_list.append('   .state_rd(state_300),')
     out_list.append('   .full_cnt_wr(full_cnt_wr_dummy),')
     out_list.append('   .empty_cnt_rd(empty_cnt_rd_dummy),')
-    out_list.append('   .read_cnt_rd(read_cnt_rd_dummy));')
+    out_list.append('   .read_cnt_rd(read_cnt_rd_dummy),')
+    out_list.append('   .full(full_dummy),')
+    out_list.append('   .empty(empty_dummy));')
+
     out_list.append('')
     out_list.append('')
     out_list.append('  always@(posedge clk_300)begin')
@@ -492,7 +504,23 @@ class monolithic(gen_basic):
       out_list.append('        end')
       out_list.append('')
       cycle_cnt = cycle_cnt + 1
+
+    out_list.append('        // stall counters')
+    for op in operator_arg_dict.keys():
+      out_list.append('        else if (is_done_wait_cnt == WAIT_CNT + ' + str(cycle_cnt) + ') begin')
+      out_list.append('          if (cnt_data_ready) begin')
+      out_list.append('            Output_1_TDATA_reg <= {32\'b0,stall_cnt_' + op + '};')
+      out_list.append('            Output_1_TVALID_reg <= 1;')
+      out_list.append('            is_done_wait_cnt <= is_done_wait_cnt + 1;')
+      out_list.append('          end')
+      out_list.append('          else begin')
+      out_list.append('            Output_1_TDATA_reg <= 0;')
+      out_list.append('            Output_1_TVALID_reg <= 0;')
+      out_list.append('          end')
+      out_list.append('        end')
       out_list.append('')
+      cycle_cnt = cycle_cnt + 1
+
 
     out_list.append('        else begin')
     out_list.append('          Output_1_TDATA_reg <= 0;')
@@ -558,6 +586,8 @@ class monolithic(gen_basic):
     out_list.append('')
     out_list.append('')
 
+    stream_shell_idx_dict = {}
+    # stream_shell_idx_dict, e.g. {'coloringFB_bot_m_Output_1': 7, ...}
     for idx, connect_tup in enumerate(connection_list):
       link_str = connect_tup[0]
       # print(link_str)
@@ -572,6 +602,9 @@ class monolithic(gen_basic):
         rd_freq = '300'
       else:
         rd_freq = specs_dict[op_receiver]['kernel_clk']
+
+      stream_shell_idx_dict[link_str.split('->')[0].replace('.','_')] = idx
+      stream_shell_idx_dict[link_str.split('->')[1].replace('.','_')] = idx
 
       width = connect_tup[1]
       out_list.append('  stream_shell #(')
@@ -596,11 +629,46 @@ class monolithic(gen_basic):
       out_list.append('    .state_rd(state_' + str(rd_freq) + '),')
       out_list.append('    .full_cnt_wr(full_cnt_wr_' + str(idx) + '),')
       out_list.append('    .empty_cnt_rd(empty_cnt_rd_' + str(idx) + '),')
-      out_list.append('    .read_cnt_rd(read_cnt_rd_' + str(idx) + '));')
+      out_list.append('    .read_cnt_rd(read_cnt_rd_' + str(idx) + '),')
+      out_list.append('    .full(full_' + str(idx) + '),')
+      out_list.append('    .empty(empty_' + str(idx) + '));')
       out_list.append('')
+
+    print(stream_shell_idx_dict)
 
     for op in operator_arg_dict:
       op_freq = specs_dict[op]['kernel_clk']
+
+      # stall condition
+      str_input_stall_condition = ''
+      str_output_stall_condition = ''
+      for port in operator_arg_dict[op]:
+        io_str = op + '_' + port # e.g. zculling_bot_Input_1
+        if port.startswith('Input_'):
+          out_list.append('  wire ' + io_str + '_stall_condition = (!state_' + str(op_freq) + ') && ' + \
+                                      io_str + '_TREADY && empty_' + str(stream_shell_idx_dict[io_str]) + ';')
+          str_input_stall_condition += io_str + '_stall_condition || '
+        else:
+          assert(port.startswith('Output_'))
+          out_list.append('  wire ' + io_str + '_stall_condition = (!state_' + str(op_freq) + ') && ' + \
+                                      io_str + '_TVALID && full_' + str(stream_shell_idx_dict[io_str]) + ';')
+          str_output_stall_condition += io_str + '_stall_condition || '
+      out_list.append('')
+
+      # stall cnt
+      str_input_stall_condition = str_input_stall_condition.strip()[:-2].strip() # remove '||' in the end
+      str_output_stall_condition = str_output_stall_condition.strip()[:-2].strip() # remove '||' in the end
+      out_list.append('  stall_cnt stall_cnt_' + op + '_inst(')
+      out_list.append('    .clk(clk_' + str(op_freq) + '),')
+      out_list.append('    .reset(reset_ap_start_' + str(op_freq) + '),')
+      out_list.append('    .state(state_' + str(op_freq) + '),')
+      out_list.append('    .input_stall_condition(' +  str_input_stall_condition + '),')
+      out_list.append('    .output_stall_condition(' + str_output_stall_condition + '),')
+      out_list.append('    .stall_cnt(stall_cnt_' + op + ')')
+      out_list.append('  );')
+      out_list.append('')
+
+      # operator instantiation
       out_list.append('  '+op+' '+op+'_inst(')
       out_list.append('    .ap_clk(clk_' + str(op_freq) + '),')
       out_list.append('    .ap_start(1\'b1),')
@@ -707,7 +775,8 @@ class monolithic(gen_basic):
     filedata = ''
     for line in lines:
       if line.startswith('#define NUM_TOTAL_CNT'):
-        line = '#define NUM_TOTAL_CNT CONFIG_SIZE + ' + str(3 * len(connection_list)) + '\n' # 3 is for full_cnt, empty_cnt, read_cnt
+        # 3 is for full_cnt, empty_cnt, read_cnt, + stall cnt for each operator
+        line = '#define NUM_TOTAL_CNT CONFIG_SIZE + ' + str(3 * len(connection_list) + len(operator_arg_dict.keys())) + '\n' 
       filedata += line
 
       if line.startswith('#define OUTPUT_SIZE'):

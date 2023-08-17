@@ -20,10 +20,8 @@ class xclbin(gen_basic):
 
     self.shell.replace_lines(self.bit_dir+'/run_'+operator+'.sh', tmp_dict)
 
-    if self.prflow_params['overlay_type'] == 'hipr':
-      tmp_dict = {'./ydma/' : '../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'}
-    else:
-      tmp_dict = {'./ydma/'+self.prflow_params['board'] : '../F001_overlay/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'}
+
+    tmp_dict = {'./ydma/'+self.prflow_params['board'] : '../F001_overlay/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'}
 
     self.shell.my_sed(self.bit_dir+'/run_'+operator+'.sh', tmp_dict)
 

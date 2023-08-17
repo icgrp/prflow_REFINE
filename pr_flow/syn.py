@@ -262,25 +262,11 @@ class syn(gen_basic):
     for name in file_list: self.shell.cp_file(self.overlay_dir+'/src/'+name, self.syn_dir+'/'+operator+'/src/'+name)
 
     # prepare the tcl files for out-of-context compilation
-    if self.prflow_params['overlay_type'] == 'psnoc':
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
+
+    self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
                                                                                                           ['./leaf.v'], 
                                                                                                           rpt_name='utilization.rpt', 
                                                                                                           frequency=frequency))
-      # self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
-      #                                                                                                     ['./user_kernel.v'], 
-      #                                                                                                     top_name='user_kernel',
-      #                                                                                                     dcp_name='user_kernel.dcp',
-      #                                                                                                     rpt_name='utilization.rpt', 
-      #                                                                                                     frequency=frequency))
-
-    elif self.prflow_params['overlay_type'] == 'hipr':
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
-                                                                                                          [], 
-                                                                                                          top_name=operator+'_top', 
-                                                                                                          rpt_name='utilization.rpt'))
-    else:
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, ['./leaf.v']))
 
     # prepare the leaf verilog files.
     # Id depends on the IO numbers and operator name
@@ -313,59 +299,33 @@ class syn(gen_basic):
       json.dump(leaf_interface_mapping_dict, outfile, sort_keys=True, indent=4)
 
     # prepare the leaf Verilog file for the DFX page
-    if self.prflow_params['overlay_type'] == 'psnoc':
-      if num_leaf_interface == 1:
-        self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
-                             self.verilog.return_single_page_v_list(page_num,
-                                                             operator,
-                                                             input_num,
-                                                             output_num,
-                                                             operator_arg_dict[operator],
-                                                             operator_width_dict[operator],
-                                                             frequency,
-                                                             for_syn=True,
-                                                             is_riscv=False),
-                             False)
-      else:
-        self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
-                             self.verilog.return_non_single_page_v_list(page_num,
-                                                             operator,
-                                                             input_num,
-                                                             output_num,
-                                                             operator_arg_dict[operator],
-                                                             operator_width_dict[operator],
-                                                             frequency,
-                                                             num_leaf_interface,
-                                                             leaf_interface_mapping_dict,
-                                                             for_syn=True,
-                                                             is_riscv=False),
-                             False)        
-      # self.shell.write_lines(self.syn_dir+'/'+operator+'/user_kernel.v',
-      #                      self.verilog.return_user_kernel_v_list(page_num,
-      #                                                      operator,
-      #                                                      input_num,
-      #                                                      output_num,
-      #                                                      operator_arg_dict[operator],
-      #                                                      operator_width_dict[operator],
-      #                                                      frequency,
-      #                                                      for_syn=True),
-      #                      False)
-
-    elif self.prflow_params['overlay_type'] == 'hipr':
-      addr_width_dict = {}
-      for i in range(1, 8):  addr_width_dict['Output_'+str(i)] = self.prflow_params['bram_addr_bits']
-      print(addr_width_dict)
-      for arg in  operator_arg_dict[operator]:
-        port_depth_exist, depth = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', arg+'_depth')
-        if port_depth_exist: addr_width_dict[arg] = depth
-      self.shell.write_lines(self.syn_dir+'/'+operator+'/src/'+operator+'_top.v',
-                           self.verilog.return_hipr_page_v_list(operator,
-                                                                operator_arg_dict[operator],
-                                                                operator_width_dict[operator],
-                                                                addr_width_dict),
+    if num_leaf_interface == 1:
+      self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
+                           self.verilog.return_single_page_v_list(page_num,
+                                                           operator,
+                                                           input_num,
+                                                           output_num,
+                                                           operator_arg_dict[operator],
+                                                           operator_width_dict[operator],
+                                                           frequency,
+                                                           for_syn=True,
+                                                           is_riscv=False),
                            False)
     else:
-      print("please specify the correct overlay_type")
+      self.shell.write_lines(self.syn_dir+'/'+operator+'/leaf.v',
+                           self.verilog.return_non_single_page_v_list(page_num,
+                                                           operator,
+                                                           input_num,
+                                                           output_num,
+                                                           operator_arg_dict[operator],
+                                                           operator_width_dict[operator],
+                                                           frequency,
+                                                           num_leaf_interface,
+                                                           leaf_interface_mapping_dict,
+                                                           for_syn=True,
+                                                           is_riscv=False),
+                           False)
+
 
     # Prepare the shell script to run vivado
     self.shell.write_lines(self.syn_dir+'/'+operator+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 

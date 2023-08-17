@@ -189,18 +189,18 @@ module Output_Port#(
       .wr_en            (wr_en),
       .din              (din),
       .full             (full),
-      .overflow         (overflow), // not used
-      .wr_rst_busy      (wr_rst_busy), // not used
+      .overflow         (), // not used
+      .wr_rst_busy      (), // not used
       .rd_clk           (clk),
       .rd_en            (rd_en),
       .dout             (dout),
       .empty            (empty),
-      .underflow        (underflow), // not used
-      .rd_rst_busy      (rd_rst_busy), // not used
-      .prog_full        (prog_full), // not used
-      .wr_data_count    (wr_data_count), // not used
-      .prog_empty       (prog_empty), // not used
-      .rd_data_count    (rd_data_count), // not used
+      .underflow        (), // not used
+      .rd_rst_busy      (), // not used
+      .prog_full        (), // not used
+      .wr_data_count    (), // not used
+      .prog_empty       (), // not used
+      .rd_data_count    (), // not used
       .sleep            (1'b0),
       .injectsbiterr    (1'b0),
       .injectdbiterr    (1'b0),

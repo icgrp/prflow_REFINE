@@ -128,103 +128,56 @@ class impl(gen_basic):
       else:
         raise Exception("Invalid num_leaf_interface")
 
-    # if(self.get_page_size(pblock_name) == 1):
-    #   tmp_dict['set leaf_dcp']     = ''
-    # elif(self.get_page_size(pblock_name) == 2):
-    #   if(num_op == 1):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_1.dcp"'
-    #   elif(num_op == 2):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_double_2.dcp"'
-    #   else:
-    #     raise Exception("Invalid num_op")
-    # elif(self.get_page_size(pblock_name) == 4):
-    #   if(num_op == 1):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_1.dcp"'
-    #   elif(num_op == 2):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_2.dcp"'
-    #   elif(num_op == 3):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_3.dcp"'
-    #   elif(num_op == 4):
-    #     tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-    #                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_quad_4.dcp"'
-    #   else:
-    #     raise Exception("Invalid num_op")
-    #elif(self.get_page_size(pblock_name) == 8):
-    #  tmp_dict['set leaf_dcp']     = 'set leaf_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']+\
-    #                                    '/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/leaf_oct.dcp"'
 
-    if self.prflow_params['overlay_type'] == 'hipr':
-      tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/mono_inst/'+\
-                                    operator_impl+'_inst } [get_files $page_dcp]'
-      tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/mono_inst/'+operator_impl+'_inst"'
-      tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay_'+self.prflow_params['benchmark_name']+'/ydma/'+\
-                                    self.prflow_params['board']+'/'+self.prflow_params['board']+'_dfx_hipr/checkpoint/'+operator_impl+'.dcp"'
-    else:
-      if(self.get_page_size(pblock_name) == 1): 
+    if(self.get_page_size(pblock_name) == 1): 
+      tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
+      tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+                                    page_inst + '} [get_files $user_logic_dcp_0]'
+    elif(self.get_page_size(pblock_name) == 2):
+      if(num_leaf_interface == 1):
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst + '} [get_files $leaf_dcp]\n'
+        tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                    + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+      elif(num_leaf_interface == 2):
         tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
         tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
                                       page_inst + '} [get_files $user_logic_dcp_0]'
-      elif(self.get_page_size(pblock_name) == 2):
-        if(num_leaf_interface == 1):
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst + '} [get_files $leaf_dcp]\n'
-          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
-        elif(num_leaf_interface == 2):
-          tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
-                                        page_inst + '} [get_files $user_logic_dcp_0]'
-        else:
-          raise Exception("Invalid num_leaf_interface")  
-      elif(self.get_page_size(pblock_name) == 4):
-        if(num_leaf_interface == 1):
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst + '} [get_files $leaf_dcp]\n'
-          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
-        elif(num_leaf_interface == 2):
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst + '} [get_files $leaf_dcp]\n'
-          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst+ '/leaf_double_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
-        elif(num_leaf_interface == 3):
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst + '} [get_files $leaf_dcp]\n'
-          tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-                                      + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-                                        page_inst+ '/leaf_tri_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
-        elif(num_leaf_interface == 4):
-          tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
-          tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
-                                        page_inst + '} [get_files $user_logic_dcp_0]'
-        else:
-          raise Exception("Invalid num_leaf_interface")  
       else:
-        raise Exception("Invalid pblock size")  
+        raise Exception("Invalid num_leaf_interface")  
+    elif(self.get_page_size(pblock_name) == 4):
+      if(num_leaf_interface == 1):
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst + '} [get_files $leaf_dcp]\n'
+        tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                    + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst+ '/leaf_single_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+      elif(num_leaf_interface == 2):
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst + '} [get_files $leaf_dcp]\n'
+        tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                    + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst+ '/leaf_double_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+      elif(num_leaf_interface == 3):
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst + '} [get_files $leaf_dcp]\n'
+        tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
+                                    + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
+                                      page_inst+ '/leaf_tri_inst_0} [get_files $user_logic_dcp_'+str(i)+']'
+      elif(num_leaf_interface == 4):
+        tmp_dict['add_files $leaf_dcp'] = '' # don't need leaf_dcp
+        tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
+                                      page_inst + '} [get_files $user_logic_dcp_0]'
+      else:
+        raise Exception("Invalid num_leaf_interface")  
+    else:
+      raise Exception("Invalid pblock size")  
 
-      # if(self.get_page_size(pblock_name) == 1): # don't need leaf_dcp
-      #   tmp_dict['add_files $leaf_dcp'] = ''
-      #   tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/' +\
-      #                                 page_inst + '} [get_files $user_logic_dcp_0]'
-      # else:
-      #   tmp_dict['CELL_ANCHOR']     = 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']+'/'+\
-      #                                 page_inst + '} [get_files $leaf_dcp]\n'
-      #   for i in range(num_op):
-      #     tmp_dict['CELL_ANCHOR']     = tmp_dict['CELL_ANCHOR']\
-      #                                 + 'set_property SCOPED_TO_CELLS { '+self.prflow_params['inst_name']\
-      #                                 +'/'+page_inst+ '/leaf_single_inst_'+str(i)+'} [get_files $user_logic_dcp_'+str(i)+']\n'
- 
-      tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/' + page_inst + '"'
-      tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
-                                  +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/' + pblock_name + '.dcp"'
+
+    tmp_dict['set inst_name']   = 'set inst_name "'+self.prflow_params['inst_name']+'/' + page_inst + '"'
+    tmp_dict['set context_dcp'] = 'set context_dcp "../../F001_overlay/ydma/'+self.prflow_params['board']\
+                                +'/'+overlay_freq+'MHz/'+self.prflow_params['board']+'_dfx_manual/'+overlay_n+'/' + pblock_name + '.dcp"'
 
 
     # self.shell.cp_dir('./common/script_src/monitor_impl.sh', self.pr_dir+'/monitor.sh') # syn and impl are type 2

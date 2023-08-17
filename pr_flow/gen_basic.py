@@ -794,6 +794,10 @@ class _verilog:
 
     for j in range(num_leaf_interface):
       lines_list.append('    wire reset_ap_start_user_' + str(j) + ';')
+      lines_list.append('    wire input_port_cluster_stall_condition_others_' + str(j) + ';')
+      lines_list.append('    wire output_port_cluster_stall_condition_others_' + str(j) + ';')
+      lines_list.append('    wire input_port_cluster_stall_condition_self_' + str(j) + ';')
+      lines_list.append('    wire output_port_cluster_stall_condition_self_' + str(j) + ';')
 
     for j in range(num_leaf_interface):
       mapped_IO_ports = leaf_interface_mapping_dict[j]
@@ -801,7 +805,7 @@ class _verilog:
       num_mapped_I_ports = max(1,len([port for port in mapped_IO_ports if port.startswith('Input_')]))
       num_mapped_O_ports = max(1,len([port for port in mapped_IO_ports if port.startswith('Output_')]))
 
-      lines_list.append('    ')
+      lines_list.append('')
       lines_list.append('    wire [48:0] dout_leaf_interface2bft_tmp_' + str(j) + ';')
       lines_list.append('    assign dout_leaf_interface2bft_' + str(j) + ' = resend_' + str(j) + ' ? 0 : dout_leaf_interface2bft_tmp_' + str(j) + ';')
       lines_list.append('    ')
@@ -814,7 +818,11 @@ class _verilog:
       lines_list.append('        .NUM_IN_PORTS('+str(num_mapped_I_ports)+'),')
       lines_list.append('        .NUM_OUT_PORTS('+str(num_mapped_O_ports)+'),')
       lines_list.append('        .NUM_BRAM_ADDR_BITS('+str(NUM_BRAM_ADDR_BITS)+'),')
-      lines_list.append('        .FREESPACE_UPDATE_SIZE('+str(FREESPACE_UPDATE_SIZE)+')')
+      lines_list.append('        .FREESPACE_UPDATE_SIZE('+str(FREESPACE_UPDATE_SIZE)+'),')
+      if j == 0:
+        lines_list.append('        .STALL_CNT(1)')
+      else:
+        lines_list.append('        .STALL_CNT(0) // no stall counter')
       lines_list.append('    )leaf_interface_' + str(j) + '_inst(')
       lines_list.append('        .clk(clk_400_0), // use first port') # clk_bft is fixed to max freq, which is 400MHz
       lines_list.append('        .clk_user(clk_user), // common')
@@ -825,14 +833,45 @@ class _verilog:
       lines_list.append('        .resend(resend_' + str(j) + '),')
       lines_list.append('        .dout_leaf_interface2user('+dout_str_dict[j]+'),')
       lines_list.append('        .vld_interface2user('+val_out_str_dict[j]+'),')
-      lines_list.append('        .ack_user2interface('+ack_out_str_dict[j]+'),')
+      if ack_out_str_dict[j] == '':
+        lines_list.append('        .ack_user2interface(0), // prevents stall cnt condition from being x')
+      else:
+        lines_list.append('        .ack_user2interface('+ack_out_str_dict[j]+'),')
+
       lines_list.append('        .ack_interface2user('+ack_in_str_dict[j]+'),')
-      lines_list.append('        .vld_user2interface('+val_in_str_dict[j]+'),')
+      if val_in_str_dict[j] == '':
+        lines_list.append('        .vld_user2interface(0), // prevents stall cnt condition from being x')
+      else:
+        lines_list.append('        .vld_user2interface('+val_in_str_dict[j]+'),')
       lines_list.append('        .din_leaf_user2interface('+din_str_dict[j]+'),')
       lines_list.append('        .ap_start(ap_start_' + str(j) + '),')
-      lines_list.append('        .reset_ap_start_user(reset_ap_start_user_' + str(j) + ')')
+      lines_list.append('        .reset_ap_start_user(reset_ap_start_user_' + str(j) + '),')
+      if j == 0:
+        lines_list.append('        .input_port_cluster_stall_condition_others(input_port_cluster_stall_condition_others_0),')
+        lines_list.append('        .output_port_cluster_stall_condition_others(output_port_cluster_stall_condition_others_0),')
+        lines_list.append('        .input_port_cluster_stall_condition_self(),')
+        lines_list.append('        .output_port_cluster_stall_condition_self()')
+      else:
+        lines_list.append('        .input_port_cluster_stall_condition_others(),')
+        lines_list.append('        .output_port_cluster_stall_condition_others(),')
+        lines_list.append('        .input_port_cluster_stall_condition_self(input_port_cluster_stall_condition_self_' + str(j) + '),')
+        lines_list.append('        .output_port_cluster_stall_condition_self(output_port_cluster_stall_condition_self_' + str(j) + ')')
+
       lines_list.append('    );')
-      lines_list.append('    ')
+      lines_list.append('')
+
+    str_input_stall_condition = '    assign input_port_cluster_stall_condition_others_0 = '
+    str_output_stall_condition = '    assign output_port_cluster_stall_condition_others_0 = '
+    for j in range(num_leaf_interface):
+      if j!=0 and j != num_leaf_interface-1:
+        str_input_stall_condition += 'input_port_cluster_stall_condition_self_' + str(j) + ' || '
+        str_output_stall_condition += 'output_port_cluster_stall_condition_self_' + str(j) + ' || '
+      elif j:
+        str_input_stall_condition += 'input_port_cluster_stall_condition_self_' + str(j) + ';'
+        str_output_stall_condition += 'output_port_cluster_stall_condition_self_' + str(j) + ';'
+    lines_list.append(str_input_stall_condition)
+    lines_list.append(str_output_stall_condition)
+    lines_list.append('')
 
     # interface -> user
     for i in range(self.my_max(1, int(input_num)),0,-1): 
@@ -938,7 +977,7 @@ class _verilog:
     lines_list.append('        .ap_rst_n(~reset_ap_start_user_0)')
     lines_list.append('        );  ')
   
-    lines_list.append('    ')
+    lines_list.append('')
     lines_list.append('endmodule')
 
     return lines_list
@@ -1078,7 +1117,8 @@ class _verilog:
     lines_list.append('        .NUM_IN_PORTS('+str(self.my_max(1, input_num))+'),')
     lines_list.append('        .NUM_OUT_PORTS('+str(output_num)+'),')
     lines_list.append('        .NUM_BRAM_ADDR_BITS('+str(NUM_BRAM_ADDR_BITS)+'),')
-    lines_list.append('        .FREESPACE_UPDATE_SIZE('+str(FREESPACE_UPDATE_SIZE)+')')
+    lines_list.append('        .FREESPACE_UPDATE_SIZE('+str(FREESPACE_UPDATE_SIZE)+'),')
+    lines_list.append('        .STALL_CNT(1)')
     lines_list.append('    )leaf_interface_inst(')
     lines_list.append('        .clk(clk_400),') # clk_bft is fixed to max freq, which is 400MHz
     lines_list.append('        .clk_user(clk_user),')
@@ -1099,7 +1139,12 @@ class _verilog:
     lines_list.append('        .vld_user2interface('+val_in_str+'),')
     lines_list.append('        .din_leaf_user2interface('+din_str+'),')
     lines_list.append('        .ap_start(ap_start),')
-    lines_list.append('        .reset_ap_start_user(reset_ap_start_user)')
+    lines_list.append('        .reset_ap_start_user(reset_ap_start_user),')
+    lines_list.append('        .input_port_cluster_stall_condition_others(0),')
+    lines_list.append('        .output_port_cluster_stall_condition_others(0),')
+    lines_list.append('        .input_port_cluster_stall_condition_self(),')
+    lines_list.append('        .output_port_cluster_stall_condition_self()')
+
     lines_list.append('    );')
     lines_list.append('    ')
 

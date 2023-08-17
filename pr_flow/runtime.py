@@ -420,7 +420,7 @@ class runtime(gen_basic):
     # for op in operator_var_dict:
     #   num_total_ports += len(operator_var_dict[op])
     # num_total_counter = int(2.5*num_total_ports + num_is_done_config)
-    num_total_counter += num_is_done_config
+    # num_total_counter += num_is_done_config
 
     # -5 for five constants
     tmp_dict = {'in1[0].range(31': '    in1[0].range(31,  0) = 0x'+str(hex(packet_num - 5 - num_is_done_config)).replace('L', '').replace('0x','').zfill(8)+';',
@@ -488,8 +488,8 @@ class runtime(gen_basic):
 
     # read, empty, full cnt for input port
     # empty, full cnt for output port
-    # stall cnt not included in num_total_counter yet
-    num_total_counter = 3*num_i_ports_include_dummy + 2*num_o_ports_include_dummy
+    # len(pblock_assign_dict) == num of stall counters == num of operators
+    num_total_counter = 3*num_i_ports_include_dummy + 2*num_o_ports_include_dummy + len(pblock_assign_dict)
 
 
     # page_assign_dict['DMA'] = '1'
