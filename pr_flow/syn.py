@@ -255,7 +255,7 @@ class syn(gen_basic):
                   'ExtractCtrl.v',     'Input_Port_Cluster.v',  'Input_Port.v',          'leaf_interface.v',   'Output_Port_Cluster.v',
                   'Output_Port.v',     'read_b_in.v',           'ram0.v',                'single_ram.v',       'SynFIFO.v',
                   'xram_triple.v',     'Stream_Flow_Control.v', 'write_b_in.v',          'write_b_out.v',
-                  'stream_shell.v',    'expand_queue.v',        'shrink_queue.v',        'send_IO_queue_cnt.v']
+                  'expand_queue.v',        'shrink_queue.v',        'send_IO_queue_cnt.v']
     # file_list = ['expand_queue.v',        'shrink_queue.v']
 
     # copy the necessary leaf interface verilog files for out-of-context compilation
@@ -278,6 +278,8 @@ class syn(gen_basic):
     # in_width_list, out_width_list = self.dataflow.return_io_width(operator_width_dict[operator], operator_arg_dict[operator])
     input_num  = len([io_port for io_port in operator_arg_dict[operator] if io_port.startswith('Input_')]) 
     output_num = len([io_port for io_port in operator_arg_dict[operator] if io_port.startswith('Output_')]) 
+    # print(operator_arg_dict)
+    # print(operator_width_dict)
 
     operator_input_width_dict = {}
     operator_output_width_dict = {}

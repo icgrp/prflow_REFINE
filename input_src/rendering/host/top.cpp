@@ -1,0 +1,15 @@
+data_transfer(Input_1, data_transfer_out);
+prj_rast1(data_transfer_out, prj_rast1_out_1, prj_rast1_out_2, prj_rast1_out_3, prj_rast1_out_4);
+rast2_1(prj_rast1_out_1, rast2_1_out_1, rast2_1_out_2, rast2_1_out_3, rast2_1_out_4);
+rast2_2(prj_rast1_out_2, rast2_2_out_1, rast2_2_out_2, rast2_2_out_3, rast2_2_out_4);
+rast2_3(prj_rast1_out_3, rast2_3_out_1, rast2_3_out_2, rast2_3_out_3, rast2_3_out_4);
+rast2_4(prj_rast1_out_4, rast2_4_out_1, rast2_4_out_2, rast2_4_out_3, rast2_4_out_4);
+zculling_1(rast2_1_out_1, rast2_2_out_1, rast2_3_out_1, rast2_4_out_1, zculling_1_out);
+zculling_2(rast2_1_out_2, rast2_2_out_2, rast2_3_out_2, rast2_4_out_2, zculling_2_out);
+zculling_3(rast2_1_out_3, rast2_2_out_3, rast2_3_out_3, rast2_4_out_3, zculling_3_out);
+zculling_4(rast2_1_out_4, rast2_2_out_4, rast2_3_out_4, rast2_4_out_4, zculling_4_out);
+coloringFB_1(zculling_1_out, coloringFB_1_out);
+coloringFB_2(zculling_2_out, coloringFB_2_out);
+coloringFB_3(zculling_3_out, coloringFB_3_out);
+coloringFB_4(zculling_4_out, coloringFB_4_out);
+output_data(coloringFB_1_out, coloringFB_2_out, coloringFB_3_out, coloringFB_4_out, Output_1);

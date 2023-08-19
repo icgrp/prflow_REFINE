@@ -1,0 +1,15 @@
+{
+  "data_transfer": {
+  },
+  "prj_rast1": {
+    "PAR_RAST": [1,2,4]
+  },
+  "rast2": {
+    "PAR_RAST": [1,2,4]    
+  },
+  "zcull_color":{
+    "PAR_ZCULLING": []
+  },
+  "output_data": {
+  }
+}

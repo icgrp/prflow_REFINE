@@ -550,9 +550,11 @@ class page_assign(gen_basic):
   def gen_graphfile(self, operators, node_w_dict, is_first_graph, graph_name):
 
     operator_arg_dict = self.return_operator_io_argument_dict_local(operators)
+    print(operator_arg_dict)
     # operator_arg_dict, e.g. {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], 'rasterization2_m': .. }
 
     operator_var_dict = self.return_operator_inst_dict_local(operators)
+    print(operator_var_dict)
     # operator_var_dict, e.g. {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
 
     if(is_first_graph):
@@ -563,8 +565,8 @@ class page_assign(gen_basic):
 
     connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict, operators_dma)
     # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
-    # connection_list = list(connection_list)
-    # connection_list.sort() # deterministic
+    connection_list = list(connection_list)
+    connection_list.sort() # deterministic
     print(connection_list)
     connection_list_new = []
     for connection in connection_list:
