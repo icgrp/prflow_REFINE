@@ -13,7 +13,7 @@ pblock_page_dict = {
             'p20_p0': ['20','21'], 'p20_p1': ['22','23'],
 
             'p2_p0': ['2'], 'p2_p1': ['3'],
-            'p4_p0_p0': ['4'], 'p4_p0_p1': ['5'], 'p4_p1_p0': ['6'], 'p4_p1_p1': ['7'],
+            'p4_p1_p0': ['6'], 'p4_p1_p1': ['7'],
             'p8_p0_p0': ['8'], 'p8_p0_p1': ['9'], 'p8_p1_p0': ['10'], 'p8_p1_p1': ['11'],
             'p12_p0_p0': ['12'], 'p12_p0_p1': ['13'], 'p12_p1_p0': ['14'], 'p12_p1_p1': ['15'],
             'p16_p0_p0': ['16'], 'p16_p0_p1': ['17'], 'p16_p1_p0': ['18'], 'p16_p1_p1': ['19'],
@@ -29,8 +29,6 @@ pblock_xclbin_dict = {
             'p4': [], 
             'p4_p0': ['p4_subdivide.xclbin'], 
             'p4_p1': ['p4_subdivide.xclbin'],
-            'p4_p0_p0': ['p4_p0_subdivide.xclbin', 'p4_subdivide.xclbin'],
-            'p4_p0_p1': ['p4_p0_subdivide.xclbin', 'p4_subdivide.xclbin'], 
             'p4_p1_p0': ['p4_p1_subdivide.xclbin', 'p4_subdivide.xclbin'], 
             'p4_p1_p1': ['p4_p1_subdivide.xclbin', 'p4_subdivide.xclbin'],
 
@@ -76,7 +74,7 @@ pblock_xclbin_dict = {
 BRAM_MARGIN_single_dict_400MHz = {
     'p2_p0': 0.10, 
     'p2_p1': 0.10, 
-    'p4_p0_p0': 0.20, 
+    'p4_p0_p0': 0.10, 
     'p4_p0_p1': 0.10, 
     'p4_p1_p0': 0.10, 
     'p4_p1_p1': 0.10, 
@@ -90,23 +88,23 @@ BRAM_MARGIN_single_dict_400MHz = {
     'p12_p1_p1': 0.10, 
     'p16_p0_p0': 0.10, 
     'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.20, 
+    'p16_p1_p0': 0.10, 
     'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.20, 
+    'p20_p0_p0': 0.10, 
     'p20_p0_p1': 0.10, 
     'p20_p1_p0': 0.10, 
     'p20_p1_p1': 0.10}
 
 BRAM_MARGIN_double_dict_400MHz = {
     'p2': 0.10, 
-    'p4_p0': 0.20, 
+    'p4_p0': 0.10, 
     'p4_p1': 0.10, 
     'p8_p0': 0.10, 
     'p8_p1': 0.10, 
     'p12_p0': 0.10, 
     'p12_p1': 0.10, 
     'p16_p0': 0.10, 
-    'p16_p1': 0.20, 
+    'p16_p1': 0.10, 
     'p20_p0': 0.10, 
     'p20_p1': 0.10}
 
@@ -448,7 +446,7 @@ LUT_MARGIN_quad_dict_250MHz = {
 BRAM_MARGIN_single_dict_200MHz = {
     'p2_p0': 0.10, 
     'p2_p1': 0.10, 
-    'p4_p0_p0': 0.20, 
+    'p4_p0_p0': 0.10, 
     'p4_p0_p1': 0.10, 
     'p4_p1_p0': 0.10, 
     'p4_p1_p1': 0.10, 
@@ -462,11 +460,11 @@ BRAM_MARGIN_single_dict_200MHz = {
     'p12_p1_p1': 0.10, 
     'p16_p0_p0': 0.10, 
     'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.20, 
+    'p16_p1_p0': 0.10, 
     'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.20, 
+    'p20_p0_p0': 0.10, 
     'p20_p0_p1': 0.10, 
-    'p20_p1_p0': 0.20, 
+    'p20_p1_p0': 0.10, 
     'p20_p1_p1': 0.10}
 
 BRAM_MARGIN_double_dict_200MHz = {

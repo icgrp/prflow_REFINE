@@ -16,6 +16,7 @@ set place_dcp "./${pblock_name}_design_place.dcp"
 set route_dcp "./${pblock_name}_design_route.dcp"
 
 set_param general.maxThreads 8 
+set_param place.blockBramDspEscapeRatioThresholdUSPlus 0.1
 
 
 proc create_report { reportName command } {

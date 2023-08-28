@@ -386,7 +386,7 @@ class runtime(gen_basic):
                 'Xilinx_dir'          : 'source '+self.prflow_params['Xilinx_dir'],
                 'make'                : 'make app.exe\ncp ./app.exe ../../\ncp ./app.exe ../../sd_card\n cp ../../sd_card/dynamic_region.xclbin ../../',
                 'cp_cmd'              : 'cp ./app.exe ../../sd_card',
-                '${CXX} -Wall -g'     : '${CXX} -Wall -g -std=c++11 ' + host_compile_str +' -o ./app.exe \\',
+                '${CXX}'              : '${CXX} -Wall -O3 -g -std=c++11 ' + host_compile_str +' -o ./app.exe \\',
                 'XCL_EMULATION_MODE'  : '',
                 'PLATFORM_REPO_PATHS' : 'export PLATFORM_REPO_PATHS='+self.prflow_params['PLATFORM_REPO_PATHS'],
                 'ROOTFS'              : 'export ROOTFS='+self.prflow_params['ROOTFS'],

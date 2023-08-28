@@ -3,7 +3,6 @@
 ./shell/nested/run_p2_subdivide_xclbin.sh
 
 ./shell/nested/run_p4_subdivide_xclbin.sh
-./shell/nested/run_p4_p0_subdivide_xclbin.sh
 ./shell/nested/run_p4_p1_subdivide_xclbin.sh
 
 ./shell/nested/run_p8_subdivide_xclbin.sh

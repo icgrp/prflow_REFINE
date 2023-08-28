@@ -1,5 +1,4 @@
 open_checkpoint ./overlay_p23/sub_p20_p1/p20_p1_subdivide_route_design.dcp
-pr_recombine -cell pfm_top_i/dynamic_region/PR_pages_top_0/inst/page4_inst/p0
 pr_recombine -cell pfm_top_i/dynamic_region/PR_pages_top_0/inst/page4_inst/p1
 pr_recombine -cell pfm_top_i/dynamic_region/PR_pages_top_0/inst/page4_inst
 write_checkpoint -force ./overlay_p23/sub_p4/p4_subdivide_recombined.dcp

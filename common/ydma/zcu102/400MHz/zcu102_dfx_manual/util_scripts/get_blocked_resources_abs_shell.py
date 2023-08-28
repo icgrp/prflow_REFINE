@@ -38,7 +38,7 @@ pblock_page_dict = {
             'p20_p0': ['20','21'], 'p20_p1': ['22','23'],
 
             'p2_p0': ['2'], 'p2_p1': ['3'],
-            'p4_p0_p0': ['4'], 'p4_p0_p1': ['5'], 'p4_p1_p0': ['6'], 'p4_p1_p1': ['7'],
+            'p4_p1_p0': ['6'], 'p4_p1_p1': ['7'],
             'p8_p0_p0': ['8'], 'p8_p0_p1': ['9'], 'p8_p1_p0': ['10'], 'p8_p1_p1': ['11'],
             'p12_p0_p0': ['12'], 'p12_p0_p1': ['13'], 'p12_p1_p0': ['14'], 'p12_p1_p1': ['15'],
             'p16_p0_p0': ['16'], 'p16_p0_p1': ['17'], 'p16_p1_p0': ['18'], 'p16_p1_p1': ['19'],
@@ -417,6 +417,12 @@ def main():
     blocked_resource_count_dict = {}
     for pblock_name in pblock_resource_dict:
         blocked_resource_count_dict[pblock_name] = {}
+        # blocked_resource_count_dict[pblock_name]['LUT'] = 0
+        # blocked_resource_count_dict[pblock_name]['LUT_mem'] = 0
+        # blocked_resource_count_dict[pblock_name]['FF'] = 0
+        # blocked_resource_count_dict[pblock_name]['DSP48E2'] = 0
+        # blocked_resource_count_dict[pblock_name]['RAMB18'] = 0
+        # blocked_resource_count_dict[pblock_name]['RAMB36'] = 0
 
     # Count the number of blocked resources, RAMB is important!
     for pblock_name in blocked_resource_loc_dict.keys():
@@ -430,6 +436,22 @@ def main():
         num_ramb18_extra = get_num_ramb18_extra(blocked_resource_loc_dict, pblock_name)
         blocked_resource_count_dict[pblock_name]['RAMB18_extra'] = num_ramb18_extra
 
+        # print(pblock_name)
+        # for resource_type in blocked_resource_loc_dict[pblock_name]:
+        #     if(resource_type == 'SLICEL'):
+        #         blocked_resource_count_dict[pblock_name]['LUT'] = len(blocked_resource_loc_dict[pblock_name]['SLICEL']) + 
+        #                                                           len(blocked_resource_loc_dict[pblock_name]['SLICEM'])
+        #     elif(resource_type == 'SLICEM'):
+        #         blocked_resource_count_dict[pblock_name]['LUT_mem'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+        #     elif(resource_type == 'SLICE_FF'):
+        #         blocked_resource_count_dict[pblock_name]['FF'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+        #     elif(resource_type == 'DSP48E2'):
+        #         blocked_resource_count_dict[pblock_name]['DSP48E2'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+        #     elif(resource_type == 'RAMB36'):
+        #         blocked_resource_count_dict[pblock_name]['RAMB36'] = len(blocked_resource_loc_dict[pblock_name][resource_type])
+        #     elif(resource_type == 'RAMB18'): # IMPORTANT!
+        #         num_ramb18_extra = get_num_ramb18_extra(blocked_resource_loc_dict, pblock_name)
+        #         blocked_resource_count_dict[pblock_name]['RAMB18_extra'] = num_ramb18_extra
     print("- Count blocked resources")
     # print(blocked_resource_count_dict)
     # {'p8_p0': {'SLICE_LUTs': 33, 'DSP48E2': 11, 'RAMB18_extra': 0, 'RAMB36': 0}, ... }

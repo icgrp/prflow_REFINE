@@ -1,0 +1,42 @@
+{
+    "update_knn1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn3": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn4": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn5": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn6": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn7": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn8": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn9": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "update_knn10": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

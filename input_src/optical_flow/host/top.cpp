@@ -1,0 +1,11 @@
+data_transfer(Input_1, data_transfer_out);
+gradient_xyz_calc(data_transfer_out, gradient_x, gradient_y, gradient_z);
+gradient_weight_y(gradient_x, gradient_y, gradient_z, y_filtered_x, y_filtered_y, y_filtered_z);
+gradient_weight_x(y_filtered_x, y_filtered_y, y_filtered_z, filtered_gradient_x, filtered_gradient_y, filtered_gradient_z);
+outer_product(filtered_gradient_x, filtered_gradient_y, filtered_gradient_z, outer_product_out_1, outer_product_out_2);
+tensor_weight_y_1(outer_product_out_1, tensor_weight_y_out_1);
+tensor_weight_y_2(outer_product_out_2, tensor_weight_y_out_2);
+tensor_weight_x_1(tensor_weight_y_out_1, tensor_weight_x_out_1);
+tensor_weight_x_2(tensor_weight_y_out_2, tensor_weight_x_out_2);
+flow_calc(tensor_weight_x_out_1, tensor_weight_x_out_2,  flow_calc_1, flow_calc_2);
+output_data(flow_calc_1, flow_calc_2, Output_1);

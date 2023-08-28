@@ -10,27 +10,14 @@ final_route_design=./checkpoint/sub_p20_p1/p20_p1_subdivide_route_design.dcp
 leaves=leaf_double_1 leaf_quad_1 leaf_quad_2 leaf_quad_3
 leaf_dcps=$(foreach leaf, $(leaves), ./checkpoint/$(leaf).dcp)
 
-leaf_shells=leaf_i1o1 leaf_i1o2 leaf_i1o3 leaf_i1o4 leaf_i1o5 leaf_i1o6 leaf_i1o7 $\
-            leaf_i2o1 leaf_i2o2 leaf_i2o3 leaf_i2o4 leaf_i2o5 leaf_i2o6 leaf_i2o7 $\
-            leaf_i3o1 leaf_i3o2 leaf_i3o3 leaf_i3o4 leaf_i3o5 leaf_i3o6 leaf_i3o7 $\
-            leaf_i4o1 leaf_i4o2 leaf_i4o3 leaf_i4o4 leaf_i4o5 leaf_i4o6 leaf_i4o7 $\
-            leaf_i5o1 leaf_i5o2 leaf_i5o3 leaf_i5o4 leaf_i5o5 leaf_i5o6 leaf_i5o7 $\
-            leaf_i6o1 leaf_i6o2 leaf_i6o3 leaf_i6o4 leaf_i6o5 leaf_i6o6 leaf_i6o7 $\
-            leaf_i7o1 leaf_i7o2 leaf_i7o3 leaf_i7o4 leaf_i7o5 leaf_i7o6 leaf_i7o7
-leaf_shell_dcps_200=$(foreach leaf_shell, $(leaf_shells), ./checkpoint/200MHz/$(leaf_shell).dcp)
-leaf_shell_dcps_250=$(foreach leaf_shell, $(leaf_shells), ./checkpoint/250MHz/$(leaf_shell).dcp)
-leaf_shell_dcps_300=$(foreach leaf_shell, $(leaf_shells), ./checkpoint/300MHz/$(leaf_shell).dcp)
-leaf_shell_dcps_350=$(foreach leaf_shell, $(leaf_shells), ./checkpoint/350MHz/$(leaf_shell).dcp)
-leaf_shell_dcps_400=$(foreach leaf_shell, $(leaf_shells), ./checkpoint/400MHz/$(leaf_shell).dcp)
-
 lowest_pblocks=p2_p0 p2_p1 $\
-							 p4_p0_p0 p4_p0_p1 p4_p1_p0 p4_p1_p1 $\
+							 p4_p0 p4_p1_p0 p4_p1_p1 $\
 							 p8_p0_p0 p8_p0_p1 p8_p1_p0 p8_p1_p1 $\
 							 p12_p0_p0 p12_p0_p1 p12_p1_p0 p12_p1_p1 $\
 							 p16_p0_p0 p16_p0_p1 p16_p1_p0 p16_p1_p1 $\
 							 p20_p0_p0 p20_p0_p1 p20_p1_p0 p20_p1_p1
 non_lowest_pblocks=p2 $\
-									 p4 p4_p0 p4_p1 $\
+									 p4 p4_p1 $\
 									 p8 p8_p0 p8_p1 $\
 									 p12 p12_p0 p12_p1 $\
 									 p16 p16_p0 p16_p1 $\
@@ -91,31 +78,6 @@ gen_abs_shells: $(child_abs_shells)
 $(child_abs_shells):./checkpoint/%.dcp: $(final_route_design)
 	./shell/run_tcl.sh ./tcl/nested/abs_$(basename $(notdir $(@))).tcl > ./checkpoint/logs/abs_$(basename $(notdir $(@))).log
 
-
-##
-## different types of leaf shell dcp files, will be used in after synthesis phase
-##
-gen_leaf_shell_dcps: gen_leaf_shell_dcps_200 gen_leaf_shell_dcps_250 gen_leaf_shell_dcps_300 gen_leaf_shell_dcps_350 gen_leaf_shell_dcps_400
-
-gen_leaf_shell_dcps_200: $(leaf_shell_dcps_200)
-$(leaf_shell_dcps_200):./checkpoint/200MHz/%.dcp:./src4level2/leaf_shell/200MHz/%.v ./tcl/leaf_shell_syn/200MHz/syn_%.tcl
-	./shell/run_tcl.sh ./tcl/leaf_shell_syn/200MHz/syn_$(basename $(notdir $(@))).tcl
-
-gen_leaf_shell_dcps_250: $(leaf_shell_dcps_250)
-$(leaf_shell_dcps_250):./checkpoint/250MHz/%.dcp:./src4level2/leaf_shell/250MHz/%.v ./tcl/leaf_shell_syn/250MHz/syn_%.tcl
-	./shell/run_tcl.sh ./tcl/leaf_shell_syn/250MHz/syn_$(basename $(notdir $(@))).tcl
-
-gen_leaf_shell_dcps_300: $(leaf_shell_dcps_300)
-$(leaf_shell_dcps_300):./checkpoint/300MHz/%.dcp:./src4level2/leaf_shell/300MHz/%.v ./tcl/leaf_shell_syn/300MHz/syn_%.tcl
-	./shell/run_tcl.sh ./tcl/leaf_shell_syn/300MHz/syn_$(basename $(notdir $(@))).tcl
-
-gen_leaf_shell_dcps_350: $(leaf_shell_dcps_350)
-$(leaf_shell_dcps_350):./checkpoint/350MHz/%.dcp:./src4level2/leaf_shell/350MHz/%.v ./tcl/leaf_shell_syn/350MHz/syn_%.tcl
-	./shell/run_tcl.sh ./tcl/leaf_shell_syn/350MHz/syn_$(basename $(notdir $(@))).tcl
-
-gen_leaf_shell_dcps_400: $(leaf_shell_dcps_400)
-$(leaf_shell_dcps_400):./checkpoint/400MHz/%.dcp:./src4level2/leaf_shell/400MHz/%.v ./tcl/leaf_shell_syn/400MHz/syn_%.tcl
-	./shell/run_tcl.sh ./tcl/leaf_shell_syn/400MHz/syn_$(basename $(notdir $(@))).tcl
 
 
 ##
@@ -215,16 +177,16 @@ impl_p8_subdivide:./checkpoint/sub_p8/p8_subdivide_route_design.dcp
 ## p4, p4_0, p4_1
 ##
 impl_p4_p1_subdivide:./checkpoint/sub_p4_p1/p4_p1_subdivide_route_design.dcp
-./checkpoint/sub_p4_p1/p4_p1_subdivide_route_design.dcp: ./checkpoint/sub_p4_p0/p4_p0_subdivide_route_design.dcp ./checkpoint/subdivide/page_double_subdivide_p4_p1.dcp ./xdc/nested/p4_p1_subdivide.xdc
+./checkpoint/sub_p4_p1/p4_p1_subdivide_route_design.dcp: ./checkpoint/sub_p4/p4_subdivide_route_design.dcp ./checkpoint/subdivide/page_double_subdivide_p4_p1.dcp ./xdc/nested/p4_p1_subdivide.xdc
 	./shell/run_tcl.sh ./tcl/nested/subdivide_p4_p1.tcl > ./checkpoint/logs/subdivide_p4_p1.log
 	./shell/run_tcl.sh ./tcl/nested/impl_p4_p1_subdivide.tcl > ./checkpoint/logs/impl_p4_p1_subdivide.log
 	cp -r ./hd_visual ./hd_visual_dir/hd_visual_p4_p1
 
-impl_p4_p0_subdivide:./checkpoint/sub_p4_p0/p4_p0_subdivide_route_design.dcp
-./checkpoint/sub_p4_p0/p4_p0_subdivide_route_design.dcp: ./checkpoint/sub_p4/p4_subdivide_route_design.dcp ./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp ./xdc/nested/p4_p0_subdivide.xdc
-	./shell/run_tcl.sh ./tcl/nested/subdivide_p4_p0.tcl > ./checkpoint/logs/subdivide_p4_p0.log
-	./shell/run_tcl.sh ./tcl/nested/impl_p4_p0_subdivide.tcl > ./checkpoint/logs/impl_p4_p0_subdivide.log
-	cp -r ./hd_visual ./hd_visual_dir/hd_visual_p4_p0
+# impl_p4_p0_subdivide:./checkpoint/sub_p4_p0/p4_p0_subdivide_route_design.dcp
+# ./checkpoint/sub_p4_p0/p4_p0_subdivide_route_design.dcp: ./checkpoint/sub_p4/p4_subdivide_route_design.dcp ./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp ./xdc/nested/p4_p0_subdivide.xdc
+# 	./shell/run_tcl.sh ./tcl/nested/subdivide_p4_p0.tcl > ./checkpoint/logs/subdivide_p4_p0.log
+# 	./shell/run_tcl.sh ./tcl/nested/impl_p4_p0_subdivide.tcl > ./checkpoint/logs/impl_p4_p0_subdivide.log
+# 	cp -r ./hd_visual ./hd_visual_dir/hd_visual_p4_p0
 
 impl_p4_subdivide:./checkpoint/sub_p4/p4_subdivide_route_design.dcp
 ./checkpoint/sub_p4/p4_subdivide_route_design.dcp: ./checkpoint/sub_p2/p2_subdivide_route_design.dcp ./checkpoint/subdivide/page_quad_subdivide_p4.dcp ./xdc/nested/p4_subdivide.xdc
@@ -265,9 +227,9 @@ page_quad_subdivide_p4:./checkpoint/subdivide/page_quad_subdivide_p4.dcp
 ./checkpoint/subdivide/page_quad_subdivide_p4.dcp: ./src4level2/subdivide/p_q_s_p4.v ./tcl/subdivide_syn/ooc_syn_p_q_s_p4.tcl
 	./shell/run_tcl.sh ./tcl/subdivide_syn/ooc_syn_p_q_s_p4.tcl
 
-page_double_subdivide_p4_p0:./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp
-./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp: ./src4level2/subdivide/p_d_s_p4_p0.v ./tcl/subdivide_syn/ooc_syn_p_d_s_p4_p0.tcl
-	./shell/run_tcl.sh ./tcl/subdivide_syn/ooc_syn_p_d_s_p4_p0.tcl
+# page_double_subdivide_p4_p0:./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp
+# ./checkpoint/subdivide/page_double_subdivide_p4_p0.dcp: ./src4level2/subdivide/p_d_s_p4_p0.v ./tcl/subdivide_syn/ooc_syn_p_d_s_p4_p0.tcl
+# 	./shell/run_tcl.sh ./tcl/subdivide_syn/ooc_syn_p_d_s_p4_p0.tcl
 
 page_double_subdivide_p4_p1:./checkpoint/subdivide/page_double_subdivide_p4_p1.dcp
 ./checkpoint/subdivide/page_double_subdivide_p4_p1.dcp: ./src4level2/subdivide/p_d_s_p4_p1.v ./tcl/subdivide_syn/ooc_syn_p_d_s_p4_p1.tcl
@@ -394,11 +356,6 @@ checkpoint/hw_bb_locked.dcp: ../_x/link/vivado/vpl/.local/hw_platform/hw_bb_lock
 	mkdir -p checkpoint/logs
 	mkdir -p checkpoint/subdivide
 	mkdir -p checkpoint/abs_analysis	
-	mkdir -p overlay_p23/leaf_shell/200MHz
-	mkdir -p overlay_p23/leaf_shell/250MHz
-	mkdir -p overlay_p23/leaf_shell/300MHz
-	mkdir -p overlay_p23/leaf_shell/350MHz
-	mkdir -p overlay_p23/leaf_shell/400MHz
 	cp $< $@
 
 clean:

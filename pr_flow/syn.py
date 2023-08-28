@@ -235,8 +235,8 @@ class syn(gen_basic):
         filedata += "create_clock -period 3.33 -name clk_300_" + str(i) + " [get_ports clk_300_" + str(i) + "]\n"
         filedata += "create_clock -period 2.85 -name clk_350_" + str(i) + " [get_ports clk_350_" + str(i) + "]\n"
         filedata += "create_clock -period 2.5 -name clk_400_" + str(i) + " [get_ports clk_400_" + str(i) + "]\n"
-    with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
-      outfile.write(filedata)
+      with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
+        outfile.write(filedata)
 
     # # Update target clock, edit: now each kernel different kernel clk
     # clk_period = '{:.1f}'.format(1000 / int(frequency))
