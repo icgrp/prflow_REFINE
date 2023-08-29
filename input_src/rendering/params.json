@@ -7,9 +7,12 @@
   "rast2": {
     "PAR_RAST": [1,2,4]    
   },
-  "zcull_color":{
-    "PAR_ZCULLING": []
+  "zculling":{
+    "PAR_ZCULLING": [1,2,4]
   },
+  "coloringFB":{
+    "PAR_ZCULLING": [1,2,4]
+  },  
   "output_data": {
   }
 }
