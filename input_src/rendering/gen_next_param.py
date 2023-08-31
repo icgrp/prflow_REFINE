@@ -1,13 +1,11 @@
 import json, math, os
 import argparse
 
-# Based on the search space (params.json), update ./host/typedefs.h, ./operators/specs.json, cur_parm.json
-# Generate ./operators/*.cpp if necessary => this file is benchmark-specific
 
 def gen_projection_func(idx):
     func_str_list = []
     func_str_list.append('// project a 3D triangle to a 2D triangle')
-    func_str_list.append('void projection-' + str(idx) + ' (')
+    func_str_list.append('void projection_i' + str(idx) + ' (')
     func_str_list.append('    bit32 input_lo,')
     func_str_list.append('    bit32 input_mi,')
     func_str_list.append('    bit32 input_hi,')
@@ -72,7 +70,7 @@ def gen_projection_func(idx):
 def gen_rasterization1_func(idx):
     func_str_list = []
     func_str_list.append('// calculate bounding box for a 2D triangle')
-    func_str_list.append('void rasterization1-' + str(idx) + ' (')
+    func_str_list.append('void rasterization1_i' + str(idx) + ' (')
     func_str_list.append('    Triangle_2D triangle_2d,')
     func_str_list.append('    hls::stream<ap_uint<32> > & Output_1)')
     func_str_list.append('{')
@@ -268,13 +266,13 @@ def gen_prj_rast1_func(par_rast):
         func_str_list.append('  input_lo(31,0) = input_tmp(31,  0);')
         func_str_list.append('  input_mi(31,0) = input_tmp(63, 32);')
         func_str_list.append('  input_hi(31,0) = input_tmp(95, 64);')
-        func_str_list.append('  projection-' + str(idx + 1) + ' (')
+        func_str_list.append('  projection_i' + str(idx + 1) + ' (')
         func_str_list.append('    input_lo,')
         func_str_list.append('    input_mi,')
         func_str_list.append('    input_hi,')
         func_str_list.append('    &triangle_2ds_' + str(idx + 1) + ');')
         func_str_list.append('')
-        func_str_list.append('  rasterization1-' + str(idx + 1) + ' (')
+        func_str_list.append('  rasterization1_i' + str(idx + 1) + ' (')
         func_str_list.append('    triangle_2ds_' + str(idx + 1) + ',')
         func_str_list.append('    Output_' + str(idx + 1) + ');')
         func_str_list.append('')
@@ -430,7 +428,7 @@ def gen_rast2_func(idx_par_rast, par_zculling):
     func_str_list.append('}')
     func_str_list.append('')
     func_str_list.append('')
-    func_str_list.append('void rast2-' + str(idx_par_rast + 1) + ' (')
+    func_str_list.append('void rast2_i' + str(idx_par_rast + 1) + ' (')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
     for idx in range(par_zculling):
         if idx != par_zculling-1:
@@ -453,11 +451,11 @@ def gen_rast2_func(idx_par_rast, par_zculling):
     func_str_list.append('')
     func_str_list.append('}')
 
-    return 'rast2-' + str(idx_par_rast + 1), "\n".join(func_str_list)
+    return 'rast2_i' + str(idx_par_rast + 1), "\n".join(func_str_list)
 
 def gen_rast2_header(idx_par_rast):
     func_str_list = []
-    func_str_list.append('void rast2-' + str(idx_par_rast + 1) + ' (')
+    func_str_list.append('void rast2_i' + str(idx_par_rast + 1) + ' (')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
     for idx in range(par_zculling):
         if idx != par_zculling-1:
@@ -466,7 +464,7 @@ def gen_rast2_header(idx_par_rast):
             func_str_list.append('    hls::stream<ap_uint<32>> & Output_' + str(idx + 1))
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
-    return 'rast2-' + str(idx_par_rast + 1), "\n".join(func_str_list)
+    return 'rast2_i' + str(idx_par_rast + 1), "\n".join(func_str_list)
 
 
 def gen_zculling_func(par_rast, idx_par_zculling, par_zculling):
@@ -474,7 +472,7 @@ def gen_zculling_func(par_rast, idx_par_zculling, par_zculling):
     func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
     func_str_list.append('// filter hidden pixels')
-    func_str_list.append('void zculling-' + str(idx_par_zculling + 1) + ' (')
+    func_str_list.append('void zculling_i' + str(idx_par_zculling + 1) + ' (')
     for idx in range(par_rast):
         func_str_list.append('    hls::stream<ap_uint<32>> & Input_' + str(idx + 1) + ',')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_1')
@@ -583,24 +581,24 @@ def gen_zculling_func(par_rast, idx_par_zculling, par_zculling):
     func_str_list.append('}')
     func_str_list.append('')
 
-    return 'zculling-' + str(idx_par_zculling + 1), "\n".join(func_str_list)
+    return 'zculling_i' + str(idx_par_zculling + 1), "\n".join(func_str_list)
 
 def gen_zculling_header(par_rast, idx_par_zculling):
     func_str_list = []
-    func_str_list.append('void zculling-' + str(idx_par_zculling + 1) + ' (')
+    func_str_list.append('void zculling_i' + str(idx_par_zculling + 1) + ' (')
     for idx in range(par_rast):
         func_str_list.append('    hls::stream<ap_uint<32>> & Input_' + str(idx + 1) + ',')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
-    return 'zculling-' + str(idx_par_zculling + 1), "\n".join(func_str_list)
+    return 'zculling_i' + str(idx_par_zculling + 1), "\n".join(func_str_list)
 
 def gen_coloring_func(par_zculling, idx_par_zculling):
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
     func_str_list.append('// color the frame buffer')
-    func_str_list.append('void coloringFB-' + str(idx_par_zculling + 1) + '(')
+    func_str_list.append('void coloringFB_i' + str(idx_par_zculling + 1) + '(')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
     func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
     func_str_list.append('')
@@ -655,7 +653,7 @@ def gen_coloring_func(par_zculling, idx_par_zculling):
     func_str_list.append('}')
     func_str_list.append('')
 
-    return 'coloringFB-' + str(idx_par_zculling + 1), "\n".join(func_str_list)
+    return 'coloringFB_i' + str(idx_par_zculling + 1), "\n".join(func_str_list)
 
 def gen_coloring_header(idx_par_zculling):
     func_str_list = []
@@ -664,7 +662,7 @@ def gen_coloring_header(idx_par_zculling):
     func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
-    return 'coloringFB-' + str(idx_par_zculling + 1), "\n".join(func_str_list)
+    return 'coloringFB_i' + str(idx_par_zculling + 1), "\n".join(func_str_list)
 
 def gen_output_data_func(par_zculling):
     func_str_list = []
@@ -714,53 +712,67 @@ def gen_output_data_header(par_zculling):
     func_str_list.append('#pragma map_target = HW')
     return 'output_data', "\n".join(func_str_list)
 
+
+def prev_param_idx():
+    prev_param_file_list = [x for x in os.listdir("./params/visited/")\
+                                 if (x.startswith('prev_param_') and x.endswith('.json'))]
+    return len(prev_param_file_list)
+
 # Determine whether we need to write new src code
 # 1) if new operator
 # 2) if param/kernel_clk changed or
 # 3) if function io changed (filedata_header)
 def needs_write(func_name, filedata_header):
-    with open('./cur_param.json', 'r') as infile:
+    with open('./params/cur_param.json', 'r') as infile:
         cur_param_dict = json.load(infile)
-    with open('./prev_param.json', 'r') as infile:
-        prev_param_dict = json.load(infile)
 
-    # new op generated from the new param
-    if func_name not in prev_param_dict.keys():
-        print('NEEDS WRITE: ' + func_name + ' was not in previous run')
-        return True
-
+    idx = prev_param_idx()
+    if idx == 0:
+        return True # First compile
     else:
+        with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
+            prev_param_dict = json.load(infile)
 
-        # param/kernel_clk changed
-        for param in cur_param_dict[func_name].keys():
-            if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
-                print('NEEDS WRITE: ' + param + ' changed')
+        # new op generated from the new param
+        if func_name not in prev_param_dict.keys():
+            print('NEEDS WRITE: ' + func_name + ' was not in previous run')
+            return True
+
+        else:
+
+            # param/kernel_clk changed
+            for param in cur_param_dict[func_name].keys():
+                if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
+                    print('NEEDS WRITE: ' + param + ' changed')
+                    return True
+
+            # function io changed
+            if os.path.isfile('./operators/' + func_name + '.h'): 
+                with open('./operators/' + func_name + '.h', 'r') as infile:
+                    prev_filedata_header = infile.read()
+                    if filedata_header != prev_filedata_header:
+                        print('NEEDS WRITE: file header changed')
+                        # print(filedata_header)
+                        # print(prev_filedata_header)
+                        return True
+            else:
+                print('NEEDS WRITE: ' + func_name + ' was not in previous run')
                 return True
 
-        # function io changed
-        with open('./operators/' + func_name + '.h', 'r') as infile:
-            prev_filedata_header = infile.read()
-            if filedata_header != prev_filedata_header:
-                print('NEEDS WRITE: file header changed')
-                # print(filedata_header)
-                # print(prev_filedata_header)
-                return True
+        return False
 
-    return False
+# Based on ./params/cur_param.json, this file 
+# generates HLS source codes (if necessary)
+# updates ./host/typedefs.h, ./operators/specs.json, cur_parm.json
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-b',         '--bottleneck', required = True)
-    # parser.add_argument('-b',         '--bottleneck', required = True)
-    # args = parser.parse_args()
-    # bottleneck = args.bottleneck
 
     op_dir = './operators'
 
     #####################################
     ## Extract param from cur_par.json ##
     #####################################
-    with open('./cur_param.json', 'r') as infile:
+    with open('./params/cur_param.json', 'r') as infile:
         cur_param_dict = json.load(infile)
     # print(cur_param_dict)
 
@@ -772,8 +784,8 @@ if __name__ == '__main__':
             par_rast = param_dict['PAR_RAST']
         if 'PAR_ZCULLING' in param_dict:
             par_zculling = param_dict['PAR_ZCULLING']
-    # par_rast = 1
-    # par_zculling = 1
+    # par_rast = 4
+    # par_zculling = 4
     # print(par_rast)
     # print(par_zculling)
 
@@ -838,12 +850,12 @@ if __name__ == '__main__':
     #############################################
     for func_name in func_name_list:
         if func_name not in cur_param_dict.keys():
-            base_function_name = func_name.split('-')[0]
-            represent_function_name = base_function_name + '-1'
+            base_function_name = func_name.split('_i')[0]
+            represent_function_name = base_function_name + '_i1'
             # Assume that kernel_clk, num_leaf_interface, and par factor are identical
             cur_param_dict[func_name] = cur_param_dict[represent_function_name]
 
-    with open('./cur_param.json', 'w') as outfile:
+    with open('./params/cur_param.json', 'w') as outfile:
         json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
 
 
@@ -876,29 +888,29 @@ if __name__ == '__main__':
             top_str_list.append(prj_rast1_str)
         elif func_name.startswith('rast2'):
             for idx_par_rast in range(par_rast):
-                rast2_str = 'rast2-' + str(idx_par_rast + 1) + '(prj_rast1_out_' + str(idx_par_rast + 1)
+                rast2_str = 'rast2_i' + str(idx_par_rast + 1) + '(prj_rast1_out_' + str(idx_par_rast + 1)
                 for idx_par_zculling in range(par_zculling):
-                    rast2_str += ', rast2-' + str(idx_par_rast + 1) + '_out_' + str(idx_par_zculling + 1)
+                    rast2_str += ', rast2_i' + str(idx_par_rast + 1) + '_out_' + str(idx_par_zculling + 1)
                     if idx_par_zculling == par_zculling-1:
                         rast2_str += ');'
                 top_str_list.append(rast2_str)
         elif func_name.startswith('zculling'):
             for idx_par_zculling in range(par_zculling):
-                zculling_str = 'zculling-' + str(idx_par_zculling + 1) + '('
+                zculling_str = 'zculling_i' + str(idx_par_zculling + 1) + '('
                 for idx_par_rast in range(par_rast):
-                    zculling_str += 'rast2-' + str(idx_par_rast + 1) + '_out_' + str(idx_par_zculling + 1) + ', '
-                zculling_str += 'zculling-' + str(idx_par_zculling + 1) + '_out);'
+                    zculling_str += 'rast2_i' + str(idx_par_rast + 1) + '_out_' + str(idx_par_zculling + 1) + ', '
+                zculling_str += 'zculling_i' + str(idx_par_zculling + 1) + '_out);'
                 top_str_list.append(zculling_str)
         elif func_name.startswith('coloringFB'):
             for idx_par_zculling in range(par_zculling):
-                coloringFB_str = 'coloringFB-' + str(idx_par_zculling + 1) + \
-                                 '(zculling-' + str(idx_par_zculling + 1) + '_out, ' + \
-                                 'coloringFB-' + str(idx_par_zculling + 1) + '_out);'
+                coloringFB_str = 'coloringFB_i' + str(idx_par_zculling + 1) + \
+                                 '(zculling_i' + str(idx_par_zculling + 1) + '_out, ' + \
+                                 'coloringFB_i' + str(idx_par_zculling + 1) + '_out);'
                 top_str_list.append(coloringFB_str)
         elif func_name.startswith('output_data'):
             output_data_str = 'output_data('
             for idx_par_zculling in range(par_zculling):
-                output_data_str += 'coloringFB-' + str(idx_par_zculling + 1) + '_out, '
+                output_data_str += 'coloringFB_i' + str(idx_par_zculling + 1) + '_out, '
             output_data_str += 'Output_1);'
             top_str_list.append(output_data_str)
     with open('./host/top.cpp', 'w') as outfile:

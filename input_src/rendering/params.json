@@ -1,18 +1,5 @@
 {
-  "data_transfer": {
-  },
-  "prj_rast1": {
-    "PAR_RAST": [1,2,4]
-  },
-  "rast2": {
-    "PAR_RAST": [1,2,4]    
-  },
-  "zculling":{
-    "PAR_ZCULLING": [1,2,4]
-  },
-  "coloringFB":{
-    "PAR_ZCULLING": [1,2,4]
-  },  
-  "output_data": {
-  }
+  "kernel_clk": [200, 250, 300, 350, 400],
+  "PAR_RAST": [1,2,4],
+  "PAR_ZCULLING": [1,2,4]
 }
