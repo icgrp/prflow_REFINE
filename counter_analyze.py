@@ -143,7 +143,9 @@ def get_op_name(page_num, page_assign_dict):
     return None
 
 def checked_visited(operator, param_to_tune, new_param_val):
-    param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") if x.endswith('.json')]
+    param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") \
+                            if ( ( x.startswith('prev_param_') or  x.startswith('timing_prev_param_')) \
+                            and x.endswith('.json') )]
     for param_file in param_file_list:
         with open("./input_src/" + benchmark + "/params/visited/" + param_file, "r") as infile:
             param_dict = json.load(infile)
@@ -153,13 +155,14 @@ def checked_visited(operator, param_to_tune, new_param_val):
                     return True
         else:
             for operator in param_dict.keys():
-                # The value of parameter variable is the same for all operators.
-                # For example, if rast2_i1's PAR_RAST == 1, rast2_i1's PAR_RAST should be 1 too.
-                # If they want different parameter, the variable name should differ, like PAR_RAST_1 or PAR_RAST_2.
-                # For this reason, for the given param_to_tune, for any operator, 
-                # if new_param_val is already tested, return True.
-                if param_dict[operator][param_to_tune] == new_param_val:
-                    return True
+                if param_to_tune in param_dict[operator].keys():
+                    # The value of parameter variable is the same for all operators.
+                    # For example, if rast2_i1's PAR_RAST == 1, rast2_i1's PAR_RAST should be 1 too.
+                    # If they want different parameter, the variable name should differ, like PAR_RAST_1 or PAR_RAST_2.
+                    # For this reason, for the given param_to_tune, for any operator, 
+                    # if new_param_val is already tested, return True.
+                    if param_dict[operator][param_to_tune] == new_param_val:
+                        return True
     return False
 
 
@@ -178,11 +181,11 @@ def timing_prev_param_idx():
 #                                 0: {'stall': 117130}, 
 #                                 9: {'full': 16735, 'empty': 210347}}
 # ...
-def coutner_dict(benchmark, result_file, page_assign_dict):
+def coutner_dict(benchmark, page_assign_dict):
     cnt_dict = {}
     accuracy = 0
 
-    with open("./_bi_results/" + benchmark + "/" + result_file, "r") as infile:
+    with open("./_bi_results/" + benchmark + "/results.txt", "r") as infile:
         lines = infile.readlines()
 
         # Parse results
@@ -208,6 +211,9 @@ def coutner_dict(benchmark, result_file, page_assign_dict):
 
                 counter_type = get_counter_type_str(counter)
                 op_name = get_op_name(self_leaf, page_assign_dict)
+                if op_name == None:
+                    print("####### error: " + str(self_leaf))
+                    print("####### error: " + str(line))
                 # print(counter)
                 # print(self_leaf)
                 # print(op_name)
@@ -226,82 +232,36 @@ def coutner_dict(benchmark, result_file, page_assign_dict):
                     else:
                         cnt_dict[op_name][self_port][counter_type] = counter_val
 
-            if line.startswith('elapsed time: '):
-                latency = line.split()[2]
+            # if line.startswith('elapsed time: '):
+            #     latency = int(line.split()[2])
             if line.startswith('accuracy: '):
-                accuracy = line.split()[2]
-            if line.startswith('TEST PASSED'):
-                print(latency)
-                print(accuracy)
+                accuracy = int(line.split()[2])
 
-                # print(cnt_dict)
-                for op_name in sorted(cnt_dict):
-                    print(op_name, cnt_dict[op_name])
-        # print()
+    with open("./_bi_results/" + benchmark + "/summary.csv", "r") as infile:
+        lines = infile.readlines()
 
-        return latency, accuracy, cnt_dict
+        next_line = False
+        # Parse results
+        for line in lines:
+            if line.startswith('Kernel,Number Of Enqueues'):
+                next_line = True
+            elif next_line == True:
+                kernel_name, num_enqueue, latency, _, _, _, _ = line.split(',') 
+                break
 
+    latency = float(latency)
+    print(">> accuracy: " + str(accuracy))
+    print(">> latency: " + str(latency))
+    for op_name in sorted(cnt_dict):
+        print(op_name, cnt_dict[op_name])
 
-# def gen_next_param(benchmark, cur_param_dict, bottleneck_op, metric = "latency"):
-#     with open('./input_src/' + benchmark + '/params_annotate.json', 'r') as infile:
-#         params_annotate_dict = json.load(infile)
-#     # e.g. params_annotate_dict = { "PAR_RAST": ["latency", "timing"],
-#     #                               "PAR_ZCULLING": ["latency", "timing"]}
+    assert(int(num_enqueue) == 1)
 
-#     with open('./input_src/' + benchmark + '/params.json', 'r') as infile:
-#         params_dict = json.load(infile)
-#     # print(params_dict)
-
-#     param_to_tune, new_param_val = None, None
-
-#     # Prioritize non-"kernel_clk" parameters
-#     for param in sorted(cur_param_dict[bottleneck_op].keys()): # sorted for deterministic refinement
-#         if (param != "num_leaf_interface") and \
-#            (param != "kernel_clk") and \
-#            (metric in params_annotate_dict[param]): # if this parameter is helping current metric
-#             param_search_space = params_dict[bottleneck_op][param] # e.g. [1,2,4]
-#             cur_param_val = cur_param_dict[bottleneck_op][param] # e.g. 2
-#             if cur_param_val != param_search_space[-1]:
-#                 param_to_tune = param
-#                 new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-#                 if checked_visited(bottleneck_op, param_to_tune, new_param_val):
-#                     param_to_tune = None # reset, already tested
-#                     new_param_val = None # reset, already tested
-
-#     # Explore kernel_clk
-#     if param_to_tune != None and new_param_val != None:
-#         param_search_space = params_dict[bottleneck_op]["kernel_clk"] # e.g. [200, 250, 300, 350, 400]
-#         cur_param_val = cur_param_dict[bottleneck_op]["kernel_clk"] # e.g. 200
-#         if cur_param_val != param_search_space[-1] and metric == "latency": # increase kernel clk
-#             param_to_tune = "kernel_clk"
-#             new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-#             if checked_visited(bottleneck_op, param_to_tune, new_param_val):
-#                 param_to_tune = None # reset, already tested
-#                 new_param_val = None # reset, already tested
-#         elif cur_param_val != param_search_space[0] and metric == "timing": # decrease kernel clk
-#             param_to_tune = "kernel_clk"
-#             new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-#             if checked_visited(bottleneck_op, param_to_tune, new_param_val):
-#                 param_to_tune = None # reset, already tested
-#                 new_param_val = None # reset, already tested
-#     return param_to_tune, new_param_val
-
-# def is_improved(benchmark, metric, fom):
-#     with open('./input_src/' + benchmark + '/params/best.txt', 'r') as infile:
-#         best_fom = infile.read()
-#     if metric == "latency":
-#         if fom < best_fom: # the lower, the better
-#             return True
-#     elif metric == "accuracy":
-#         if fom > best_fom: # the higher, the better
-#             return True
-#     else:
-#         raise Exception("metric: " + metric + ", unsupported")
-#     return False
+    return latency, accuracy, cnt_dict
 
 
 # cur_param_dict didn't improve metric or caused timing violation
-# Revert to the most recent prev_param
+# Revert to the most recent prev_param and save the current parameter
 def revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = False):
     if is_timing_violate:
         idx = timing_prev_param_idx()
@@ -317,6 +277,7 @@ def revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timin
             with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
                 reverted_pblock_assign_dict = json.load(infile)
 
+            # param_dict, pblock_assign_dict, all reverted. No need to revert results.txt
             return reveretd_cur_param_dict, reverted_pblock_assign_dict
  
         else: # if the first run violates timing
@@ -330,12 +291,16 @@ def revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timin
                 reveretd_cur_param_dict = json.load(infile)
             with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
                 reverted_pblock_assign_dict = json.load(infile)
+            os.system('cp ./input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt ./_bi_results/' + benchmark + '/tmp.txt')
 
             with open('./input_src/' + benchmark + '/params/visited/prev_param_' + str(idx_most_recent) + '.json', 'w') as outfile:
                 json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
             with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'w') as outfile:
                 json.dump(cur_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+            os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + './input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt')
 
+            # param_dict, pblock_assign_dict, results.txt all reverted
+            os.system('cp ./_bi_results/' + benchmark + '/tmp.txt ./_bi_results/' + benchmark + '/results.txt')
             return reveretd_cur_param_dict, reverted_pblock_assign_dict
         else:
             raise Exception("The first run should be always better than the default fom value")
@@ -433,7 +398,7 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
     min_stall = sys.maxsize
     bottleneck_op = None
     print()
-    for op_name in cnt_dict:
+    for op_name in sorted(cnt_dict.keys()):
         stall_cnt = cnt_dict[op_name][0]['stall']
         print(op_name, str(stall_cnt))
 
@@ -445,7 +410,7 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
     print(bottleneck_op, min_stall)
 
     cur_param_dict = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict)
-    print(cur_param_dict)
+    # print(cur_param_dict)
     # return False
 
     if minimum_accuracy != -1: # Benchmarks that have accuracy metric like Digit Recognition, Optical Flow, etc
@@ -481,29 +446,55 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
                         found = True
                 param_search_space = params_search_space_dict[param_acc]
                 if cur_param_val != param_search_space[-1]:
-                    param_to_tune = param_acc
-                    new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-                    if checked_visited(op_accuracy, param_to_tune, new_param_val):
-                        param_to_tune = None
-                        new_param_val = None
+                    # param_to_tune = param_acc
+                    # new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
+                    # if checked_visited(op_accuracy, param_to_tune, new_param_val):
+                    #     param_to_tune = None
+                    #     new_param_val = None
+                    idx = param_search_space.index(cur_param_val) + 1 # next param
+                    found = False
+                    while idx < len(param_search_space) and found == False:
+                        param_to_tune = param_acc
+                        new_param_val = param_search_space[idx]
+                        if checked_visited(op_accuracy, param_to_tune, new_param_val):
+                            param_to_tune = None
+                            new_param_val = None
+                            idx = idx + 1
+                        else:
+                            found = True
+        print("param_to_tune(accuracy): " + str(param_to_tune))
+        print("new_param_val: " + str(new_param_val))
+        # Update cur_param for the incremental refinement
+        if param_to_tune != None and new_param_val != None:
+            # For kernel_clk, update one operator at a time
+            if param_to_tune == "kernel_clk":
+                cur_param_dict[bottleneck_op][param_to_tune] = new_param_val
+            else:
+                # Update for all other ops if they have param_to_tune because
+                # if param variable names are the same, the values are consistent accross operators
+                for op in cur_param_dict.keys():
+                    if param_to_tune != "num_leaf_interface" and \
+                       param_to_tune in cur_param_dict[op]:
+                        cur_param_dict[op][param_to_tune] = new_param_val
+                print(cur_param_dict)
 
-        # # Update cur_param for the incremental refinement
-        # if param_to_tune != None and new_param_val != None:
-        #     # Update for all other ops if they have param_to_tune because
-        #     # if param variable names are the same, the values are consistent accross operators
-        #     for op in cur_param_dict.keys():
-        #         if param_to_tune in cur_param_dict[op]:
-        #             cur_param_dict[op][param_to_tune] = new_param_val
+            idx = prev_param_idx()
+            os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ' + \
+                         './input_src/' + benchmark + '/params/visited/prev_param_' + str(idx) + '.json')
+            os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + \
+                         './input_src/' + benchmark + '/params/visited/results_' + str(idx) + '.txt')
+            os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + \
+                         './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
+            os.system('cp ./workspace/F003_syn_' + benchmark + '/pblock_assignment.json ' + \
+                         './input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx) + '.json')
 
-        #     idx = prev_param_idx()
-        #     os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ./input_src/' + benchmark + '/params/prev_param_' + str(idx) + '.json')
-        #     cur_param_dict[bottleneck_op][param] = new_param_val
-        #     with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
-        #         json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
-        #     return False
-        # else:
-        #     print("We can't improve accuracy anymore")
-        #     return True
+            with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
+                json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+            return False, metric
+        else:
+            # with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
+            #     json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+            return True, metric
 
     else:
         assert(metric == "latency")
@@ -518,61 +509,87 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
                 # print(cur_param_val)
                 # print(param_search_space)
                 if cur_param_val != param_search_space[-1]:
-                    param_to_tune = param
-                    new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-                    if checked_visited(bottleneck_op, param_to_tune, new_param_val):
-                        param_to_tune = None
-                        new_param_val = None
+                    idx = param_search_space.index(cur_param_val) + 1 # next param
+                    found = False
+                    while idx < len(param_search_space) and found == False:
+                        param_to_tune = param
+                        new_param_val = param_search_space[idx]
+                        if checked_visited(bottleneck_op, param_to_tune, new_param_val):
+                            param_to_tune = None
+                            new_param_val = None
+                            idx = idx + 1
+                        else:
+                            found = True
 
         # Explore kernel_clk
         if param_to_tune == None and new_param_val == None:
             param_search_space = params_search_space_dict["kernel_clk"] # [200, 250, 300, 350, 400]
             cur_param_val = cur_param_dict[bottleneck_op]["kernel_clk"] # e.g. 200
             if cur_param_val != param_search_space[-1]:
-                param_to_tune = "kernel_clk"
-                new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-                if checked_visited(bottleneck_op, param_to_tune, new_param_val):
-                    param_to_tune = None
-                    new_param_val = None
+                idx = param_search_space.index(cur_param_val) + 1 # next param
+                found = False
+                while idx < len(param_search_space) and found == False:
+                    param_to_tune = 'kernel_clk'
+                    new_param_val = param_search_space[idx]
+                    if checked_visited(bottleneck_op, param_to_tune, new_param_val):
+                        param_to_tune = None
+                        new_param_val = None
+                        idx = idx + 1
+                    else:
+                        found = True
 
-        print(param_to_tune)
-        print(new_param_val)
+
+        print("param_to_tune: " + str(param_to_tune))
+        print("new_param_val: " + str(new_param_val))
         # Update cur_param for the incremental refinement
         if param_to_tune != None and new_param_val != None:
-            # Update for all other ops if they have param_to_tune because
-            # if param variable names are the same, the values are consistent accross operators
-            for op in cur_param_dict.keys():
-                if param_to_tune != "num_leaf_interface" and \
-                   param_to_tune != "kernel_clk" and \
-                   param_to_tune in cur_param_dict[op]:
-                    cur_param_dict[op][param_to_tune] = new_param_val
-            print(cur_param_dict)
+            # For kernel_clk, update one operator at a time
+            if param_to_tune == "kernel_clk":
+                cur_param_dict[bottleneck_op][param_to_tune] = new_param_val
+            else:
+                # Update for all other ops if they have param_to_tune because
+                # if param variable names are the same, the values are consistent accross operators
+                for op in cur_param_dict.keys():
+                    if param_to_tune != "num_leaf_interface" and \
+                       param_to_tune in cur_param_dict[op]:
+                        cur_param_dict[op][param_to_tune] = new_param_val
+                print(cur_param_dict)
 
             idx = prev_param_idx()
             os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ' + \
                          './input_src/' + benchmark + '/params/visited/prev_param_' + str(idx) + '.json')
+            os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + \
+                         './input_src/' + benchmark + '/params/visited/results_' + str(idx) + '.txt')
+            os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + \
+                         './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
+            os.system('cp ./workspace/F003_syn_' + benchmark + '/pblock_assignment.json ' + \
+                         './input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx) + '.json')
 
             with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
                 json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
-            return False
+            return False, metric
         else:
-            return True
+            # with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
+            #     json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+            return True, metric
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-b',         '--bottleneck', required = True)
-    # parser.add_argument('-b',         '--bottleneck', required = True)
-    # args = parser.parse_args()
-    # bottleneck = args.bottleneck
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b',         '--benchmark',                       required = True)
+    parser.add_argument('-t',         '--timing_violate',                  action='store_true')
+    parser.add_argument('-p',         '--pblock_not_enough_area',          action='store_true')
+    args = parser.parse_args()
 
-    is_timing_violate = False
-    op_pblock_not_enough_area = None
-    # metric = "latency" # latency, accuracy, timing?
+    benchmark = args.bottleneck
+    is_timing_violate = args.timing_violate
+    pblock_not_enough_area = args.timing_violate
+    # benchmark = 'rendering'
+
     minimum_accuracy = -1
+    error_margin = 0.05
 
-    benchmark = 'rendering'
-    filename = "results.txt"
+    os.system('mkdir -p ./input_src/' + benchmark + 'params/visited')
 
     with open('./input_src/' + benchmark + '/params/cur_param.json', 'r') as infile:
         cur_param_dict = json.load(infile)
@@ -586,37 +603,62 @@ if __name__ == '__main__':
 
     if is_timing_violate:
         cur_param_dict, cur_pblock_assign_dict = revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = True)
+        print("Param, reverted")
+        print(cur_param_dict)
         cur_page_assign_dict = get_page_assign_dict(cur_pblock_assign_dict)
 
-        latency, accuracy, cnt_dict = coutner_dict(benchmark, filename, cur_page_assign_dict) # use old result
-        move_to_mono = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
+        latency, accuracy, cnt_dict = coutner_dict(benchmark, cur_page_assign_dict) # use old result
+        move_to_mono, metric = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
 
-    elif op_pblock_not_enough_area is not None:
-        print("Move to monolithic!")
+    elif pblock_not_enough_area is not None:
+        print('Not enough area for pblock. Move to monolithic!')
         # return False
 
     else:
-
-        latency, accuracy, cnt_dict = coutner_dict(benchmark, filename, cur_page_assign_dict)
+        latency, accuracy, cnt_dict = coutner_dict(benchmark, cur_page_assign_dict)
         print(latency, accuracy)
         print(cnt_dict)
 
-        with open('./input_src/' + benchmark + '/params/best.txt', 'r') as infile:
-            best_latency = infile.read()
+        # # Find the bottleneck operator
+        # min_stall = sys.maxsize
+        # bottleneck_op = None
+        # print()
+        # for op_name in cnt_dict:
+        #     stall_cnt = cnt_dict[op_name][0]['stall']
+        #     print(op_name, str(stall_cnt))
 
-        if latency > best_latency: # not improved
+        #     if stall_cnt < min_stall:
+        #         min_stall = stall_cnt
+        #         bottleneck_op = op_name
+        # print()
+        # print("bottleneck_op: ")
+        # print(bottleneck_op, min_stall)
+
+        if not os.path.isfile('./input_src/' + benchmark + '/params/best.txt'):
+            os.system('cp ./input_src/' + benchmark + '/params/best_init.txt ' + './input_src/' + benchmark + '/params/best.txt')
+
+        with open('./input_src/' + benchmark + '/params/best.txt', 'r') as infile:
+            best_latency = float(infile.read())
+
+        # print(best_latency)
+        # print(latency)
+        # TODO: if stall counter didn't improved from the previous?
+        if latency*(1-error_margin) > best_latency: # not improved
             cur_param_dict, cur_pblock_assign_dict = revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = False)
+            print("Param, reverted")
+            print(cur_param_dict)
             cur_page_assign_dict = get_page_assign_dict(cur_pblock_assign_dict)
         else:
-            # Update the best latency
-            with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
-                outfile.write(latency)
+            if latency < best_latency:
+                # Update the best latency
+                with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
+                    outfile.write(str(latency))
+        move_to_mono, metric = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
 
-        move_to_mono = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
-
-    print(move_to_mono)
-    # if move_to_mono:
-    #     print("Move to monolithic!")
-    #     return False
-    # else:
-    #     return True
+    # print(move_to_mono)
+    if move_to_mono:
+        print('Can not improve ' + str(metric) + ' anymore. Move to monolithic!')
+        # return False
+    else:
+        print('Next parameter is generated!')
+        # return True

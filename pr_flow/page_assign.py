@@ -907,6 +907,16 @@ class page_assign(gen_basic):
         print("##################################")
         print("## Previous page mapping works! ##")
         print("##################################")
+        for op in operators_list:
+          pblock_name = pblock_assign_dict[op]["pblock"]
+          page_num = pblock_assign_dict[op]["page_num"]
+          # IMPORTANT!, write pblock.json only if the file doesn't exist (because it's newly generated and the syn directory was reset)
+          if(not os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
+            pblock_dict = {}
+            pblock_dict['pblock'] = pblock_name
+            pblock_dict['page_num'] = page_num
+            with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
+              json.dump(pblock_dict, outfile, sort_keys=True, indent=4)
         return True
       else:
         return False
@@ -1053,13 +1063,16 @@ class page_assign(gen_basic):
         # IMPORTANT!, update pblock.json only when the contents have been changed
         if(os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
           with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
-            pblock_dict = json.load(infile)
-            pblock_name_old = pblock_dict['pblock']
-            page_num_old = pblock_dict['page_num']
+            old_pblock_dict = json.load(infile)
+            pblock_name_old = old_pblock_dict['pblock']
+            page_num_old = old_pblock_dict['page_num']
             # if leaf interface has changed, netlist has changed. And definitely runs a new impl => don't need to check here
           if(pblock_name != pblock_name_old or page_num != page_num_old):
+            pblock_dict = {}
+            pblock_dict['pblock'] = pblock_name
+            pblock_dict['page_num'] = page_num
             with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
-              json.dump((self.prflow_params['overlay_n'], pblock_name, page_num), outfile, sort_keys=True, indent=4)
+              json.dump(pblock_dict, outfile, sort_keys=True, indent=4)
         else: # first time
           pblock_dict = {}
           pblock_dict['pblock'] = pblock_name

@@ -572,7 +572,7 @@ def gen_zculling_func(par_rast, idx_par_zculling, par_zculling):
     func_str_list.append('  }')
     func_str_list.append('')
     if par_rast != 1:
-        func_str_list.append('  if(cnt == ' + str(par_zculling-1) + ') cnt = 0;')
+        func_str_list.append('  if(cnt == ' + str(par_rast-1) + ') cnt = 0;')
         func_str_list.append('  else cnt++;')
         func_str_list.append('')
     func_str_list.append('  counter++;')
@@ -657,7 +657,7 @@ def gen_coloring_func(par_zculling, idx_par_zculling):
 
 def gen_coloring_header(idx_par_zculling):
     func_str_list = []
-    func_str_list.append('void coloringFB_' + str(idx_par_zculling + 1) + ' (')
+    func_str_list.append('void coloringFB_i' + str(idx_par_zculling + 1) + ' (')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
     func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
     func_str_list.append('    );')
@@ -719,47 +719,73 @@ def prev_param_idx():
     return len(prev_param_file_list)
 
 # Determine whether we need to write new src code
-# 1) if new operator
-# 2) if param/kernel_clk changed or
-# 3) if function io changed (filedata_header)
-def needs_write(func_name, filedata_header):
+def needs_write(func_name, filedata):
     with open('./params/cur_param.json', 'r') as infile:
         cur_param_dict = json.load(infile)
 
-    idx = prev_param_idx()
-    if idx == 0:
-        return True # First compile
+    # 1) if new operator
+    if not os.path.isfile('./operators/' + func_name + '.cpp'): 
+        return True
     else:
-        with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
-            prev_param_dict = json.load(infile)
-
-        # new op generated from the new param
-        if func_name not in prev_param_dict.keys():
-            print('NEEDS WRITE: ' + func_name + ' was not in previous run')
-            return True
-
-        else:
-
-            # param/kernel_clk changed
-            for param in cur_param_dict[func_name].keys():
-                if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
-                    print('NEEDS WRITE: ' + param + ' changed')
-                    return True
-
-            # function io changed
-            if os.path.isfile('./operators/' + func_name + '.h'): 
-                with open('./operators/' + func_name + '.h', 'r') as infile:
-                    prev_filedata_header = infile.read()
-                    if filedata_header != prev_filedata_header:
-                        print('NEEDS WRITE: file header changed')
-                        # print(filedata_header)
-                        # print(prev_filedata_header)
-                        return True
-            else:
-                print('NEEDS WRITE: ' + func_name + ' was not in previous run')
+        # 2) if function contents changed (filedata)
+        with open('./operators/' + func_name + '.cpp', 'r') as infile:
+            prev_filedata = infile.read()
+            # print(filedata)
+            # print(prev_filedata)
+            if filedata != prev_filedata:
+                print('NEEDS WRITE: ' + func_name + ' file contents changed')
+                # print(filedata_header)
+                # print(prev_filedata_header)
                 return True
 
+        idx = prev_param_idx()
+        if idx !=0:
+            with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
+                prev_param_dict = json.load(infile)
+
+            # 3) if param/kernel_clk changed
+            for param in cur_param_dict[func_name].keys():
+                if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
+                    print('NEEDS WRITE: ' + param + ' changed for ' + func_name)
+                    return True
+
         return False
+
+    # idx = prev_param_idx()
+    # if idx == 0:
+    #     return True # First compile
+    # else:
+    #     with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
+    #         prev_param_dict = json.load(infile)
+
+    #     # new op generated from the new param
+    #     if func_name not in prev_param_dict.keys():
+    #         print('NEEDS WRITE: ' + func_name + ' was not in previous run')
+    #         return True
+
+    #     else:
+
+    #         # param/kernel_clk changed
+    #         for param in cur_param_dict[func_name].keys():
+    #             if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
+    #                 print('NEEDS WRITE: ' + param + ' changed')
+    #                 return True
+
+    #         # function io changed
+    #         if os.path.isfile('./operators/' + func_name + '.h'): 
+    #             with open('./operators/' + func_name + '.h', 'r') as infile:
+    #                 prev_filedata_header = infile.read()
+    #                 if filedata_header != prev_filedata_header:
+    #                     print('NEEDS WRITE: file header changed')
+    #                     # print(filedata_header)
+    #                     # print(prev_filedata_header)
+    #                     return True
+    #         else:
+    #             print('NEEDS WRITE: ' + func_name + ' was not in previous run')
+    #             return True
+
+    #     return False
+
 
 # Based on ./params/cur_param.json, this file 
 # generates HLS source codes (if necessary)
@@ -786,8 +812,8 @@ if __name__ == '__main__':
             par_zculling = param_dict['PAR_ZCULLING']
     # par_rast = 4
     # par_zculling = 4
-    # print(par_rast)
-    # print(par_zculling)
+    print(par_rast)
+    print(par_zculling)
 
     ###########################################
     ## Generate src files based on cur param ##
@@ -797,7 +823,7 @@ if __name__ == '__main__':
     func_name, filedata = gen_prj_rast1_func(par_rast)
     func_name_list.append(func_name)
     func_name, filedata_header = gen_prj_rast1_header(par_rast)
-    if needs_write(func_name, filedata_header):
+    if needs_write(func_name, filedata):
         # print("here?")
         with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
             outfile.write(filedata)
@@ -808,7 +834,7 @@ if __name__ == '__main__':
         func_name, filedata = gen_rast2_func(idx_par_rast, par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_rast2_header(idx_par_rast)
-        if needs_write(func_name, filedata_header):
+        if needs_write(func_name, filedata):
             with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
@@ -819,7 +845,7 @@ if __name__ == '__main__':
         func_name, filedata = gen_zculling_func(par_rast, idx_par_zculling, par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_zculling_header(par_rast, idx_par_zculling)
-        if needs_write(func_name, filedata_header):
+        if needs_write(func_name, filedata):
             with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
@@ -828,7 +854,7 @@ if __name__ == '__main__':
         func_name, filedata = gen_coloring_func(par_zculling, idx_par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_coloring_header(idx_par_zculling)
-        if needs_write(func_name, filedata_header):
+        if needs_write(func_name, filedata):
             with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
@@ -838,7 +864,7 @@ if __name__ == '__main__':
     func_name, filedata = gen_output_data_func(par_zculling)
     func_name_list.append(func_name)
     func_name, filedata_header = gen_output_data_header(par_zculling)
-    if needs_write(func_name, filedata_header):
+    if needs_write(func_name, filedata):
         with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
             outfile.write(filedata)
         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
@@ -854,6 +880,7 @@ if __name__ == '__main__':
             represent_function_name = base_function_name + '_i1'
             # Assume that kernel_clk, num_leaf_interface, and par factor are identical
             cur_param_dict[func_name] = cur_param_dict[represent_function_name]
+
 
     with open('./params/cur_param.json', 'w') as outfile:
         json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)

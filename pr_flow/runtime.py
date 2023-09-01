@@ -355,6 +355,16 @@ class runtime(gen_basic):
     self.shell.write_lines(self.bit_dir+ '/sd_card/run_app.sh', tmp_list, True)
 
     self.shell.cp_file('common/script_src/compile_next.sh', self.bit_dir+'/sd_card')
+    filedata =''
+    with open(self.bit_dir+'/sd_card/compile_next.sh', 'r') as infile:
+      lines = infile.readlines()
+    for line in lines:
+      if '/BENCHMARK' in line:
+        line = line.replace('/BENCHMARK','/' + self.prflow_params['benchmark_name'])
+      filedata += line
+    with open(self.bit_dir+'/sd_card/compile_next.sh', 'w') as outfile:
+      outfile.write(filedata)
+
     self.shell.cp_file('common/script_src/run_on_fpga.sh', self.bit_dir)
 
 
