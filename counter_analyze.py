@@ -142,9 +142,20 @@ def get_op_name(page_num, page_assign_dict):
             return op
     return None
 
+def get_best_latency(best_latency):
+    if not os.path.isfile('./input_src/' + benchmark + '/params/best.txt'):
+        os.system('cp ./input_src/' + benchmark + '/params/best_init.txt ' + './input_src/' + benchmark + '/params/best.txt')
+
+    with open('./input_src/' + benchmark + '/params/best.txt', 'r') as infile:
+        best_latency = float(infile.read())
+    return best_latency
+
 def checked_visited(operator, param_to_tune, new_param_val):
     param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") \
-                            if ( ( x.startswith('prev_param_') or  x.startswith('timing_prev_param_')) \
+                            if ( ( x.startswith('NoC_succ_param_') or \
+                                   x.startswith('mono_succ_param_') or \
+                                   x.startswith('NoC_timing_param_') or \
+                                   x.startswith('mono_fail_param_') ) \
                             and x.endswith('.json') )]
     for param_file in param_file_list:
         with open("./input_src/" + benchmark + "/params/visited/" + param_file, "r") as infile:
@@ -166,15 +177,6 @@ def checked_visited(operator, param_to_tune, new_param_val):
     return False
 
 
-def prev_param_idx():
-    prev_param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/")\
-                                 if (x.startswith('prev_param_') and x.endswith('.json'))]
-    return len(prev_param_file_list)
-
-def timing_prev_param_idx():
-    prev_param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/")\
-                                 if (x.startswith('timing_prev_param_') and x.endswith('.json'))]
-    return len(prev_param_file_list)
 
 # Returns counter dictionary for the benchmark
 # e.g. cnt_dict = coloringFB_1 : {2: {'read': 10542, 'empty': 117184, 'full': 0}, 
@@ -260,64 +262,118 @@ def coutner_dict(benchmark, page_assign_dict):
     return latency, accuracy, cnt_dict
 
 
-# cur_param_dict didn't improve metric or caused timing violation
-# Revert to the most recent prev_param and save the current parameter
-def revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = False):
-    if is_timing_violate:
-        idx = timing_prev_param_idx()
-        with open('./input_src/' + benchmark + '/params/visited/timing_prev_param_' + str(idx) + '.json', 'w') as outfile:
-            json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
-        with open('./input_src/' + benchmark + '/params/visited/timing_prev_pblock_assignment_' + str(idx) + '.json', 'w') as outfile:
-            json.dump(cur_pblock_assign_dict, outfile, sort_keys=True, indent=4)
 
-        if prev_param_idx() != 0:
-            idx_most_recent = prev_param_idx() - 1
-            with open('./input_src/' + benchmark + '/params/visited/prev_param_' + str(idx_most_recent) + '.json', 'r') as infile:
-                reveretd_cur_param_dict = json.load(infile)
-            with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
-                reverted_pblock_assign_dict = json.load(infile)
+def prev_param_success_file_idx():
+    # NoC_succ_param_*.json and mono_succ_param_*.json share index
+    prev_param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/")\
+                                 if (x.split('_')[1] == 'succ' and x.split('_')[2] == 'param' and x.endswith('.json'))]
+    return len(prev_param_file_list)-1
 
-            # param_dict, pblock_assign_dict, all reverted. No need to revert results.txt
-            return reveretd_cur_param_dict, reverted_pblock_assign_dict
- 
-        else: # if the first run violates timing
-            with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
-                pblock_assign_dict = json.load(infile)
-            return cur_param_dict, pblock_assign_dict
+
+def param_fail_file_idx(fail_type):
+    # NoC_timing_param_*.json and mono_fail_param_*.json share index
+    prev_param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/")\
+                                 if (x.startswith(fail_type + '_param_') and x.endswith('.json'))]
+    if len(prev_param_file_list) != 0:
+        most_recent_file_name = fail_type + '_param_' + len(prev_param_file_list-1) + '.json'
     else:
-        if prev_param_idx() != 0:
-            idx_most_recent = prev_param_idx() - 1
-            with open('./input_src/' + benchmark + '/params/visited/prev_param_' + str(idx_most_recent) + '.json', 'r') as infile:
+        most_recent_file_name = None
+    return  most_recent_file_name, len(prev_param_file_list)
+
+
+# prev_param_dict didn't improve metric or caused timing violation
+# Revert to the most recent prev_param and save the current parameter
+def revert_cur_param(benchmark, prev_param_dict, prev_pblock_assign_dict, overlay_type = None, fail_type = None):
+    if fail_type != None:
+        # Save current parameters that failed
+        if overlay_type == 'NoC':
+            assert(fail_type == 'NoC_timing')
+            param_file, idx = param_fail_file_idx(fail_type)
+            with open('./input_src/' + benchmark + '/params/visited/NoC_timing_pblock_assignment_' + str(idx) + '.json', 'w') as outfile:
+                json.dump(prev_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+        else:
+            assert(overlay_type == 'mono')
+            assert(fail_type == 'mono_fail')
+            param_file, idx = param_fail_file_idx(fail_type)
+        with open('./input_src/' + benchmark + '/params/visited/' + fail_type + '_param_' + str(idx) + '.json', 'w') as outfile:
+            json.dump(prev_param_dict, outfile, sort_keys=True, indent=4)
+
+        # Revert
+        param_success_file, idx_most_recent = prev_param_success_file_idx()
+        if idx_most_recent != -1:
+            if param_success_file.startswith('NoC_succ'):
+                overlay_type_success = 'NoC'
+                with open('./input_src/' + benchmark + '/params/visited/NoC_succ_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
+                    reverted_pblock_assign_dict = json.load(infile)
+                os.system('rm ./input_src/' + benchmark + '/params/visited/NoC_succ_pblock_assignment_' + str(idx_most_recent) + '.json')
+            else:
+                overlay_type_success = 'mono'
+                reverted_pblock_assign_dict = None
+
+            with open('./input_src/' + benchmark + '/params/visited/' + overlay_type_success + '_succ_param_' + str(idx_most_recent) + '.json', 'r') as infile:
                 reveretd_cur_param_dict = json.load(infile)
-            with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
-                reverted_pblock_assign_dict = json.load(infile)
-            os.system('cp ./input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt ./_bi_results/' + benchmark + '/tmp.txt')
+            os.system('rm ./input_src/' + benchmark + '/params/visited/' + overlay_type_success + '_succ_param_' + str(idx_most_recent) + '.json')
+            os.system('mv ./input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt ' + \
+                         './_bi_results/' + benchmark + '/results.txt')
+            os.system('mv ./input_src/' + benchmark + '/params/visited/summary_' + str(idx_most_recent) + '.txt ' + \
+                         './_bi_results/' + benchmark + '/summary.csv')
 
-            with open('./input_src/' + benchmark + '/params/visited/prev_param_' + str(idx_most_recent) + '.json', 'w') as outfile:
-                json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
-            with open('./input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx_most_recent) + '.json', 'w') as outfile:
-                json.dump(cur_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+            return overlay_type_success, reveretd_cur_param_dict, reverted_pblock_assign_dict
+ 
+        else: # if the first NoC ver. failed in timing or if the first monolithic ver. failed in implementation
+            print("First run failed")
+            pblock_assign_dict = None
+            if os.path.isfile("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json"):
+                with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
+                    pblock_assign_dict = json.load(infile)
+            return overlay_type, prev_param_dict, pblock_assign_dict
+    else:
+        param_success_file, idx_most_recent = prev_param_success_file_idx()
+        if idx_most_recent != -1:
+            # Revert
+            if param_success_file.startswith('NoC_succ'):
+                overlay_type_success = 'NoC'
+                with open('./input_src/' + benchmark + '/params/visited/NoC_succ_pblock_assignment_' + str(idx_most_recent) + '.json', 'r') as infile:
+                    reverted_pblock_assign_dict = json.load(infile)
+                os.system('rm ./input_src/' + benchmark + '/params/visited/NoC_succ_pblock_assignment_' + str(idx_most_recent) + '.json')
+            else:
+                assert(param_success_file.startswith('mono_succ'))
+                overlay_type_success = 'mono'
+                reverted_pblock_assign_dict = None
+
+            with open('./input_src/' + benchmark + '/params/visited/' + overlay_type_success + '_succ_param_' + str(idx_most_recent) + '.json', 'r') as infile:
+                reveretd_cur_param_dict = json.load(infile)
+            os.system('rm ./input_src/' + benchmark + '/params/visited/' + overlay_type_success + '_succ_param_' + str(idx_most_recent) + '.json')
+            os.system('mv ./input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt ' + \
+                         './_bi_results/' + benchmark + '/tmp_results.txt')
+            os.system('mv ./input_src/' + benchmark + '/params/visited/summary_' + str(idx_most_recent) + '.csv ' + \
+                         './_bi_results/' + benchmark + '/tmp_summary.csv')
+
+            # Save current results, which were successful but didn't improve performance
+            if overlay_type == 'NoC':
+                with open('./input_src/' + benchmark + '/params/visited/NoC_succ_pblock_assignment_' + str(idx_most_recent) + '.json', 'w') as outfile:
+                    json.dump(prev_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+
+            with open('./input_src/' + benchmark + '/params/visited/' + overlay_type + '_succ_param_' + str(idx_most_recent) + '.json', 'w') as outfile:
+                json.dump(prev_param_dict, outfile, sort_keys=True, indent=4)
             os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + './input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt')
+            os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + './input_src/' + benchmark + '/params/visited/summary_' + str(idx_most_recent) + '.csv')
 
-            # param_dict, pblock_assign_dict, results.txt all reverted
-            os.system('cp ./_bi_results/' + benchmark + '/tmp.txt ./_bi_results/' + benchmark + '/results.txt')
-            return reveretd_cur_param_dict, reverted_pblock_assign_dict
+            os.system('cp ./_bi_results/' + benchmark + '/tmp_results.txt ./_bi_results/' + benchmark + '/results.txt')
+            os.system('cp ./_bi_results/' + benchmark + '/tmp_summary.csv ./_bi_results/' + benchmark + '/summary.csv')
+            return overlay_type_success, reveretd_cur_param_dict, reverted_pblock_assign_dict
         else:
             raise Exception("The first run should be always better than the default fom value")
 
 
-
-def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict):
-    #############################################
-    ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict.json
-    #############################################
+def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, prev_page_assign_dict, cnt_dict):
     # For each link in the graph, full_diff = sender's full cnt - receiver's full cnt
     #     => if the link's full_diff is large, NoC could be bottleneck
     # For each link in the graph, empty_diff = receiver's empty_cnt - sedner's empty_cnt
     #     => if the link's empty_diff is large, NoC could be bottleneck
     # Thus, take average of full_diff and empty_diff 
 
-    operator_list = list(cur_page_assign_dict.keys())
+    operator_list = list(prev_page_assign_dict.keys())
     # print(operator_list)
 
     operator_arg_dict = return_operator_io_argument_dict_local(operator_list, benchmark)
@@ -383,7 +439,9 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, cur_page_assign_d
     return cur_param_dict
 
 
-def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy):
+def update_cur_param(benchmark, prev_param_dict, prev_page_assign_dict, cnt_dict, accuracy, minimum_accuracy):
+    # Load previous parameter dictionary and will update this
+    cur_param_dict = prev_param_dict
 
     with open('./input_src/' + benchmark + '/params_annotate.json', 'r') as infile:
         params_annotate_dict = json.load(infile)
@@ -394,7 +452,9 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
         params_search_space_dict = json.load(infile)
     # print(params_search_space_dict)
 
-    # Find the bottleneck operator
+    ###############################
+    ## Bottleneck identification ##
+    ###############################
     min_stall = sys.maxsize
     bottleneck_op = None
     print()
@@ -409,9 +469,11 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
     print("bottleneck_op: ")
     print(bottleneck_op, min_stall)
 
-    cur_param_dict = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict)
+    #############################################
+    ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict
+    #############################################
+    cur_param_dict = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, prev_page_assign_dict, cnt_dict)
     # print(cur_param_dict)
-    # return False
 
     if minimum_accuracy != -1: # Benchmarks that have accuracy metric like Digit Recognition, Optical Flow, etc
         if accuracy > minimum_accuracy:
@@ -422,9 +484,9 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
         metric = "latency"
 
     ######################
-    ## Parameter tuning ## ==> update cur_param_dict.json
+    ## Parameter tuning ## ==> update cur_param_dict and save cur_param_dict.json
     ######################
-    # - If param space is all explored or not enough area, them move to monolithic
+    # - Explore parameter to improve accuracy first, and then improve other metrics like latency 
     # - Incrementally explore param like par factor first, and then increase kernel clk
     if metric == "accuracy":
         param_to_tune, new_param_val = None, None
@@ -478,22 +540,12 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
                         cur_param_dict[op][param_to_tune] = new_param_val
                 print(cur_param_dict)
 
-            idx = prev_param_idx()
-            os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ' + \
-                         './input_src/' + benchmark + '/params/visited/prev_param_' + str(idx) + '.json')
-            os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + \
-                         './input_src/' + benchmark + '/params/visited/results_' + str(idx) + '.txt')
-            os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + \
-                         './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
-            os.system('cp ./workspace/F003_syn_' + benchmark + '/pblock_assignment.json ' + \
-                         './input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx) + '.json')
-
             with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
                 json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
             return False, metric
         else:
-            # with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
-            #     json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+            with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
+                json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
             return True, metric
 
     else:
@@ -555,110 +607,136 @@ def update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, 
                         cur_param_dict[op][param_to_tune] = new_param_val
                 print(cur_param_dict)
 
-            idx = prev_param_idx()
-            os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ' + \
-                         './input_src/' + benchmark + '/params/visited/prev_param_' + str(idx) + '.json')
-            os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + \
-                         './input_src/' + benchmark + '/params/visited/results_' + str(idx) + '.txt')
-            os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + \
-                         './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
-            os.system('cp ./workspace/F003_syn_' + benchmark + '/pblock_assignment.json ' + \
-                         './input_src/' + benchmark + '/params/visited/prev_pblock_assignment_' + str(idx) + '.json')
-
             with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
                 json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
             return False, metric
         else:
-            # with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
-            #     json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+            with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
+                json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
             return True, metric
+
+
+# Save cur_param.json, results.txt, summary.csv, pblock_assignment.json(if NoC ver.)
+def save_prev_param(benchmark, prev_param_dict, prev_pblock_assign_dict, prev_overlay_type):
+    param_success_file, idx_most_recent = prev_param_success_file_idx()
+    idx = idx_most_recent + 1
+
+    with open('./input_src/' + benchmark + '/params/visited/' + prev_overlay_type + '_succ_param_' + str(idx) + '.json', 'w') as outfile:
+        json.dump(prev_param_dict, outfile, sort_keys=True, indent=4)
+
+    with open('./input_src/' + benchmark + '/params/visited/' + prev_overlay_type + '_succ_pblock_assignment_' + str(idx) + '.json', 'w') as outfile:
+        json.dump(prev_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+
+    os.system('cp ./_bi_results/' + benchmark + '/results.txt ' + \
+                 './input_src/' + benchmark + '/params/visited/results_' + str(idx) + '.txt')
+
+    os.system('cp ./_bi_results/' + benchmark + '/summary.csv ' + \
+                 './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
+    # os.system('cp ./input_src/' + benchmark + '/params/cur_param.json ' + \
+    #              './input_src/' + benchmark + '/params/visited/' + prev_overlay_type + '_succ_param_' + str(idx) + '.json')
+
+    # os.system('cp ./workspace/F003_syn_' + benchmark + '/pblock_assignment.json ' + \
+    #              './input_src/' + benchmark + '/params/visited/' + prev_overlay_type + '_succ_pblock_assignment_' + str(idx) + '.json')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b',         '--benchmark',                       required = True)
-    parser.add_argument('-t',         '--timing_violate',                  action='store_true')
-    parser.add_argument('-p',         '--pblock_not_enough_area',          action='store_true')
+    parser.add_argument('-s',         '--NoC_success',                     action='store_true')
+    parser.add_argument('-t',         '--NoC_timing_violate',              action='store_true')
+    parser.add_argument('-ms',        '--monolithic_success',              action='store_true')
+    parser.add_argument('-mf',        '--monolithic_fail',                 action='store_true')
+    parser.add_argument('-a',         '--minimum_accuracy',                default = -1)
+
     args = parser.parse_args()
-
-    benchmark = args.bottleneck
-    is_timing_violate = args.timing_violate
-    pblock_not_enough_area = args.timing_violate
-    # benchmark = 'rendering'
-
-    minimum_accuracy = -1
+    benchmark = args.benchmark
+    is_NoC_success = args.NoC_success
+    is_NoC_timing_violate = args.NoC_timing_violate
+    is_monolithic_success = args.monolithic_success
+    is_monolithic_fail = args.monolithic_fail
+    minimum_accuracy = args.minimum_accuracy
     error_margin = 0.05
-
     os.system('mkdir -p ./input_src/' + benchmark + 'params/visited')
 
+
     with open('./input_src/' + benchmark + '/params/cur_param.json', 'r') as infile:
-        cur_param_dict = json.load(infile)
+        prev_param_dict = json.load(infile)
 
-    with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
-        cur_pblock_assign_dict = json.load(infile)
-    cur_page_assign_dict = get_page_assign_dict(cur_pblock_assign_dict)
 
-    # page_assign_dict = {"rasterization2_m": [12,13,14,15], "data_transfer": [4], ...} # multiple leaf interfaces
-    # print(page_assign_dict)
+    # Previous run failed
+    if is_NoC_timing_violate or is_monolithic_fail:
+        if is_NoC_timing_violate: 
+            fail_type = 'NoC_timing'
+            overlay_type = 'NoC'
+            with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
+                prev_pblock_assign_dict = json.load(infile)
+        else:
+            fail_type = 'mono_fail'
+            overlay_type = 'mono'
+            prev_pblock_assign_dict = None
 
-    if is_timing_violate:
-        cur_param_dict, cur_pblock_assign_dict = revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = True)
+        prev_param_dict, prev_pblock_assign_dict, prev_overlay_type = revert_cur_param(benchmark, prev_param_dict, prev_pblock_assign_dict,
+                                                                                       overlay_type = overlay_type, fail_type = fail_type)
         print("Param, reverted")
-        print(cur_param_dict)
-        cur_page_assign_dict = get_page_assign_dict(cur_pblock_assign_dict)
+        print(prev_param_dict)
+        prev_page_assign_dict = get_page_assign_dict(prev_pblock_assign_dict)
+        save_prev_param(benchmark, prev_param_dict, prev_pblock_assign_dict, prev_overlay_type)
 
-        latency, accuracy, cnt_dict = coutner_dict(benchmark, cur_page_assign_dict) # use old result
-        move_to_mono, metric = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
+        latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_page_assign_dict) # use reverted summary.csv
+        no_valid_param, metric = update_cur_param(benchmark, prev_param_dict, prev_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
 
-    elif pblock_not_enough_area is not None:
-        print('Not enough area for pblock. Move to monolithic!')
-        # return False
-
+    # Previous run was successful
     else:
-        latency, accuracy, cnt_dict = coutner_dict(benchmark, cur_page_assign_dict)
+        latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_page_assign_dict)
         print(latency, accuracy)
         print(cnt_dict)
 
-        # # Find the bottleneck operator
-        # min_stall = sys.maxsize
-        # bottleneck_op = None
-        # print()
-        # for op_name in cnt_dict:
-        #     stall_cnt = cnt_dict[op_name][0]['stall']
-        #     print(op_name, str(stall_cnt))
-
-        #     if stall_cnt < min_stall:
-        #         min_stall = stall_cnt
-        #         bottleneck_op = op_name
-        # print()
-        # print("bottleneck_op: ")
-        # print(bottleneck_op, min_stall)
-
-        if not os.path.isfile('./input_src/' + benchmark + '/params/best.txt'):
-            os.system('cp ./input_src/' + benchmark + '/params/best_init.txt ' + './input_src/' + benchmark + '/params/best.txt')
-
-        with open('./input_src/' + benchmark + '/params/best.txt', 'r') as infile:
-            best_latency = float(infile.read())
-
+        best_latency = get_best_latency(benchmark)
         # print(best_latency)
         # print(latency)
-        # TODO: if stall counter didn't improved from the previous?
-        if latency*(1-error_margin) > best_latency: # not improved
-            cur_param_dict, cur_pblock_assign_dict = revert_cur_param(benchmark, cur_param_dict, cur_pblock_assign_dict, is_timing_violate = False)
-            print("Param, reverted")
-            print(cur_param_dict)
-            cur_page_assign_dict = get_page_assign_dict(cur_pblock_assign_dict)
+
+        if is_NoC_success: 
+            overlay_type = 'NoC'
+            with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
+                prev_pblock_assign_dict = json.load(infile)
         else:
+            assert(is_monolithic_success == True)
+            overlay_type = 'mono'
+            prev_pblock_assign_dict = None
+
+        # If previous run didn't improve the latency, revert and save the previous param
+        if latency*(1-error_margin) > best_latency:
+            prev_param_dict, prev_pblock_assign_dict, prev_overlay_type = revert_cur_param(benchmark, prev_param_dict, prev_pblock_assign_dict,
+                                                                                           overlay_type = overlay_type, fail_type = None)
+            print("Param, reverted")
+            print(prev_param_dict)
+            prev_page_assign_dict = get_page_assign_dict(prev_pblock_assign_dict)
+            # prev_page_assign_dict = {"rasterization2_m": [12,13,14,15], "data_transfer": [4], ...} # multiple leaf interfaces
+            # print(prev_page_assign_dict)
+            save_prev_param(benchmark, prev_param_dict, prev_pblock_assign_dict, prev_overlay_type)
+
+        # If previous run improved the latency, save the previous param
+        else:
+            save_prev_param(benchmark, prev_param_dict, prev_pblock_assign_dict, overlay_type)
             if latency < best_latency:
                 # Update the best latency
                 with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
                     outfile.write(str(latency))
-        move_to_mono, metric = update_cur_param(benchmark, cur_param_dict, cur_page_assign_dict, cnt_dict, accuracy, minimum_accuracy)
 
-    # print(move_to_mono)
-    if move_to_mono:
-        print('Can not improve ' + str(metric) + ' anymore. Move to monolithic!')
-        # return False
+        no_valid_param, metric = update_cur_param(benchmark, prev_param_dict, prev_pblock_assign_dict, cnt_dict, accuracy, minimum_accuracy)
+
+    # Touch status flag
+    if overlay_type == 'NoC':
+        if no_valid_param:
+            print('Can not improve ' + str(metric) + ' anymore in NoC version. Move to monolithic!')
+            os.system('touch ./input_src/' + benchmark + '/__NoC_done__')
+        else:
+            print('>> NoC version: Next parameter is generated!')
     else:
-        print('Next parameter is generated!')
-        # return True
+        assert(overlay_type == 'mono')
+        if no_valid_param:
+            print('Can not improve ' + str(metric) + ' anymore in monolithic version.')
+            os.system('touch ./input_src/' + benchmark + '/__mono_done__')
+        else:
+            print('>> Monolithic version: Next parameter is generated!')
+

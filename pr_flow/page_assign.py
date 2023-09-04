@@ -24,10 +24,9 @@ class page_assign(gen_basic):
   # Stole from runtime.py
   # find all the operators arguments order
   # in case the user define the input and output arguments out of order 
-  def return_operator_io_argument_dict_local(self, operators):
-    operator_list = operators.split()
+  def return_operator_io_argument_dict_local(self, operators_list):
     operator_arg_dict = {}
-    for operator in operator_list:
+    for operator in operators_list:
       if operator != 'DMA':
         file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
         arguments_list = [] 
@@ -56,11 +55,10 @@ class page_assign(gen_basic):
 
   # Stole from runtime.py
   # find all the operators instantiation in the top function
-  def return_operator_inst_dict_local(self, operators):
-    operator_list = operators.split()
+  def return_operator_inst_dict_local(self, operators_list):
     operator_var_dict = {}
     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
-    for operator in operator_list:
+    for operator in operators_list:
       if (operator != 'DMA'):
         arguments_list = [] 
         
@@ -270,9 +268,15 @@ class page_assign(gen_basic):
   # pblock_in_range_resource_dict: part of util_all.json
   # op_resource_dict: util dict for ONE operator
   def update_assignment(self, pblock_in_range_resource_dict, pblock_op, op_resource_dict, 
-                              page_valid_dict, pblock_assign_dict, specs_dict, is_tightest = True):
+                              page_valid_dict, pblock_assign_dict, specs_dict, requirements, is_tightest = True):
     frequency = specs_dict[pblock_op]['kernel_clk']
     num_leaf_interface = specs_dict[pblock_op]['num_leaf_interface']
+
+    # e.g. requirements = {"data_transfer": 2, ... } indicates the minimum size the operator needs to be mapped
+    if pblock_op in requirements:
+      min_size = requirements[pblock_op]
+    else:
+      min_size = 1
 
     # iterate through pblock_in_range_resource_dict's page_num in ascending order
     # We don't need to, but for the debuging purposes..
@@ -292,8 +296,12 @@ class page_assign(gen_basic):
       # TODO: Fix line below
       if(is_fit_hard_result and 
         self.is_valid_pblock(page_valid_dict, pblock_name) and 
-        self.get_page_size(pblock_name) >= num_leaf_interface):
+        self.get_page_size(pblock_name) >= num_leaf_interface and 
+        self.get_page_size(pblock_name) >= min_size):
         possible_pblock_list.append(pblock_name)
+
+    # print("operator: " + pblock_op)
+    # print("possible pblock list: " + str(possible_pblock_list))
     # print("pblock_assign_dict:")
     # print(pblock_assign_dict)
 
@@ -367,22 +375,60 @@ class page_assign(gen_basic):
     return util_dict
 
 
+  # For double and quad pages, returns the average criteria value
+  # Take the average for the all pages and assume 50% filled in for each resource (LUT, LUT_mem, FF, BRAM, DSP)
+  def get_avg_criteria(self, min_size, pblock_all_resource_dict):
+    # get total resource available
+    with open(self.syn_dir + "/" + './resource.json', 'r') as infile:
+      resource_dict = json.load(infile)
+
+    cnt = 0
+    LUT_total, LUT_mem_total, FF_total, BRAM_total, DSP_total = 0, 0, 0, 0, 0
+    for pblock in pblock_all_resource_dict:
+      if self.get_page_size(pblock) == min_size:
+        LUT_total     += pblock_all_resource_dict[pblock]['LUT']
+        LUT_mem_total += pblock_all_resource_dict[pblock]['LUT_mem']
+        FF_total      += pblock_all_resource_dict[pblock]['FF']
+        BRAM_total    += pblock_all_resource_dict[pblock]['RAMB18']
+        DSP_total     += pblock_all_resource_dict[pblock]['DSP48E2']
+        cnt += 1
+
+    avg_LUT     = LUT_total     / cnt
+    avg_LUT_mem = LUT_mem_total / cnt
+    avg_FF      = FF_total      / cnt
+    avg_BRAM    = BRAM_total    / cnt
+    avg_DSP     = DSP_total     / cnt
+
+    LUT_logic_percent = float(avg_LUT)     / resource_dict['LUT'] 
+    LUT_mem_percent   = float(avg_LUT_mem) / resource_dict['LUT_mem']
+    FF_percent        = float(avg_FF)      / resource_dict['FF']
+    BRAM_percent      = float(avg_BRAM)    / resource_dict['RAMB18']
+    DSP_percent       = float(avg_DSP)     / resource_dict['DSP48E2']
+    criteria = LUT_logic_percent + LUT_mem_percent + FF_percent + BRAM_percent + DSP_percent
+    return criteria
+
+
   # Add criterial to operator's util_dict based on resource usage
-  def add_criteria_util_dict(self, util_dict):
+  def add_criteria_util_dict(self, util_dict, pblock_all_resource_dict, requirements):
     # get total resource available
     with open(self.syn_dir + "/" + './resource.json', 'r') as infile:
       resource_dict = json.load(infile)
 
     # add criteria to each op's resource dict
     for op in util_dict.keys():
-      LUT_logic_percent = float(util_dict[op]['LUT']) / resource_dict['LUT'] 
-      LUT_mem_percent = float(util_dict[op]['LUT_mem']) / resource_dict['LUT_mem']
-      FF_percent = float(util_dict[op]['FF']) / resource_dict['FF']
-      BRAM_percent = float(util_dict[op]['RAMB18']) / resource_dict['RAMB18']
-      DSP_percent = float(util_dict[op]['DSP48E2']) / resource_dict['DSP48E2']
-      criteria = LUT_logic_percent + LUT_mem_percent + FF_percent + BRAM_percent + DSP_percent
-      # print(criteria)
-      util_dict[op]['criteria'] = criteria
+      if op not in requirements:
+        LUT_logic_percent = float(util_dict[op]['LUT'])     / resource_dict['LUT'] 
+        LUT_mem_percent   = float(util_dict[op]['LUT_mem']) / resource_dict['LUT_mem']
+        FF_percent        = float(util_dict[op]['FF'])      / resource_dict['FF']
+        BRAM_percent      = float(util_dict[op]['RAMB18'])  / resource_dict['RAMB18']
+        DSP_percent       = float(util_dict[op]['DSP48E2']) / resource_dict['DSP48E2']
+        criteria = LUT_logic_percent + LUT_mem_percent + FF_percent + BRAM_percent + DSP_percent
+        # print(criteria)
+        util_dict[op]['criteria'] = criteria
+      else:
+        min_size = requirements[op]
+        criteria = self.get_avg_criteria(min_size, pblock_all_resource_dict)
+        util_dict[op]['criteria'] = criteria        
 
     return util_dict
 
@@ -398,7 +444,7 @@ class page_assign(gen_basic):
   # Makes sure that all operators are mappable and outputs node weights
   # This page assignment is capacity-based(NoC congestion is not considered), greedy
   def gen_greedy_node_weight_dict(self, util_dict_selected, 
-                                 pblock_in_range_resource_dict, specs_dict):
+                                 pblock_in_range_resource_dict, specs_dict, requirements):
     page_valid_dict = {'2': None, '3': None, '4': None, '5': None, '6': None, '7': None, '8': None, 
         '9': None, '10': None, '11': None, '12': None, '13': None, '14': None, '15': None, '16': None, 
         '17': None, '18': None, '19': None, '20': None, '21': None, '22': None, '23': None}
@@ -412,7 +458,7 @@ class page_assign(gen_basic):
       # print(op, op_resource_tuple)
 
       self.update_assignment(pblock_in_range_resource_dict, op, op_resource_dict, 
-                               page_valid_dict, pblock_assign_dict, specs_dict)
+                               page_valid_dict, pblock_assign_dict, specs_dict, requirements)
 
     operators_list = list(util_dict_selected.keys())
     # print(operators_list)
@@ -433,7 +479,7 @@ class page_assign(gen_basic):
   def check_is_fit_subtree(self, operators_subtree, 
                                  pblock_all_resource_dict, util_dict, 
                                  low, high, 
-                                 specs_dict):
+                                 specs_dict, requirements):
     if(low == 0 or low == 1):
       low = 2
     page_valid_dict = {}
@@ -452,10 +498,10 @@ class page_assign(gen_basic):
 
       if len(util_dict) == 1: # when there's only one op to map in the subtree, try the largest first
         self.update_assignment(pblock_in_range_resource_dict, op, op_resource_dict, 
-                                 page_valid_dict, pblock_assign_dict, specs_dict, False)
+                                 page_valid_dict, pblock_assign_dict, specs_dict, requirements, False)
       else:
         self.update_assignment(pblock_in_range_resource_dict, op, op_resource_dict, 
-                                 page_valid_dict, pblock_assign_dict, specs_dict)
+                                 page_valid_dict, pblock_assign_dict, specs_dict, requirements)
 
     node_weight_dict = {}
     # print("node_weight_dict")
@@ -467,7 +513,7 @@ class page_assign(gen_basic):
 
 
   # As the current BFT has 24 leaves, initially need to divide into 3 parts
-  def assign_3(self, ops_dma, util_dict, pblock_all_resource_dict, partitioned_file, specs_dict):
+  def assign_3(self, ops_dma, util_dict, pblock_all_resource_dict, partitioned_file, specs_dict, requirements):
 
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
@@ -494,7 +540,7 @@ class page_assign(gen_basic):
     node_w_dict_0, is_fit_subtree_0 = self.check_is_fit_subtree(ops_0, 
                                                                 pblock_all_resource_dict, util_dict_0, 
                                                                 0, 7, 
-                                                                specs_dict)
+                                                                specs_dict, requirements)
     node_w_dict_0['DMA'] = '2'
     # print(node_w_dict_0)
     # print(is_fit_subtree_0)
@@ -504,7 +550,7 @@ class page_assign(gen_basic):
     node_w_dict_1, is_fit_subtree_1 = self.check_is_fit_subtree(ops_1, 
                                                                 pblock_all_resource_dict, util_dict_1, 
                                                                 8, 15, 
-                                                                specs_dict)
+                                                                specs_dict, requirements)
     # print(node_w_dict_1)
     # print(is_fit_subtree_1)
 
@@ -513,7 +559,7 @@ class page_assign(gen_basic):
     node_w_dict_2, is_fit_subtree_2 = self.check_is_fit_subtree(ops_2, 
                                                                 pblock_all_resource_dict, util_dict_2, 
                                                                 16, 23, 
-                                                                specs_dict)
+                                                                specs_dict, requirements)
     # print(node_w_dict_2)
     # print(is_fit_subtree_2)
 
@@ -526,19 +572,19 @@ class page_assign(gen_basic):
       util_dict_1 = self.get_util_dict_sub(ops_1, util_dict)
       node_w_dict_1, is_fit_subtree_1 = self.check_is_fit_subtree(ops_1, 
                                                                   pblock_all_resource_dict, util_dict_1, 
-                                                                  8, 15, specs_dict)
+                                                                  8, 15, specs_dict, requirements)
       # print(is_fit_subtree_1)
 
       ops_2 = [ops_dma[idx] for idx in range(len(parts)) if parts[idx] == '2']
       util_dict_2 = self.get_util_dict_sub(ops_2, util_dict)
       node_w_dict_2, is_fit_subtree_2 = self.check_is_fit_subtree(ops_2, 
                                                                   pblock_all_resource_dict, util_dict_2, 
-                                                                  16, 23, specs_dict)
+                                                                  16, 23, specs_dict, requirements)
       # print(is_fit_subtree_2)
 
 
     if(not is_fit_subtree_0 or not is_fit_subtree_1 or not is_fit_subtree_2):
-      node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict)
+      node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict, requirements)
       ops_0, ops_1, ops_2, node_w_dict_0, node_w_dict_1, node_w_dict_2 = self.assign_3_greedy(pblock_assign_dict_greedy)
 
     return ops_0, ops_1, ops_2, node_w_dict_0, node_w_dict_1, node_w_dict_2, parts
@@ -547,20 +593,20 @@ class page_assign(gen_basic):
   # Stole from runtime.py, originally "add_bft_config_to_host_cpp"
   # For input operators, this function generates graphfile from top.cpp
   # Also Generates _operators.txt and _nodes_w.txt(node weight dictionary)
-  def gen_graphfile(self, operators, node_w_dict, is_first_graph, graph_name):
+  def gen_graphfile(self, operators_list, node_w_dict, is_first_graph, graph_name):
 
-    operator_arg_dict = self.return_operator_io_argument_dict_local(operators)
+    operator_arg_dict = self.return_operator_io_argument_dict_local(operators_list)
     print(operator_arg_dict)
     # operator_arg_dict, e.g. {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], 'rasterization2_m': .. }
 
-    operator_var_dict = self.return_operator_inst_dict_local(operators)
+    operator_var_dict = self.return_operator_inst_dict_local(operators_list)
     print(operator_var_dict)
     # operator_var_dict, e.g. {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
 
     if(is_first_graph):
-      operators_dma = ["DMA"] + operators.split()
+      operators_dma = ["DMA"] + operators_list
     else:
-      operators_dma = operators.split()
+      operators_dma = operators_list
     print(operators_dma)
 
     connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict, operators_dma)
@@ -692,7 +738,7 @@ class page_assign(gen_basic):
                      util_dict, pblock_all_resource_dict, 
                      partitioned_file,
                      subtree_size, start,
-                     specs_dict):
+                     specs_dict, requirements):
 
     with open(partitioned_file, "r") as infile:
       parts = infile.readlines()
@@ -723,7 +769,7 @@ class page_assign(gen_basic):
     node_w_dict_0, is_fit_subtree_0 = self.check_is_fit_subtree(ops_0, 
                                                                 pblock_all_resource_dict, util_dict_0, 
                                                                 start, start+subtree_size//2-1, 
-                                                                specs_dict)
+                                                                specs_dict, requirements)
     print("node_w_dict_0")
     print(node_w_dict_0)
     if('DMA' in ops):
@@ -735,7 +781,7 @@ class page_assign(gen_basic):
     node_w_dict_1, is_fit_subtree_1 = self.check_is_fit_subtree(ops_1, 
                                                                 pblock_all_resource_dict, util_dict_1, 
                                                                 start+subtree_size//2, start+subtree_size-1, 
-                                                                specs_dict)
+                                                                specs_dict, requirements)
     print("node_w_dict_1")
     print(node_w_dict_1)
     print(is_fit_subtree_1)
@@ -750,7 +796,7 @@ class page_assign(gen_basic):
       node_w_dict_0, is_fit_subtree_0 = self.check_is_fit_subtree(ops_0, 
                                                                   pblock_all_resource_dict, util_dict_1, 
                                                                   start, start+subtree_size//2-1, 
-                                                                  specs_dict)
+                                                                  specs_dict, requirements)
       # print(is_fit_subtree_0)
 
       ops_1 = [ops[idx] for idx in range(len(parts)) if parts[idx] == '1']
@@ -758,7 +804,7 @@ class page_assign(gen_basic):
       node_w_dict_1, is_fit_subtree_1 = self.check_is_fit_subtree(ops_1, 
                                                                   pblock_all_resource_dict, util_dict_1, 
                                                                   start+subtree_size//2, start+subtree_size-1, 
-                                                                  specs_dict)
+                                                                  specs_dict, requirements)
       # print(is_fit_subtree_1)
 
     # Through Error for now
@@ -771,7 +817,7 @@ class page_assign(gen_basic):
       print(util_dict_01)
       print(pblock_in_range_resource_dict)
       print(ops)
-      node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict_01, pblock_in_range_resource_dict, specs_dict)
+      node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict_01, pblock_in_range_resource_dict, specs_dict, requirements)
       print(node_w_dict)
       print(pblock_assign_dict_greedy)
       ops_0, ops_1, node_w_dict_0, node_w_dict_1 = self.assign_2_greedy(pblock_assign_dict_greedy, low, high)
@@ -809,11 +855,11 @@ class page_assign(gen_basic):
   def recursive_bisect(self, ops, 
                              node_w_dict, util_dict, pblock_all_resource_dict,
                              subtree_size, start, filename, append, parts_sub,
-                             specs_dict, tag):
+                             specs_dict, tag, requirements):
     if len(node_w_dict) > 1:
       filename = filename + append
       is_first_graph = False
-      graphfile, ops, num_edges = self.gen_graphfile(' '.join(ops), node_w_dict, is_first_graph, filename)
+      graphfile, ops, num_edges = self.gen_graphfile(ops, node_w_dict, is_first_graph, filename)
       partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "/" +\
                           str(filename) + "_graphfile" + ".part.2"
       if(num_edges > 0):
@@ -822,7 +868,7 @@ class page_assign(gen_basic):
         self.gen_partition_rand(ops, partitioned_file)
 
       ops_l, ops_r, node_w_dict_l, node_w_dict_r = \
-          self.assign_2(ops, util_dict, pblock_all_resource_dict, partitioned_file, subtree_size, start, specs_dict)
+          self.assign_2(ops, util_dict, pblock_all_resource_dict, partitioned_file, subtree_size, start, specs_dict, requirements)
       self.update_parts(parts_sub, ops_l, ops_r, subtree_size//2, tag)
       # self.update_node_w(node_w_dict, node_w_dict_l, node_w_dict_r)
       # # node_w_dict is updated at this point
@@ -834,13 +880,13 @@ class page_assign(gen_basic):
       self.recursive_bisect(ops_l, 
                             node_w_dict_l, util_dict, pblock_all_resource_dict, 
                             subtree_size//2, start, filename, '_l', parts_sub, 
-                            specs_dict, tag)
+                            specs_dict, tag, requirements)
       # node_w_dict_l is updated at this point
 
       self.recursive_bisect(ops_r, 
                             node_w_dict_r, util_dict, pblock_all_resource_dict,
                             subtree_size//2, start+subtree_size//2, filename, '_r', parts_sub, 
-                            specs_dict, tag)
+                            specs_dict, tag, requirements)
       # node_w_dict_r is updated at this point
 
       self.update_node_w(node_w_dict, node_w_dict_l, node_w_dict_r)
@@ -924,43 +970,80 @@ class page_assign(gen_basic):
       return False
 
 
+  # For ops in operators_list, increment the pblock size based on the previous mapping (pblock.json)
+  def increment_pblock_size(self, operators_list):
+    requirements = {}
+    for op in operators_list:
+      with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
+        old_pblock_dict = json.load(infile)
+        pblock_name_old = old_pblock_dict['pblock']
+        page_num_old = old_pblock_dict['page_num']
+
+      if self.get_page_size(pblock_name_old) == 1:
+        requirements[op] = 2
+      elif self.get_page_size(pblock_name_old) == 2:
+        requirements[op] = 4
+      elif self.get_page_size(pblock_name_old) == 4:
+        raise Exception(op + " was already mapped to the quad page")
+
+    return requirements
+
 
   def run(self, operators):
-    operators_list = self.get_pblock_operators_list(self.prflow_params['benchmark_name'])
-    # print(operators_list)
-    # e.g. operators_list = ["coloringFB_bot_m", "data_redir_m", ... , "zculling_top"]
+    operators_tmp_list = operators.split()
+    print(operators_tmp_list)
+    # e.g. operators_tmp_list could be either the full list of operators or the list of previously failed operators in implementation
+
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
+      specs_dict = json.load(infile)
+
+    operators_list = list(specs_dict.keys()) # operators_list is the full list of operators
 
     util_dict = self.get_util_dict(operators_list)
     # print(util_dict)
     # e.g.: at this point, util_dict = {"coloringFB_bot_m": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ...}, 
     #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ...}, ... }
-    util_dict = self.add_criteria_util_dict(util_dict)
-    # print(util_dict)
-    # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
-    #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
 
     overlay_util_json_file = self.overlay_dir + "/ydma/zcu102/" + self.prflow_params['overlay_freq'] + "MHz/" + \
                                                 "zcu102_dfx_manual/" + self.prflow_params['overlay_n'] + "/util_all.json"
     with open(overlay_util_json_file, 'r') as infile:
       pblock_all_resource_dict = json.load(infile)
 
-    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
-      specs_dict = json.load(infile)
 
-    if self.is_prev_map_works(operators_list, specs_dict, pblock_all_resource_dict, util_dict):
-      return # Finished
+    # Previous page assignment failed in implementation
+    if operators_tmp_list != operators_list:
+      # Set requirements and revert operators_list to normal
+      requirements = self.increment_pblock_size(operators_tmp_list)
+      util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
+      # print(util_dict)
+      # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
+      #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
+    else:
+      requirements = {}
+      util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
+      # print(util_dict)
+      # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
+      #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
+      if self.is_prev_map_works(operators_list, specs_dict, pblock_all_resource_dict, util_dict):
+        return # Finished
+
+    if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
+      os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
+
+    print(requirements)
 
 
     # New page assginment starts
-    node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict)
+    node_w_dict, pblock_assign_dict_greedy = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict, requirements)
     print(node_w_dict)
 
     os.system('mkdir -p _graph_dir/' + self.prflow_params['benchmark_name'])
+    os.system('rm _graph_dir/' + self.prflow_params['benchmark_name'] + '/*')
     # print("operators")
     # print(operators)
     graph_name = "top"
     is_first_graph = True
-    graphfile, operators_dma, _ = self.gen_graphfile(operators, node_w_dict, is_first_graph, graph_name)
+    graphfile, operators_dma, _ = self.gen_graphfile(operators_list, node_w_dict, is_first_graph, graph_name)
     # print(graphfile)
     os.system('gpmetis -ptype=rb ' + graphfile + " " + "3" + " >/dev/null") # call Metis
     partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "/top_graphfile" + ".part.3"
@@ -968,7 +1051,7 @@ class page_assign(gen_basic):
 
     # Initially, split into 3 parts
     ops_0, ops_1, ops_2, node_w_dict_0, node_w_dict_1, node_w_dict_2, parts = \
-          self.assign_3(operators_dma, util_dict, pblock_all_resource_dict, partitioned_file, specs_dict)
+          self.assign_3(operators_dma, util_dict, pblock_all_resource_dict, partitioned_file, specs_dict, requirements)
 
     print()
     print("ops_0")
@@ -992,7 +1075,7 @@ class page_assign(gen_basic):
     self.recursive_bisect(ops_0, 
                           node_w_dict_0, util_dict, pblock_all_resource_dict, 
                           subtree_size, start_0, filename_0, "", parts_0,  
-                          specs_dict, tag_0)
+                          specs_dict, tag_0, requirements)
 
     start_1, filename_1 = 8, "top_p1"
     parts_1 = [8 for i in range(len(ops_1))]
@@ -1000,7 +1083,7 @@ class page_assign(gen_basic):
     self.recursive_bisect(ops_1, 
                           node_w_dict_1, util_dict, pblock_all_resource_dict, 
                           subtree_size, start_1, filename_1, "", parts_1,  
-                          specs_dict, tag_1)
+                          specs_dict, tag_1, requirements)
 
     start_2, filename_2 = 16, "top_p2"
     parts_2 = [16 for i in range(len(ops_2)) ]
@@ -1008,7 +1091,7 @@ class page_assign(gen_basic):
     self.recursive_bisect(ops_2, 
                           node_w_dict_2, util_dict, pblock_all_resource_dict, 
                           subtree_size, start_2, filename_2, "", parts_2,  
-                          specs_dict, tag_2)
+                          specs_dict, tag_2, requirements)
 
     pblock_assign_dict, page_assign_dict = self.get_assign_dict(ops_0, ops_1, ops_2, 
                                                                 parts_0, parts_1, parts_2,

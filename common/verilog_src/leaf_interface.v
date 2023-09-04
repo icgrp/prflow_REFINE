@@ -358,7 +358,7 @@ module leaf_interface #(
 
         .is_done(is_done_0), // clk(_bft) domain
         .is_done_user(is_done_user), // clk_user domain
-        .self_leaf_reg(self_leaf_reg_user), // clk_user domain, as self_leaf_reg_0 is static, no problem in CDC
+        .self_leaf(self_leaf_reg_user), // clk_user domain, as self_leaf_reg_0 is static, no problem in CDC
 
         .input_port_cluster_stall_condition_others(input_port_cluster_stall_condition_others),
         .output_port_cluster_stall_condition_others(output_port_cluster_stall_condition_others),

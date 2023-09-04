@@ -7,6 +7,7 @@
 `define OUTPUT_PORT_MIN_NUM 9
 
 module send_IO_queue_cnt #(
+    parameter NUM_LEAF_BITS = 6,
     parameter NUM_PORT_BITS = 4,
     parameter PAYLOAD_BITS = 32, 
     parameter NUM_IN_PORTS = 7, 
@@ -24,8 +25,11 @@ module send_IO_queue_cnt #(
     input [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_empty_cnt,
     input input_port_cluster_stall_condition,
     input output_port_cluster_stall_condition,
+    input [NUM_LEAF_BITS-1:0] self_leaf, // clk_user domain
+
     output reg is_sending_full_cnt_reg,
     output reg [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] cnt_val,
+    output reg [NUM_LEAF_BITS-1:0] self_leaf_reg,
     output reg [NUM_PORT_BITS-1:0] self_port_reg,
     output reg [1:0] cnt_type_reg // 3: full counter, 2: empty counter, 1: read coutner, 0: stall counter
 );
@@ -59,10 +63,13 @@ module send_IO_queue_cnt #(
             cnt_val <= 0;
             input_port_cnt_tmp <= 0;
             output_port_cnt_tmp <= 0;
+            self_leaf_reg <= 0;
             self_port_reg <= 0;
             cnt_type_reg <= 0;
         end
         else begin
+            self_leaf_reg <= self_leaf; // stays static
+
             if(is_done_user) begin // doesn't matter whether it's asserted for 1 cycle or 3 cycles
                 is_sending_full_cnt_reg <= 1;
             end

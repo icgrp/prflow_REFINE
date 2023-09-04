@@ -169,13 +169,13 @@ module Output_Port#(
       .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
       // .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
       .FIFO_WRITE_DEPTH          (512),             //positive integer
-      .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
+      .WRITE_DATA_WIDTH          (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2 + PAYLOAD_BITS),               //positive integer
       .WR_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
       .PROG_FULL_THRESH          (10),               //positive integer
       .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
       .READ_MODE                 ("std"),            //string; "std" or "fwft";
       .FIFO_READ_LATENCY         (1),                //positive integer;
-      .READ_DATA_WIDTH           (PAYLOAD_BITS),               //positive integer
+      .READ_DATA_WIDTH           (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2  + PAYLOAD_BITS),               //positive integer
       .RD_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
       .PROG_EMPTY_THRESH         (10),               //positive integer
       .DOUT_RESET_VALUE          ("0"),              //string
@@ -187,13 +187,13 @@ module Output_Port#(
       .rst              (reset_user),
       .wr_clk           (clk_user),
       .wr_en            (wr_en),
-      .din              (din),
+      .din              ({is_sending_full_cnt_reg,self_leaf_reg,self_port_reg,cnt_type_reg,din}),
       .full             (full),
       .overflow         (), // not used
       .wr_rst_busy      (), // not used
       .rd_clk           (clk),
       .rd_en            (rd_en),
-      .dout             (dout),
+      .dout             ({is_sending_full_cnt,self_leaf,self_port,cnt_type,dout}),
       .empty            (empty),
       .underflow        (), // not used
       .rd_rst_busy      (), // not used
@@ -225,52 +225,52 @@ module Output_Port#(
     //     .rinc(rd_en)
     //     );
 
-    xpm_fifo_async # (
+    // xpm_fifo_async # (
 
-      .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", or "distributed";
-      .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
-      .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
-      // .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
-      .FIFO_WRITE_DEPTH          (16),             //positive integer
-      .WRITE_DATA_WIDTH          (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2),               //positive integer
-      .WR_DATA_COUNT_WIDTH       (),               //positive integer
-      .PROG_FULL_THRESH          (10),               //positive integer
-      .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
-      .READ_MODE                 ("std"),            //string; "std" or "fwft";
-      .FIFO_READ_LATENCY         (1),                //positive integer;
-      .READ_DATA_WIDTH           (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2),               //positive integer
-      .RD_DATA_COUNT_WIDTH       (),               //positive integer
-      .PROG_EMPTY_THRESH         (10),               //positive integer
-      .DOUT_RESET_VALUE          ("0"),              //string
-      .CDC_SYNC_STAGES           (2),                //positive integer
-      .WAKEUP_TIME               (0)                 //positive integer; 0 or 2;
+    //   .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", or "distributed";
+    //   .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
+    //   .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
+    //   // .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
+    //   .FIFO_WRITE_DEPTH          (16),             //positive integer
+    //   .WRITE_DATA_WIDTH          (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2),               //positive integer
+    //   .WR_DATA_COUNT_WIDTH       (),               //positive integer
+    //   .PROG_FULL_THRESH          (10),               //positive integer
+    //   .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
+    //   .READ_MODE                 ("std"),            //string; "std" or "fwft";
+    //   .FIFO_READ_LATENCY         (1),                //positive integer;
+    //   .READ_DATA_WIDTH           (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2),               //positive integer
+    //   .RD_DATA_COUNT_WIDTH       (),               //positive integer
+    //   .PROG_EMPTY_THRESH         (10),               //positive integer
+    //   .DOUT_RESET_VALUE          ("0"),              //string
+    //   .CDC_SYNC_STAGES           (2),                //positive integer
+    //   .WAKEUP_TIME               (0)                 //positive integer; 0 or 2;
 
-    ) xpm_fifo_async_small_inst (
+    // ) xpm_fifo_async_small_inst (
 
-      .rst              (reset_user),
-      .wr_clk           (clk_user),
-      .wr_en            (wr_en),
-      .din              ({is_sending_full_cnt_reg,self_leaf_reg,self_port_reg,cnt_type_reg}),
-      .full             (),
-      .overflow         (), // not used
-      .wr_rst_busy      (wr_rst_busy), // not used
-      .rd_clk           (clk),
-      .rd_en            (rd_en),
-      .dout             ({is_sending_full_cnt,self_leaf,self_port,cnt_type}),
-      .empty            (),
-      .underflow        (), // not used
-      .rd_rst_busy      (), // not used
-      .prog_full        (), // not used
-      .wr_data_count    (), // not used
-      .prog_empty       (), // not used
-      .rd_data_count    (), // not used
-      .sleep            (1'b0),
-      .injectsbiterr    (1'b0),
-      .injectdbiterr    (1'b0),
-      .sbiterr          (),
-      .dbiterr          ()
+    //   .rst              (reset_user),
+    //   .wr_clk           (clk_user),
+    //   .wr_en            (wr_en),
+    //   .din              ({is_sending_full_cnt_reg,self_leaf_reg,self_port_reg,cnt_type_reg}),
+    //   .full             (),
+    //   .overflow         (), // not used
+    //   .wr_rst_busy      (wr_rst_busy), // not used
+    //   .rd_clk           (clk),
+    //   .rd_en            (rd_en),
+    //   .dout             ({is_sending_full_cnt,self_leaf,self_port,cnt_type}),
+    //   .empty            (),
+    //   .underflow        (), // not used
+    //   .rd_rst_busy      (), // not used
+    //   .prog_full        (), // not used
+    //   .wr_data_count    (), // not used
+    //   .prog_empty       (), // not used
+    //   .rd_data_count    (), // not used
+    //   .sleep            (1'b0),
+    //   .injectsbiterr    (1'b0),
+    //   .injectdbiterr    (1'b0),
+    //   .sbiterr          (),
+    //   .dbiterr          ()
 
-    );
+    // );
 
 
     // SynFIFO SynFIFO_inst (

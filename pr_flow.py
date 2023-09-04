@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
   if prflow_params['gen_incremental'] == True:
     incr_inst = incr.incr(prflow_params)
-    incr_inst.run(operator, monitor_on = monitor_on)
+    incr_inst.run()
 
   if prflow_params['gen_page_assign'] == True:
     pg_inst = page_assign.page_assign(prflow_params)

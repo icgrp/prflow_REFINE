@@ -58,7 +58,7 @@ module Stream_Flow_Control#(
     
     input is_done, // clk(_bft) domain
     input is_done_user, // clk_user domain
-    input [NUM_LEAF_BITS-1:0] self_leaf_reg, // clk_user domain
+    input [NUM_LEAF_BITS-1:0] self_leaf, // clk_user domain
 
     input input_port_cluster_stall_condition_others,
     input output_port_cluster_stall_condition_others,
@@ -131,6 +131,7 @@ module Stream_Flow_Control#(
     wire output_port_cluster_stall_condition;
     wire is_sending_full_cnt_reg;
     wire [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] cnt_val;
+    wire [NUM_LEAF_BITS-1:0] self_leaf_reg;    
     wire [NUM_PORT_BITS-1:0] self_port_reg;
     wire [1:0] cnt_type_reg; // 3: full counter, 2: empty counter, 1: read coutner, 0: stall counter
 
@@ -139,6 +140,7 @@ module Stream_Flow_Control#(
     assign output_port_cluster_stall_condition_self = output_port_cluster_stall_condition;
 
     send_IO_queue_cnt #(
+        .NUM_LEAF_BITS(NUM_LEAF_BITS),
         .NUM_PORT_BITS(NUM_PORT_BITS),
         .PAYLOAD_BITS(PAYLOAD_BITS),
         .NUM_IN_PORTS(NUM_IN_PORTS),
@@ -156,8 +158,11 @@ module Stream_Flow_Control#(
         .output_port_empty_cnt(output_port_empty_cnt), // clk(_bft) domain
         .input_port_cluster_stall_condition(input_port_cluster_stall_condition || input_port_cluster_stall_condition_others),
         .output_port_cluster_stall_condition(output_port_cluster_stall_condition || output_port_cluster_stall_condition_others),
+        .self_leaf(self_leaf),
+
         .is_sending_full_cnt_reg(is_sending_full_cnt_reg), // output
         .cnt_val(cnt_val), // output
+        .self_leaf_reg(self_leaf_reg),
         .self_port_reg(self_port_reg),
         .cnt_type_reg(cnt_type_reg)
     );
