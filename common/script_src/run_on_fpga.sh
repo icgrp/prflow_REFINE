@@ -7,7 +7,7 @@ python counter_analyze.py -b BENCHMARK --NoC_success
 cd ./input_src/BENCHMARK/ && python gen_next_param.py
 cd -
 
-if [ -f ./input_src/BENCHMARK/__NoC_done__ ]; then
+if [ ! -f ./input_src/BENCHMARK/__NoC_done__ ]; then
     make incr_NoC -j$(nproc)
 else
     make incr_mono -j$(nproc)

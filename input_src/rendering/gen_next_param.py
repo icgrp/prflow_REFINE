@@ -713,10 +713,6 @@ def gen_output_data_header(par_zculling):
     return 'output_data', "\n".join(func_str_list)
 
 
-def prev_param_idx():
-    prev_param_file_list = [x for x in os.listdir("./params/visited/")\
-                                 if (x.startswith('prev_param_') and x.endswith('.json'))]
-    return len(prev_param_file_list)
 
 # Determine whether we need to write new src code
 def needs_write(func_name, filedata):
@@ -738,9 +734,8 @@ def needs_write(func_name, filedata):
                 # print(prev_filedata_header)
                 return True
 
-        idx = prev_param_idx()
-        if idx !=0:
-            with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
+        if os.path.isfile('./params/prev_param.json'):
+            with open('./params/prev_param.json', 'r') as infile:
                 prev_param_dict = json.load(infile)
 
             # 3) if param/kernel_clk changed

@@ -55,7 +55,7 @@ def main():
 
     else:
         if os.path.isfile('./zcu102/package/sd_card/mono.xclbin'):
-            os.system('touch __sucess__')
+            os.system('touch __success__')
         else:
             if os.path.isfile('./zcu102/package/mono_impl/dr_routed_timing.dcp'):
                 os.system('touch __timing_violation__')

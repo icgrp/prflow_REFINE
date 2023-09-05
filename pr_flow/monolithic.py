@@ -461,6 +461,11 @@ class monolithic(gen_basic):
     out_list.append('      end')
     out_list.append('      else begin')
 
+
+    mono_counter_idx_dict = {} # Will be used to interpret counter  values (counter_analyze.py)
+    # mono_counter_idx_dict, e.g. {'zculling_i4_Output_1->coloringFB_i1_Input_1': 7, ...
+    #                              'zculling_i4': 31, ...}
+
     cycle_cnt = 0
     for idx, connect_tup in enumerate(connection_list):
       out_list.append('        // stream shell ' + str(idx))
@@ -505,6 +510,9 @@ class monolithic(gen_basic):
       out_list.append('')
       cycle_cnt = cycle_cnt + 1
 
+      link_str = connect_tup[0]
+      mono_counter_idx_dict[link_str] = idx
+
     out_list.append('        // stall counters')
     for op in operator_arg_dict.keys():
       out_list.append('        else if (is_done_wait_cnt == WAIT_CNT + ' + str(cycle_cnt) + ') begin')
@@ -521,6 +529,10 @@ class monolithic(gen_basic):
       out_list.append('')
       cycle_cnt = cycle_cnt + 1
 
+      mono_counter_idx_dict[op] = cycle_cnt
+
+    print("mono_counter_idx_dict:")
+    print(mono_counter_idx_dict)
 
     out_list.append('        else begin')
     out_list.append('          Output_1_TDATA_reg <= 0;')
@@ -588,6 +600,7 @@ class monolithic(gen_basic):
 
     stream_shell_idx_dict = {}
     # stream_shell_idx_dict, e.g. {'coloringFB_bot_m_Output_1': 7, ...}
+
     for idx, connect_tup in enumerate(connection_list):
       link_str = connect_tup[0]
       # print(link_str)
@@ -634,6 +647,7 @@ class monolithic(gen_basic):
       out_list.append('    .empty(empty_' + str(idx) + '));')
       out_list.append('')
 
+    print("stream_shell_idx_dict:")
     print(stream_shell_idx_dict)
 
     for op in operator_arg_dict:
@@ -668,6 +682,7 @@ class monolithic(gen_basic):
       out_list.append('  );')
       out_list.append('')
 
+
       # operator instantiation
       out_list.append('  '+op+' '+op+'_inst(')
       out_list.append('    .ap_clk(clk_' + str(op_freq) + '),')
@@ -695,7 +710,7 @@ class monolithic(gen_basic):
 
     out_list.append('endmodule')
  
-    return out_list
+    return out_list, mono_counter_idx_dict
 
 
   def update_cad_path(self, base_dir, operators, overlay_freq, is_mono):
@@ -792,5 +807,9 @@ class monolithic(gen_basic):
       specs_dict = json.load(infile)
 
     # Generate mono.v
-    mono_v_list = self.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict, output_size, specs_dict)
+    mono_v_list, mono_counter_idx_dict = self.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict, output_size, specs_dict)
     self.shell.write_lines(self.mono_dir + '/' + self.prflow_params['board'] + '/mono_syn/mono_src/mono.v', mono_v_list)
+
+    # Save mono_counter_idx_dict for counter_analyze.py
+    with open(self.mono_dir + '/mono_counter_idx_dict.json', 'w') as outfile:
+      json.dump(mono_counter_idx_dict, outfile, sort_keys=True, indent=4)

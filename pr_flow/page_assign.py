@@ -1012,12 +1012,18 @@ class page_assign(gen_basic):
 
     # Previous page assignment failed in implementation
     if operators_tmp_list != operators_list:
+      if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
+        os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
+
       # Set requirements and revert operators_list to normal
       requirements = self.increment_pblock_size(operators_tmp_list)
       util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
       # print(util_dict)
       # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
       #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
+      with open(self.syn_dir + '/op_recompile_list.json', 'w') as outfile:
+        json.dump(operators_tmp_list, outfile, sort_keys=True, indent=4)
+
     else:
       requirements = {}
       util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
@@ -1026,9 +1032,8 @@ class page_assign(gen_basic):
       #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
       if self.is_prev_map_works(operators_list, specs_dict, pblock_all_resource_dict, util_dict):
         return # Finished
-
-    if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
-      os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
+      if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
+        os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
 
     print(requirements)
 

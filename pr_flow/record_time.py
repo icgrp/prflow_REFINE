@@ -221,13 +221,37 @@ class report(gen_basic):
     self.print_dict(timing_report_dict)
 
  
-  def run(self, operators_str):
+  def run(self, is_record_time_mono, is_impl_success, is_impl_timing, is_impl_fail):
+
+    # TODOs
+    # 1) ./input_src/rendering/ops_to_compile.json is created by gen_next_param.py
+    # 2) only measure compile time in ops_to_compile.json
+
+    if is_record_time_mono:
+      # Measure compile time for monolithic ==> should be stratight forward
+      # Append the compie time and impl result to ./input/rendering/params/
+    else:
+      if is_impl_success:
+        # Measure compile time for NoC ==> should be stratight forward
+        # Append the compie time and impl result to ./input/rendering/params/
+      elif is_impl_timing:
+        # Measure compile time for NoC ==> ops with timing violation may not have bit gen time
+        # Append the compie time and impl result to ./input/rendering/params/
+      elif is_impl_fail:
+        # Measure compile time for NoC ==> ops with impl failed may not have bit gen time
+        #                              ==> Also, there's a chance that this is subsequent trial with incremented pblock size
+        #                                  In this case, only **measure impl time, not hls or synth**
+        # Append the compie time and impl result to ./input/rendering/params/
+      else:
+        raise Exception("Invalid implementation results")
+
 
     self.shell.mkdir(self.rpt_dir)
     benchmark_name = self.prflow_params['benchmark_name']
     operators_list = operators_str.split() 
-    self.gen_resource_report(benchmark_name, operators_list)
-    self.gen_compile_time_report(benchmark_name, operators_list)
+    if(not is_routing_test):
+      self.gen_resource_report(benchmark_name, operators_list)
+      self.gen_compile_time_report(benchmark_name, operators_list)
     self.gen_timing_report(benchmark_name, operators_list)
     print('You can find the comile time report and resource report under: ./workspace/report')
 

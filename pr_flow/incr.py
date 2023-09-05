@@ -20,7 +20,6 @@ class incr(gen_basic):
     with open('./run_on_fpga.sh', 'w') as outfile:
       outfile.write(filedata)
 
-
     with open('./run_on_fpga_timing.sh', 'r') as infile:
       lines = infile.readlines()
     filedata = ''

@@ -447,7 +447,13 @@ class runtime(gen_basic):
     # mk work directory
     if self.prflow_params['gen_runtime']==True:
       self.shell.mkdir(self.bit_dir)
-    
+
+
+    # op_recompile_list.json was used to record incremental compile time
+    if(os.path.exists(self.syn_dir + '/op_recompile_list.json')):
+      os.system('rm ' + self.syn_dir + '/op_recompile_list.json')
+
+
     overlay_freq = self.prflow_params['overlay_freq']
     # prepare the host driver source for vitis runtime
     self.shell.cp_file('input_src/'+self.prflow_params['benchmark_name'], self.bit_dir)
