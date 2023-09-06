@@ -150,13 +150,20 @@ def get_best_latency(best_latency):
         best_latency = float(infile.read())
     return best_latency
 
-def checked_visited(operator, param_to_tune, new_param_val):
-    param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") \
-                            if ( ( x.startswith('NoC_succ_param_') or \
-                                   x.startswith('mono_succ_param_') or \
-                                   x.startswith('NoC_timing_param_') or \
-                                   x.startswith('mono_fail_param_') ) \
-                            and x.endswith('.json') )]
+def check_visited(overlay_type, operator, param_to_tune, new_param_val):
+    if overlay_type == 'NoC':
+        param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") \
+                                if ( ( x.startswith('NoC_succ_param_') or \
+                                       x.startswith('mono_succ_param_') or \
+                                       x.startswith('NoC_timing_param_') ) \
+                                and x.endswith('.json') )]
+    else: # In monolithic ver., don't care about failed parameters in NoC ver.
+        param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/") \
+                                if ( ( x.startswith('NoC_succ_param_') or \
+                                       x.startswith('mono_succ_param_') or \
+                                       x.startswith('mono_fail_param_') ) \
+                                and x.endswith('.json') )]
+
     for param_file in param_file_list:
         with open("./input_src/" + benchmark + "/params/visited/" + param_file, "r") as infile:
             param_dict = json.load(infile)
@@ -299,7 +306,7 @@ def coutner_mono_dict(benchmark, mono_counter_idx_dict):
 # ...
 def coutner_dict(benchmark, pblock_assign_dict):
     cnt_dict = {}
-    accuracy = 0
+    accuracy = -1
 
     page_assign_dict = get_page_assign_dict(pblock_assign_dict)
 
@@ -353,7 +360,7 @@ def coutner_dict(benchmark, pblock_assign_dict):
             # if line.startswith('elapsed time: '):
             #     latency = int(line.split()[2])
             if line.startswith('accuracy: '):
-                accuracy = int(line.split()[2])
+                accuracy = int(line.split()[1])
 
     with open("./_bi_results/" + benchmark + "/summary.csv", "r") as infile:
         lines = infile.readlines()
@@ -397,7 +404,7 @@ def param_fail_file_idx(fail_type):
     prev_param_file_list = [x for x in os.listdir("./input_src/" + benchmark + "/params/visited/")\
                                  if (x.startswith(fail_type + '_param_') and x.endswith('.json'))]
     if len(prev_param_file_list) != 0:
-        most_recent_file_name = fail_type + '_param_' + len(prev_param_file_list-1) + '.json'
+        most_recent_file_name = fail_type + '_param_' + str(len(prev_param_file_list)-1) + '.json'
     else:
         most_recent_file_name = None
     return  most_recent_file_name, len(prev_param_file_list)
@@ -442,7 +449,7 @@ def revert_cur_param(benchmark, prev_param_dict, prev_idx_dict, overlay_type = N
 
             os.system('mv ./input_src/' + benchmark + '/params/visited/results_' + str(idx_most_recent) + '.txt ' + \
                          './_bi_results/' + benchmark + '/results.txt')
-            os.system('mv ./input_src/' + benchmark + '/params/visited/summary_' + str(idx_most_recent) + '.txt ' + \
+            os.system('mv ./input_src/' + benchmark + '/params/visited/summary_' + str(idx_most_recent) + '.csv ' + \
                          './_bi_results/' + benchmark + '/summary.csv')
 
             return reveretd_cur_param_dict, reverted_idx_dict, overlay_type_success
@@ -566,7 +573,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     return cur_param_dict
 
 
-def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_accuracy):
+def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy):
     # Load previous parameter dictionary and will update this
     cur_param_dict = prev_param_dict
     operator_list = list(prev_param_dict.keys())
@@ -600,7 +607,8 @@ def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_acc
     #############################################
     ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict
     #############################################
-    cur_param_dict = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict)
+    if overlay_type == 'NoC':
+        cur_param_dict = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict)
     # print(cur_param_dict)
 
     if minimum_accuracy != -1: # Benchmarks that have accuracy metric like Digit Recognition, Optical Flow, etc
@@ -638,7 +646,7 @@ def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_acc
                 if cur_param_val != param_search_space[-1]:
                     # param_to_tune = param_acc
                     # new_param_val = param_search_space[param_search_space.index(cur_param_val) + 1]
-                    # if checked_visited(op_accuracy, param_to_tune, new_param_val):
+                    # if check_visited(op_accuracy, param_to_tune, new_param_val):
                     #     param_to_tune = None
                     #     new_param_val = None
                     idx = param_search_space.index(cur_param_val) + 1 # next param
@@ -646,7 +654,7 @@ def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_acc
                     while idx < len(param_search_space) and found == False:
                         param_to_tune = param_acc
                         new_param_val = param_search_space[idx]
-                        if checked_visited(op_accuracy, param_to_tune, new_param_val):
+                        if check_visited(overlay_type, op_accuracy, param_to_tune, new_param_val):
                             param_to_tune = None
                             new_param_val = None
                             idx = idx + 1
@@ -694,7 +702,7 @@ def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_acc
                     while idx < len(param_search_space) and found == False:
                         param_to_tune = param
                         new_param_val = param_search_space[idx]
-                        if checked_visited(bottleneck_op, param_to_tune, new_param_val):
+                        if check_visited(overlay_type, bottleneck_op, param_to_tune, new_param_val):
                             param_to_tune = None
                             new_param_val = None
                             idx = idx + 1
@@ -711,7 +719,7 @@ def update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_acc
                 while idx < len(param_search_space) and found == False:
                     param_to_tune = 'kernel_clk'
                     new_param_val = param_search_space[idx]
-                    if checked_visited(bottleneck_op, param_to_tune, new_param_val):
+                    if check_visited(overlay_type, bottleneck_op, param_to_tune, new_param_val):
                         param_to_tune = None
                         new_param_val = None
                         idx = idx + 1
@@ -808,11 +816,11 @@ if __name__ == '__main__':
         save_prev_param(benchmark, prev_param_dict, prev_idx_dict, prev_overlay_type)
 
         # TODO: prev_mono_counter_idx_dict
-        if overlay_type == 'NoC':
+        if prev_overlay_type == 'NoC':
             latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict) # use reverted summary.csv
         else:
             latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv            
-        no_valid_param, metric = update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
 
     # Previous run was successful
     else:
@@ -852,7 +860,7 @@ if __name__ == '__main__':
                 with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
                     outfile.write(str(latency))
 
-        no_valid_param, metric = update_cur_param(benchmark, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
 
 
     # Touch status flag

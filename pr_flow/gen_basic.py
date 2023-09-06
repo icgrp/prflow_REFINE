@@ -1530,7 +1530,7 @@ class _tcl:
       # 'create_clock -period ' + str(clk_period) +' -name clk [get_ports clk]', # add target clock
       'set_param general.maxThreads  8',
       'set_property XPM_LIBRARIES {XPM_CDC XPM_MEMORY XPM_FIFO} [current_project]',
-      'set logFileId [open ./runLog_'+fun_name+'.log "w"]',
+      'set logFileId [open ./run_log_'+fun_name+'.log "w"]',
       'set start_time [clock seconds]',
       'set_param general.maxThreads  8 ',
       'add_files -fileset constrs_1 -norecurse syn.xdc',
@@ -1556,7 +1556,7 @@ class _tcl:
 
   def return_hls_tcl_list(self, fun_name, path='../..', clk_user="5.0"):
     lines_list = []
-    lines_list.append('set logFileId [open ./runLog' + fun_name + '.log "w"]')
+    lines_list.append('set logFileId [open ./run_log_' + fun_name + '.log "w"]')
     lines_list.append('set_param general.maxThreads ' + self.prflow_params['maxThreads'] + ' ')
     lines_list.append('set start_time [clock seconds]')                     
     lines_list.append('open_project ' + fun_name + '_prj')                  
@@ -1610,7 +1610,7 @@ class _tcl:
 
   def return_impl_tcl_list(self, fun_name, num, overlay='overlay.dcp', IsNet=False):
     lines_list = []
-    lines_list.append('set logFileId [open ./runLogImpl_'+fun_name+'.log "w"]')
+    lines_list.append('set logFileId [open ./run_log_'+fun_name+'.log "w"]')
     #lines_list.append('set_param general.maxThreads ' + self.prflow_params['maxThreads'] + ' ')
     lines_list.append('set_param general.maxThreads 2 ')
     lines_list.append('')

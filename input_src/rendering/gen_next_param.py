@@ -713,6 +713,44 @@ def gen_output_data_header(par_zculling):
     return 'output_data', "\n".join(func_str_list)
 
 
+def gen_data_transfer_func():
+    func_str_list = []
+    func_str_list.append('#include "../host/typedefs.h"')
+    func_str_list.append('')
+    func_str_list.append('void data_transfer (')
+    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
+    func_str_list.append('')
+    func_str_list.append('{')
+    func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
+    func_str_list.append('#pragma HLS INTERFACE axis register port=Output_1')
+    func_str_list.append('    bit512 in_tmp;')
+    func_str_list.append('    bit128 out_tmp;')
+    func_str_list.append('')
+    func_str_list.append('    for ( int i = 0; i < NUM_3D_TRI/4; i++) {')
+    func_str_list.append('        in_tmp = Input_1.read();')
+    func_str_list.append('')
+    func_str_list.append('        for (int j=0; j<4; j++) {')
+    func_str_list.append('#pragma HLS PIPELINE II=1')
+    func_str_list.append('            for(int jj=0; jj<4; jj++){')
+    func_str_list.append('                out_tmp(jj*32+31, jj*32) = in_tmp(j*128+jj*32+31, j*128+jj*32);')
+    func_str_list.append('            }')
+    func_str_list.append('            Output_1.write(out_tmp);')
+    func_str_list.append('        }')
+    func_str_list.append('    }')
+    func_str_list.append('}')
+    func_str_list.append('')
+    return 'data_transfer', "\n".join(func_str_list)
+
+def gen_data_transfer_header():
+    func_str_list = []
+    func_str_list.append('void data_transfer (')
+    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
+    func_str_list.append('    );')
+    func_str_list.append('#pragma map_target = HW')
+    return 'data_transfer', "\n".join(func_str_list)
+
 
 # Determine whether we need to write new src code
 def needs_write(func_name, filedata):
@@ -746,46 +784,10 @@ def needs_write(func_name, filedata):
 
         return False
 
-    # idx = prev_param_idx()
-    # if idx == 0:
-    #     return True # First compile
-    # else:
-    #     with open('./params/visited/prev_param_' + str(idx-1) + '.json', 'r') as infile:
-    #         prev_param_dict = json.load(infile)
-
-    #     # new op generated from the new param
-    #     if func_name not in prev_param_dict.keys():
-    #         print('NEEDS WRITE: ' + func_name + ' was not in previous run')
-    #         return True
-
-    #     else:
-
-    #         # param/kernel_clk changed
-    #         for param in cur_param_dict[func_name].keys():
-    #             if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
-    #                 print('NEEDS WRITE: ' + param + ' changed')
-    #                 return True
-
-    #         # function io changed
-    #         if os.path.isfile('./operators/' + func_name + '.h'): 
-    #             with open('./operators/' + func_name + '.h', 'r') as infile:
-    #                 prev_filedata_header = infile.read()
-    #                 if filedata_header != prev_filedata_header:
-    #                     print('NEEDS WRITE: file header changed')
-    #                     # print(filedata_header)
-    #                     # print(prev_filedata_header)
-    #                     return True
-    #         else:
-    #             print('NEEDS WRITE: ' + func_name + ' was not in previous run')
-    #             return True
-
-    #     return False
-
 
 # Based on ./params/cur_param.json, this file 
 # generates HLS source codes (if necessary)
 # updates ./host/typedefs.h, ./operators/specs.json, cur_parm.json
-
 if __name__ == '__main__':
 
     op_dir = './operators'
@@ -813,7 +815,18 @@ if __name__ == '__main__':
     ###########################################
     ## Generate src files based on cur param ##
     ###########################################
-    func_name_list =["data_transfer"]
+    func_name_list = []
+    ops_to_compile_list = []
+
+    func_name, filedata = gen_data_transfer_func()
+    func_name_list.append(func_name)
+    func_name, filedata_header = gen_data_transfer_header()
+    if needs_write(func_name, filedata):
+        with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
+            outfile.write(filedata)
+        with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
+            outfile.write(filedata_header)
+        ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_prj_rast1_func(par_rast)
     func_name_list.append(func_name)
@@ -824,6 +837,7 @@ if __name__ == '__main__':
             outfile.write(filedata)
         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
             outfile.write(filedata_header)
+        ops_to_compile_list.append(func_name)
 
     for idx_par_rast in range(par_rast):
         func_name, filedata = gen_rast2_func(idx_par_rast, par_zculling)
@@ -834,7 +848,7 @@ if __name__ == '__main__':
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
                 outfile.write(filedata_header)
-
+            ops_to_compile_list.append(func_name)
 
     for idx_par_zculling in range(par_zculling):
         func_name, filedata = gen_zculling_func(par_rast, idx_par_zculling, par_zculling)
@@ -845,6 +859,7 @@ if __name__ == '__main__':
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
                 outfile.write(filedata_header)
+            ops_to_compile_list.append(func_name)
 
         func_name, filedata = gen_coloring_func(par_zculling, idx_par_zculling)
         func_name_list.append(func_name)
@@ -854,7 +869,7 @@ if __name__ == '__main__':
                 outfile.write(filedata)
             with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
                 outfile.write(filedata_header)
-
+            ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_output_data_func(par_zculling)
     func_name_list.append(func_name)
@@ -864,6 +879,11 @@ if __name__ == '__main__':
             outfile.write(filedata)
         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
             outfile.write(filedata_header)
+        ops_to_compile_list.append(func_name)
+
+    # Save ops_to_compile.json, used to record compile time
+    with open('./params/ops_to_compile.json', 'w') as outfile:
+        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
 
 
     #############################################

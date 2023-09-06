@@ -49,8 +49,6 @@ if __name__ == '__main__':
   parser.add_argument('-rt',        '--record_time',       help="default: record_time=False" ,                      action='store_true')
   parser.add_argument('-rt_m',      '--record_time_mono',  help="default: record_time_mono=False" ,                 action='store_true')
   parser.add_argument('-im_s',      '--impl_success',      help="default: impl_success=False" ,                     action='store_true')
-  parser.add_argument('-im_t',      '--impl_timing',       help="default: impl_timing=False" ,                      action='store_true')
-  parser.add_argument('-im_f',      '--impl_fail',         help="default: impl_fail=False" ,                        action='store_true')
 
 
   args = parser.parse_args()
@@ -80,6 +78,7 @@ if __name__ == '__main__':
   prflow_params['overlay_freq'] = "400" # fixed to highest frequency
   prflow_params['overlay_n'] = 'overlay_p23' # maybe just fix the overlay
   prflow_params['record_time'] = args.record_time
+  prflow_params['record_time_mono'] = args.record_time_mono
 
 
   if prflow_params['gen_overlay'] == 'psnoc':
@@ -140,6 +139,6 @@ if __name__ == '__main__':
     chk_inst = check_impl_result.check_impl_result(prflow_params)
     chk_inst.run(operator)
 
-  if prflow_params['record_time'] == True:
+  if prflow_params['record_time'] == True or prflow_params['record_time_mono'] == True:
     rt_inst = record_time.record_time(prflow_params)
-    rt_inst.run(args.record_time_mono, args.impl_success, args.impl_timing, args.impl_fail)
+    rt_inst.run(args.record_time_mono, args.impl_success)

@@ -63,7 +63,7 @@ class hls(gen_basic):
     else:
       # if the map target is riscv, we can still generate a psuedo shell script and generate the runLog<operator>.log for Makefile to process the rest flow
       self.shell.write_lines(hls_path+'/run_'+fun_name+'.sh', self.shell.return_empty_sh_list(), True)
-      self.shell.write_lines(hls_path+'/runLog'+fun_name+'.log', ['hls: 0 senconds'], False)
+      self.shell.write_lines(hls_path+'/run_log_'+fun_name+'.log', ['hls: 0 senconds'], False)
 
   def run(self, operator, path=None, src_path='../..', syn_tcl_file=[]):
 

@@ -953,10 +953,12 @@ class page_assign(gen_basic):
         print("##################################")
         print("## Previous page mapping works! ##")
         print("##################################")
+        # In this case, there's no such op that runs implementation only ==> ops_to_compile.json and ops_to_pnr.json are the same
+        os.system('cp ./input_src/' + self.prflow_params['benchmark_name'] + '/params/ops_to_compile.json ' + self.syn_dir + '/ops_to_pnr.json')
+        # IMPORTANT!, write pblock.json only if the file doesn't exist (because it's newly generated and the syn directory was reset)
         for op in operators_list:
           pblock_name = pblock_assign_dict[op]["pblock"]
           page_num = pblock_assign_dict[op]["page_num"]
-          # IMPORTANT!, write pblock.json only if the file doesn't exist (because it's newly generated and the syn directory was reset)
           if(not os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
             pblock_dict = {}
             pblock_dict['pblock'] = pblock_name
@@ -1012,6 +1014,9 @@ class page_assign(gen_basic):
 
     # Previous page assignment failed in implementation
     if operators_tmp_list != operators_list:
+      if operators_tmp_list == []:
+        raise Exception("Which operators failed in previous implementation?")
+
       if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
         os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
 
@@ -1142,6 +1147,10 @@ class page_assign(gen_basic):
     with open(self.syn_dir + '/pblock_assignment.json', 'w') as outfile:
       json.dump(new_pblock_assign_dict, outfile, sort_keys=True, indent=4)
 
+    # ops_to_compile should be subset of ops_to_pnr
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/params/ops_to_compile.json', 'r') as infile:
+      ops_to_pnr = json.load(infile)
+
     # For incremental compile, let each operator to have separate .json file
     for op_impl in pblock_assign_dict:
       ops = op_impl.split()
@@ -1159,8 +1168,12 @@ class page_assign(gen_basic):
             pblock_dict = {}
             pblock_dict['pblock'] = pblock_name
             pblock_dict['page_num'] = page_num
+
+            if op not in ops_to_pnr:
+              ops_to_pnr.append(op)
             with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
               json.dump(pblock_dict, outfile, sort_keys=True, indent=4)
+
         else: # first time
           pblock_dict = {}
           pblock_dict['pblock'] = pblock_name
@@ -1169,5 +1182,10 @@ class page_assign(gen_basic):
             leaf_interface_mapping_dict = json.load(infile)
           pblock_dict['leaf_interface'] = leaf_interface_mapping_dict
 
+          if op not in ops_to_pnr:
+            ops_to_pnr.append(op)
           with open(self.syn_dir + '/' + op + '/pblock.json', 'w') as outfile:
             json.dump(pblock_dict, outfile, sort_keys=True, indent=4)
+    
+    with open(self.syn_dir + '/ops_to_pnr.json', 'w') as outfile:
+      json.dump(ops_to_pnr, outfile, sort_keys=True, indent=4)

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-   
-
+import os
 from pr_flow.gen_basic import gen_basic
 
 class check_impl_result(gen_basic):
@@ -12,16 +11,13 @@ class check_impl_result(gen_basic):
     # print(operator_list)
     results_dict = {}
     for op in operator_list:
-      file_result = self.pr_dir + "/" + op + "/_impl_result.txt"
-      with open(file_result, 'r') as infile:
-        lines = infile.readlines()
-      assert(len(lines) == 1) # must be only 1 line
-      # if 'Success' not in lines:
-      #   results_list.append(False)
-      # else:
-      #   results_list.append(True)
+      if os.path.isfile(self.pr_dir + '/' + op + '/__success__'):
+        results_dict[op] = 'Success'
+      elif os.path.isfile(self.pr_dir + '/' + op + '/__timing_violation__'):
+        results_dict[op] = 'Timing violation'
+      elif os.path.isfile(self.pr_dir + '/' + op + '/__impl_failure__'):
+        results_dict[op] = 'Implementation failed'
 
-      results_dict[op] = lines[0].strip()
 
     failed_ops_list = []
     for op in results_dict:
@@ -32,6 +28,7 @@ class check_impl_result(gen_basic):
       elif results_dict[op] == 'Implementation failed':
         failed_ops_list.append(op)
 
+    # If impl failed, return the ops that failed in implementation
     if len(failed_ops_list) == 0:
       print('Success')
     else:

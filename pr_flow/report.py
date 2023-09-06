@@ -36,13 +36,13 @@ class report(gen_basic):
     for fun_name in sorted(operators_list):
       #process syn timing
       try:
-        file_name = './workspace/F002_hls_'+benchmark_name+'/runLog' + fun_name + '.log'
+        file_name = './workspace/F002_hls_'+benchmark_name+'/run_log_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
           t_hls = int(re.findall(r"\d+", line)[0])
         file_in.close()
 
-        file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/runLog_' + fun_name + '.log'
+        file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/run_log_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
           t_syn = int(re.findall(r"\d+", line)[0])
@@ -65,7 +65,7 @@ class report(gen_basic):
 
       #process hls timing
       try:
-        file_name = './workspace/F002_hls_'+benchmark_name+'/runLog' + fun_name + '.log'
+        file_name = './workspace/F002_hls_'+benchmark_name+'/run_log_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
           t_hls = re.findall(r"\d+", line)[0]
@@ -75,7 +75,7 @@ class report(gen_basic):
 
       #process syn timing
       try:
-        file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/runLog_' + fun_name + '.log'
+        file_name = './workspace/F003_syn_'+benchmark_name+'/' + fun_name + '/run_log_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
           t_syn = re.findall(r"\d+", line)[0]
@@ -85,7 +85,7 @@ class report(gen_basic):
 
       #process impl timing
       try: 
-        file_name = './workspace/F004_impl_'+benchmark_name+'/' + fun_name + '/runLogImpl_' + fun_name + '.log'
+        file_name = './workspace/F004_impl_'+benchmark_name+'/' + fun_name + '/run_log_' + fun_name + '.log'
         file_in = open(file_name, 'r')
         for line in file_in:
           if(line.startswith('read_checkpoint:')):

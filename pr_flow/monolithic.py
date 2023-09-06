@@ -751,7 +751,6 @@ class monolithic(gen_basic):
     # prepare the source for vitis monolithic run
     self.shell.cp_dir("./common/mono_app/" + self.prflow_params['board'], self.mono_dir) 
     os.system('cp ./common/script_src/write_result.py ' + self.mono_dir)
-    os.system('cp ./common/script_src/write_result.py ' + self.mono_dir)
 
     self.shell.write_lines(self.mono_dir + '/run.sh',  
                            self.return_main_sh_list_local([

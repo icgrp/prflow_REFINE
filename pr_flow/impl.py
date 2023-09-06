@@ -55,7 +55,7 @@ class impl(gen_basic):
     set_operator_replace = ''
     set_user_logic_replace = ''
     set_bit_name_replace = 'set bit_name "../../F005_bits_${benchmark}/${operator_0}.bit"'
-    set_logFileId_replace = 'set logFileId [open ./runLogImpl_${operator_0}.log "w"]'
+    set_logFileId_replace = 'set logFileId [open ./run_log_${operator_0}.log "w"]'
     add_files_user_logic_dcp_replace = ''
     for i in range(num_op):
       set_operator_replace = set_operator_replace + 'set operator_' + str(i) + ' ' + op_list[i] + '\n'

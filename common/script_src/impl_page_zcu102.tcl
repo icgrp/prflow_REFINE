@@ -11,9 +11,9 @@ set user_logic_dcp "../../F003_syn_${benchmark}/${operator}/page_netlist.dcp"
 set context_dcp "../../F001_overlay/ydma/zcu102/zcu102_dfx_manual/checkpoint/p_${page_num}.dcp" # to be changed
 set inst_name "pfm_top_i/dynamic_region/PR_pages_top_0/inst/${page_name}_inst" # to be changed
 set bit_name "../../F005_bits_${benchmark}/${operator}.bit"
-set logFileId [open ./runLogImpl_${operator}.log "w"]
-set place_dcp "./${pblock_name}_design_place.dcp"
-set route_dcp "./${pblock_name}_design_route.dcp"
+set logFileId [open ./run_log_${operator}.log "w"]
+set place_dcp "./page_placed.dcp"
+set route_dcp "./page_routed.dcp"
 
 set_param general.maxThreads 8 
 set_param place.blockBramDspEscapeRatioThresholdUSPlus 0.1
@@ -145,7 +145,11 @@ OPTRACE "impl_1" START { ROLLUP_1 }
 set is_post_route_phys_opt_enabled 0
 
 
+#####################
+## READ_CHECKPOINT ##
+#####################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Init Design" START { ROLLUP_AUTO }
 start_step init_design
 set ACTIVE_STEP init_design
@@ -251,21 +255,29 @@ OPTRACE "init_design_write_hwdef" END { }
 } RESULT]
 if {$rc} {
   step_failed init_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "read_checkpoint: $total_seconds seconds"
+
   return -code error $RESULT
 } else {
   end_step init_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "read_checkpoint: $total_seconds seconds"
+
   unset ACTIVE_STEP 
 }
 
 OPTRACE "Phase: Init Design" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
-puts $logFileId "read_checkpoint: $total_seconds seconds"
 
 
 
-
+################
+## OPT_DESIGN ##
+################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Opt Design" START { ROLLUP_AUTO }
 start_step opt_design
 set ACTIVE_STEP opt_design
@@ -318,21 +330,29 @@ OPTRACE "opt_design reports" END { }
 } RESULT]
 if {$rc} {
   step_failed opt_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "opt: $total_seconds seconds"
+
   return -code error $RESULT
 } else {
   end_step opt_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "opt: $total_seconds seconds"
+
   unset ACTIVE_STEP 
 }
 
 OPTRACE "Phase: Opt Design" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
-puts $logFileId "opt: $total_seconds seconds"
 
 
 
-
+##################
+## PLACE_DESIGN ##
+##################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Place Design" START { ROLLUP_AUTO }
 start_step place_design
 set ACTIVE_STEP place_design
@@ -390,23 +410,30 @@ OPTRACE "place_design reports" END { }
 } RESULT]
 if {$rc} {
   step_failed place_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "place: $total_seconds seconds"
+
   return -code error $RESULT
 } else {
   end_step place_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "place: $total_seconds seconds"
+
   unset ACTIVE_STEP 
 }
-
 OPTRACE "Phase: Place Design" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
 
-puts $logFileId "place: $total_seconds seconds"
 # write_checkpoint -force $place_dcp
 
 
 
-
+#####################
+## PHYS_OPT_DESIGN ##
+#####################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Physical Opt Design" START { ROLLUP_AUTO }
 start_step phys_opt_design
 set ACTIVE_STEP phys_opt_design
@@ -425,21 +452,29 @@ OPTRACE "phys_opt_design report" END { }
 } RESULT]
 if {$rc} {
   step_failed phys_opt_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "opt_physical: $total_seconds seconds"
+
   return -code error $RESULT
 } else {
   end_step phys_opt_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "opt_physical: $total_seconds seconds"
+
   unset ACTIVE_STEP 
 }
 
 OPTRACE "Phase: Physical Opt Design" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
-puts $logFileId "opt_physical: $total_seconds seconds"
 
 
 
-
+##################
+## ROUTE_DESIGN ##
+##################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Route Design" START { ROLLUP_AUTO }
 start_step route_design
 set ACTIVE_STEP route_design
@@ -471,6 +506,8 @@ OPTRACE "Route Design: post hook" START { }
 OPTRACE "Route Design: post hook" END { }
 OPTRACE "Route Design: write_checkpoint" START { CHECKPOINT }
   write_checkpoint -force $route_dcp
+  report_timing_summary > timing_${page_name}.rpt
+
 OPTRACE "Route Design: write_checkpoint" END { }
 OPTRACE "route_design reports" START { REPORT }
   create_report "impl_report_timing_summary_route_design_summary" "report_timing_summary -max_paths 10 -file hw_bb_locked_timing_summary_routed.rpt -pb hw_bb_locked_timing_summary_routed.pb -rpx hw_bb_locked_timing_summary_routed.rpx -warn_on_violation "
@@ -484,28 +521,106 @@ OPTRACE "route_design write_checkpoint" END { }
 if {$rc} {
   write_checkpoint -force pfm_top_wrapper_routed_error.dcp
   step_failed route_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "route: $total_seconds seconds"
+
   return -code error $RESULT
 } else {
   end_step route_design
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "route: $total_seconds seconds"
+
   unset ACTIVE_STEP 
 }
 
 OPTRACE "route_design misc" END { }
 OPTRACE "Phase: Route Design" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
-puts $logFileId "route: $total_seconds seconds"
 
+
+
+#####################
+## WRITE_BITSTREAM ##
+#####################
 set start_time [clock seconds]
+
 OPTRACE "Phase: Write Bitstream" START { ROLLUP_AUTO }
+OPTRACE "write_bitstream setup" START { }
+start_step write_bitstream
+set ACTIVE_STEP write_bitstream
+set rc [catch {
+  create_msg_db write_bitstream.pb
+OPTRACE "Write Bitstream: pre hook" START { }
+  set src_rc [catch { 
+    puts "source ./scripts/_full_write_bitstream_pre.tcl"
+    source ./scripts/_full_write_bitstream_pre.tcl
+  } _RESULT] 
+  if {$src_rc} { 
+    set tool_flow [get_property -quiet TOOL_FLOW [current_project -quiet]]
+    if { $tool_flow eq {SDx} } { 
+      send_gid_msg -id 2 -ssname VPL_TCL -severity ERROR $_RESULT
+      send_gid_msg -id 3 -ssname VPL_TCL -severity ERROR "sourcing script ./scripts/_full_write_bitstream_pre.tcl failed"
+    } else {
+      send_msg_id runtcl-1 status "$_RESULT"
+      send_msg_id runtcl-2 status "sourcing script ./scripts/_full_write_bitstream_pre.tcl failed"
+    }
+    return -code error
+  }
+OPTRACE "Write Bitstream: pre hook" END { }
+OPTRACE "read constraints: write_bitstream" START { }
+OPTRACE "read constraints: write_bitstream" END { }
+  set_property XPM_LIBRARIES {XPM_CDC XPM_FIFO XPM_MEMORY} [current_project]
+OPTRACE "write_bitstream setup" END { }
+OPTRACE "write_bitstream" START { }
+  ## CHANGED
   set_property IS_ENABLED 0 [get_drc_checks {PPURQ-1}]
   # Below line is necessary when clk_user changed from 250MHz to 200MHz for tensor_y_1.cpp
   set_property SEVERITY {Warning} [get_drc_checks LUTLP-1]
   write_bitstream -cell $inst_name -force $bit_name
+OPTRACE "write_bitstream" END { }
+OPTRACE "write_bitstream misc" START { }
+OPTRACE "read constraints: write_bitstream_post" START { }
+OPTRACE "read constraints: write_bitstream_post" END { }
+OPTRACE "Write Bitstream: post hook" START { }
+  set src_rc [catch { 
+    puts "source ./scripts/_full_write_bitstream_post.tcl"
+    source ./scripts/_full_write_bitstream_post.tcl
+  } _RESULT] 
+  if {$src_rc} { 
+    set tool_flow [get_property -quiet TOOL_FLOW [current_project -quiet]]
+    if { $tool_flow eq {SDx} } { 
+      send_gid_msg -id 2 -ssname VPL_TCL -severity ERROR $_RESULT
+      send_gid_msg -id 3 -ssname VPL_TCL -severity ERROR "sourcing script ./scripts/_full_write_bitstream_post.tcl failed"
+    } else {
+      send_msg_id runtcl-1 status "$_RESULT"
+      send_msg_id runtcl-2 status "sourcing script ./scripts/_full_write_bitstream_post.tcl failed"
+    }
+    return -code error
+  }
+OPTRACE "Write Bitstream: post hook" END { }
+  catch {write_debug_probes -quiet -force vitis_design_wrapper}
+  catch {file copy -force vitis_design_wrapper.ltx debug_nets.ltx}
+  close_msg_db -file write_bitstream.pb
+} RESULT]
+if {$rc} {
+  step_failed write_bitstream
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "bitgen: $total_seconds seconds"
+
+  return -code error $RESULT
+} else {
+  end_step write_bitstream
+  set end_time [clock seconds]
+  set total_seconds [expr $end_time - $start_time]
+  puts $logFileId "bitgen: $total_seconds seconds"
+
+  unset ACTIVE_STEP 
+}
+OPTRACE "write_bitstream misc" END { }
 OPTRACE "Phase: Write Bitstream" END { }
-set end_time [clock seconds]
-set total_seconds [expr $end_time - $start_time]
-puts $logFileId "bitgen: $total_seconds seconds"
-report_timing_summary > timing_${page_name}.rpt
+
+
 
 OPTRACE "impl_1" END { }
