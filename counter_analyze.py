@@ -213,7 +213,7 @@ def mono_connection_from_idx(mono_counter_idx_dict, idx):
 # ...
 def coutner_mono_dict(benchmark, mono_counter_idx_dict):
     cnt_dict = {}
-    accuracy = 0
+    accuracy = -1
 
     total_len = len(mono_counter_idx_dict)
     num_connection = 0
@@ -837,8 +837,8 @@ if __name__ == '__main__':
             assert(is_monolithic_success == True)
             overlay_type = 'mono'
             with open("./workspace/F007_mono_" + benchmark + "/mono_counter_idx_dict.json", "r") as infile:
-                prev_mono_counter_idx_dict = json.load(infile)
-            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_mono_counter_idx_dict) 
+                prev_idx_dict = json.load(infile)
+            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) 
 
         print(latency, accuracy)
         print(cnt_dict)

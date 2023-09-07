@@ -210,8 +210,8 @@ class record_time(gen_basic):
       t_hls_max = 0
       t_hls = 0
       for fun_name in operators_list:
-        if os.path.isfile(self.hls_dir + '/' + fun_name + '/run_log_' + fun_name + '.log'):
-          file_name = self.hls_dir + '/' + fun_name + '/run_log_' + fun_name + '.log'
+        if os.path.isfile(self.hls_dir + '/run_log_' + fun_name + '.log'):
+          file_name = self.hls_dir + '/run_log_' + fun_name + '.log'
           file_in = open(file_name, 'r')
           for line in file_in:
             t_hls = int(re.findall(r"\d+", line)[0])
@@ -261,9 +261,9 @@ class record_time(gen_basic):
         file_in = open(file_name, 'r')
         for line in file_in:
           if '[v++ 60-791] Total elapsed time' in line:
-            t_package_h = int(re.findall(r"\d+h", line).replace('h',''))
-            t_package_m = int(re.findall(r"\d+m", line).replace('m',''))
-            t_package_s = int(re.findall(r"\d+m", line).replace('s',''))
+            t_package_h = int(re.findall(r"\d+h", line)[0].replace('h',''))
+            t_package_m = int(re.findall(r"\d+m", line)[0].replace('m',''))
+            t_package_s = int(re.findall(r"\d+s", line)[0].replace('s',''))
             # Usually t_package_s is less than 1 min
             t_package_s = 3600*t_package_h + 60*t_package_m + t_package_s
         file_in.close()

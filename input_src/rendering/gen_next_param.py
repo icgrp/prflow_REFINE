@@ -758,7 +758,7 @@ def needs_write(func_name, filedata):
         cur_param_dict = json.load(infile)
 
     # 1) if new operator
-    if not os.path.isfile('./operators/' + func_name + '.cpp'): 
+    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
         return True
     else:
         # 2) if function contents changed (filedata)

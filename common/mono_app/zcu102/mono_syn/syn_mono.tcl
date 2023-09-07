@@ -19,6 +19,8 @@ set_param general.maxThreads  8
 set_property XPM_LIBRARIES {XPM_CDC XPM_MEMORY XPM_FIFO} [current_project]
 set logFileId [open ./run_mono_syn.log "w"]
 set start_time [clock seconds]
+add_files -fileset constrs_1 -norecurse syn.xdc
+set_property USED_IN {synthesis out_of_context} [get_files syn.xdc]
 synth_design -top $top_name -part xczu9eg-ffvb1156-2-e -mode out_of_context
 write_checkpoint -force ./$top_name.dcp
 set end_time [clock seconds]
