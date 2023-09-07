@@ -573,7 +573,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     return cur_param_dict
 
 
-def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy):
+def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin):
     # Load previous parameter dictionary and will update this
     cur_param_dict = prev_param_dict
     operator_list = list(prev_param_dict.keys())
@@ -592,6 +592,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     ###############################
     min_stall = sys.maxsize
     bottleneck_op = None
+    bottleneck_op_list = []
     print()
     for op_name in sorted(cnt_dict.keys()):
         stall_cnt = cnt_dict[op_name][0]['stall']
@@ -603,6 +604,18 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     print()
     print("bottleneck_op: ")
     print(bottleneck_op, min_stall)
+
+    # The idea of having a bottleneck_op_list instead of a single bottleneck_op is to 
+    # explore more in NoC ver. as the compile time is shorter.
+    for op_name in cnt_dict:
+        stall_cnt = cnt_dict[op_name][0]['stall']
+
+        if stall_cnt*(1-error_margin) < min_stall:
+            bottleneck_op_list.append((op_name,stall_cnt))
+    print()
+    print("bottleneck_op_list: ")
+    print(sorted(bottleneck_op_list, key=lambda x: x[1]))
+
 
     #############################################
     ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict
@@ -666,7 +679,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
         if param_to_tune != None and new_param_val != None:
             # For kernel_clk, update one operator at a time
             if param_to_tune == "kernel_clk":
-                cur_param_dict[bottleneck_op][param_to_tune] = new_param_val
+                cur_param_dict[op][param_to_tune] = new_param_val
             else:
                 # Update for all other ops if they have param_to_tune because
                 # if param variable names are the same, the values are consistent accross operators
@@ -688,19 +701,38 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
         assert(metric == "latency")
 
         param_to_tune, new_param_val = None, None
-        # Prioritize non-"kernel_clk" parameters
-        for param in sorted(cur_param_dict[bottleneck_op].keys()): # sorted for deterministic refinement
-            if param != "num_leaf_interface" and param != "kernel_clk":
-                param_search_space = params_search_space_dict[param] # e.g. [1,2,4]
-                cur_param_val = cur_param_dict[bottleneck_op][param] # e.g. 2
-                # print(param)
-                # print(cur_param_val)
-                # print(param_search_space)
+
+        for bottleneck_op, stall_cnt in sorted(bottleneck_op_list, key=lambda x: x[1]):
+            # Prioritize non-"kernel_clk" parameters
+            for param in sorted(cur_param_dict[bottleneck_op].keys()): # sorted for deterministic refinement
+                if param != "num_leaf_interface" and param != "kernel_clk":
+                    param_search_space = params_search_space_dict[param] # e.g. [1,2,4]
+                    cur_param_val = cur_param_dict[bottleneck_op][param] # e.g. 2
+                    # print(param)
+                    # print(cur_param_val)
+                    # print(param_search_space)
+                    if cur_param_val != param_search_space[-1]:
+                        idx = param_search_space.index(cur_param_val) + 1 # next param
+                        found = False
+                        while idx < len(param_search_space) and found == False:
+                            param_to_tune = param
+                            new_param_val = param_search_space[idx]
+                            if check_visited(overlay_type, bottleneck_op, param_to_tune, new_param_val):
+                                param_to_tune = None
+                                new_param_val = None
+                                idx = idx + 1
+                            else:
+                                found = True
+
+            # Explore kernel_clk
+            if param_to_tune == None and new_param_val == None:
+                param_search_space = params_search_space_dict["kernel_clk"] # [200, 250, 300, 350, 400]
+                cur_param_val = cur_param_dict[bottleneck_op]["kernel_clk"] # e.g. 200
                 if cur_param_val != param_search_space[-1]:
                     idx = param_search_space.index(cur_param_val) + 1 # next param
                     found = False
                     while idx < len(param_search_space) and found == False:
-                        param_to_tune = param
+                        param_to_tune = 'kernel_clk'
                         new_param_val = param_search_space[idx]
                         if check_visited(overlay_type, bottleneck_op, param_to_tune, new_param_val):
                             param_to_tune = None
@@ -709,26 +741,13 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
                         else:
                             found = True
 
-        # Explore kernel_clk
-        if param_to_tune == None and new_param_val == None:
-            param_search_space = params_search_space_dict["kernel_clk"] # [200, 250, 300, 350, 400]
-            cur_param_val = cur_param_dict[bottleneck_op]["kernel_clk"] # e.g. 200
-            if cur_param_val != param_search_space[-1]:
-                idx = param_search_space.index(cur_param_val) + 1 # next param
-                found = False
-                while idx < len(param_search_space) and found == False:
-                    param_to_tune = 'kernel_clk'
-                    new_param_val = param_search_space[idx]
-                    if check_visited(overlay_type, bottleneck_op, param_to_tune, new_param_val):
-                        param_to_tune = None
-                        new_param_val = None
-                        idx = idx + 1
-                    else:
-                        found = True
+            if param_to_tune != None and new_param_val != None:
+                break
 
-
-        print("param_to_tune: " + str(param_to_tune))
-        print("new_param_val: " + str(new_param_val))
+        print()
+        print(">> param_to_tune: " + str(param_to_tune))
+        print(">> new_param_val: " + str(new_param_val))
+        print()
         # Update cur_param for the incremental refinement
         if param_to_tune != None and new_param_val != None:
             # For kernel_clk, update one operator at a time
@@ -820,7 +839,7 @@ if __name__ == '__main__':
             latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict) # use reverted summary.csv
         else:
             latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv            
-        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin)
 
     # Previous run was successful
     else:
@@ -860,7 +879,7 @@ if __name__ == '__main__':
                 with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
                     outfile.write(str(latency))
 
-        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy)
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin)
 
 
     # Touch status flag

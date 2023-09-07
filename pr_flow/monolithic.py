@@ -768,6 +768,32 @@ class monolithic(gen_basic):
     os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.dat ' + self.mono_dir + '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
     # os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.tcl ' + self.mono_dir +  '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
 
+    # Place design command
+    if self.prflow_params['place_design_mono_directive'] != '':
+      place_design_command = '  place_design -directive ' + self.prflow_params['place_design_mono_directive']
+    else:
+      place_design_command = '  place_design'
+
+    # Route design command
+    if self.prflow_params['route_design_mono_directive'] != '':
+      route_design_command = '  route_design -directive ' + self.prflow_params['route_design_mono_directive']
+    else:
+      route_design_command = '  route_design'
+
+    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/mono_impl/impl_mono.tcl', 'r') as infile:
+      lines = infile.readlines()
+    filedata = ''
+    for line in lines:
+      if 'place_design_command_with_directive' in line:
+        line = place_design_command + '\n' 
+      elif 'route_design_command_with_directive' in line:
+        line = route_design_command + '\n' 
+      filedata += line
+
+    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/mono_impl/impl_mono.tcl', 'w') as outfile:
+      outfile.write(filedata)
+
+
     # Generate mono.v for synthesis
     operator_arg_dict, operator_width_dict = self.return_operator_io_argument_dict_local(operators)
     # print(operator_arg_dict)

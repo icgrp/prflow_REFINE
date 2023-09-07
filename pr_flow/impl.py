@@ -74,6 +74,13 @@ class impl(gen_basic):
     #   set_bit_name_replace = 'set bit_name "../../F005_bits_${benchmark}/${operator}.bit"'
     #   set_logFileId_replace = 'set logFileId [open ./runLogImpl_${operator}.log "w"]'
     #   add_files_user_logic_dcp_replace = 'add_files $user_logic_dcp'
+
+    ###########################
+    ## Modifying impl script ##
+    ###########################
+
+
+
     clk_src_list = {"clk_200": "clk_out5_pfm_top_clkwiz_sysclks_0", "clk_250": "clk_250_pfm_dynamic_clk_wiz_0_0_1",
                     "clk_300": "clk_out2_pfm_top_clkwiz_sysclks_0", "clk_350": "clk_350_pfm_dynamic_clk_wiz_0_0_1", \
                     "clk_400": "clk_out6_pfm_top_clkwiz_sysclks_0"}
@@ -95,6 +102,22 @@ class impl(gen_basic):
                                                 +'report_utilization -hierarchical -file ' \
                                                 + operator_impl + '_' + str(pblock_name) + '.rpt'
                 }
+
+    # Place design command
+    if self.prflow_params['place_design_NoC_directive'] != '':
+      place_design_command = '  place_design -directive ' + self.prflow_params['place_design_NoC_directive']
+    else:
+      place_design_command = '  place_design'
+    tmp_dict["place_design_command_with_directive"] = place_design_command
+
+    # Route design command
+    if self.prflow_params['route_design_NoC_directive'] != '':
+      route_design_command = '  route_design -directive ' + self.prflow_params['route_design_NoC_directive']
+    else:
+      route_design_command = '  route_design'
+    tmp_dict["route_design_command_with_directive"] = route_design_command
+
+
     if frequency == 400:
       tmp_dict["set_max_delay "] = "" # remove this constraint
     else:
