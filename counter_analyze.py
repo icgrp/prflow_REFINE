@@ -173,14 +173,15 @@ def check_visited(overlay_type, operator, param_to_tune, new_param_val):
                     return True
         else:
             for operator in param_dict.keys():
-                if param_to_tune in param_dict[operator].keys():
-                    # The value of parameter variable is the same for all operators.
-                    # For example, if rast2_i1's PAR_RAST == 1, rast2_i1's PAR_RAST should be 1 too.
-                    # If they want different parameter, the variable name should differ, like PAR_RAST_1 or PAR_RAST_2.
-                    # For this reason, for the given param_to_tune, for any operator, 
-                    # if new_param_val is already tested, return True.
-                    if param_dict[operator][param_to_tune] == new_param_val:
-                        return True
+                if operator != 'metric':
+                    if param_to_tune in param_dict[operator].keys():
+                        # The value of parameter variable is the same for all operators.
+                        # For example, if rast2_i1's PAR_RAST == 1, rast2_i1's PAR_RAST should be 1 too.
+                        # If they want different parameter, the variable name should differ, like PAR_RAST_1 or PAR_RAST_2.
+                        # For this reason, for the given param_to_tune, for any operator, 
+                        # if new_param_val is already tested, return True.
+                        if param_dict[operator][param_to_tune] == new_param_val:
+                            return True
     return False
 
 
@@ -274,7 +275,7 @@ def coutner_mono_dict(benchmark, mono_counter_idx_dict):
             # if line.startswith('elapsed time: '):
             #     latency = int(line.split()[2])
             if line.startswith('accuracy: '):
-                accuracy = int(line.split()[2])
+                accuracy = float(line.split()[1])
 
     with open("./_bi_results/" + benchmark + "/summary.csv", "r") as infile:
         lines = infile.readlines()
@@ -360,7 +361,7 @@ def coutner_dict(benchmark, pblock_assign_dict):
             # if line.startswith('elapsed time: '):
             #     latency = int(line.split()[2])
             if line.startswith('accuracy: '):
-                accuracy = int(line.split()[1])
+                accuracy = float(line.split()[1])
 
     with open("./_bi_results/" + benchmark + "/summary.csv", "r") as infile:
         lines = infile.readlines()
@@ -499,13 +500,87 @@ def revert_cur_param(benchmark, prev_param_dict, prev_idx_dict, overlay_type = N
         else:
             raise Exception("The first run should be always better than the default fom value")
 
+def get_flat_list(nested_list):
+    flat_list = []
+    for sublist in nested_list:
+        for op in sublist:
+            flat_list.append(op)
+    return flat_list
+
+
+
+# E.g.: A->B->  D
+#        ->C->
+#       Returns [[D],[B,C],[A]]
+def sorted_op_list_backward(operator_list, connection_list):
+    # List of operators, starting from backward
+    sorted_backward_op_list = []
+    for connection in connection_list:
+        if 'DMA.Input_' in connection:
+            start_op = connection.split('->')[0].split('.')[0]
+
+    sorted_backward_op_list.append([start_op])
+    for i in range(len(operator_list)-1):
+        sublist = sorted_backward_op_list[-1]
+        flat_list = get_flat_list(sorted_backward_op_list)
+        new_sublist = [] # list of operators
+        for op in sublist:
+            for connection in connection_list:
+                if op + '.Input_' in connection:
+                    sender_op = connection.split('->')[0].split('.')[0]
+                    if sender_op not in flat_list and sender_op not in new_sublist:
+                        new_sublist.append(sender_op)
+        sorted_backward_op_list.append(sorted(new_sublist))
+
+        flat_list = get_flat_list(sorted_backward_op_list)
+        if sorted(flat_list) == sorted(operator_list):
+            break
+    return sorted_backward_op_list
+
+# E.g.: A->B->C
+#       connection_list = [DMA.Output_1.->A.Input_1, A.Output_1->B.Input_1, B.Output_1->C.Input_1, C.Output_1->DMA.Input_1]
+#       Returns [B.Output_1->C.Input_1, A.Output_1->B.Input_1,]
+def sort_connection_list_backward(operator_list, connection_list, sorted_backward_op_list):
+    connection_list_copy = connection_list
+
+    # Start from backward
+    sorted_backward_connection_list = []
+    for sublist in sorted_backward_op_list:
+        connection_list_priority = []
+        for op in sorted(sublist):
+            for connection in connection_list:
+                if op + '.Output_'  in connection and \
+                   connection not in connection_list_priority and \
+                   'DMA' not in connection:
+                    connection_list_priority.append(connection)
+
+
+            for connection in connection_list:
+                if op + '.Input_'  in connection and \
+                   connection not in connection_list_priority and \
+                   'DMA' not in connection:
+                    connection_list_priority.append(connection)
+
+            tmp_list = []
+            for connection in connection_list:
+                if connection not in connection_list_priority:
+                    tmp_list.append(connection)
+            connection_list = tmp_list
+
+        # print("connection_list_priority:")
+        # print(connection_list_priority)
+        sorted_backward_connection_list += connection_list_priority
+
+    assert(len(sorted_backward_connection_list) == len(connection_list_copy) - 2)
+    return sorted_backward_connection_list
+
+
 
 def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict):
     # For each link in the graph, full_diff = sender's full cnt - receiver's full cnt
     #     => if the link's full_diff is large, NoC could be bottleneck
-    # For each link in the graph, empty_diff = receiver's empty_cnt - sedner's empty_cnt
+    # For each link in the graph, empty_diff = receiver's empty_cnt - sender's empty_cnt
     #     => if the link's empty_diff is large, NoC could be bottleneck
-    # Thus, take average of full_diff and empty_diff 
 
     # operator_list = list(prev_page_assign_dict.keys())
     # # print(operator_list)
@@ -548,19 +623,25 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     print("connection_diff_dict: ")
     print(connection_diff_dict)
 
-    # Increase num_leaf_interface if NoC is bottleneck
-    for connection in connection_diff_dict:
+    sorted_backward_op_list = sorted_op_list_backward(operator_list, connection_list)
+    connection_list_sorted = sort_connection_list_backward(operator_list, connection_list, sorted_backward_op_list)
+
+    is_NoC_bot_addressed = False
+    # If NoC is bottleneck, perform only one change at a time
+    for connection in connection_list_sorted:
         full_diff, empty_diff = connection_diff_dict[connection]
         if full_diff > 0 or empty_diff > 0: # NoC bandwidth could be bottleneck
-            # print(connection)
+            print(connection)
             # Increase sender's num_leaf_interface
             sender_op = connection.split('->')[0].split('.')[0]
             num_sender_output = len([port for port in operator_arg_dict[sender_op] if port.startswith('Output_')])
             cur_sender_num_leaf_interface = cur_param_dict[sender_op]
             if cur_sender_num_leaf_interface == 1 and num_sender_output > 1:
                 cur_param_dict[sender_op]["num_leaf_interface"] = 2 
+                is_NoC_bot_addressed = True
             elif cur_sender_num_leaf_interface == 2 and num_sender_output > 2:
                 cur_param_dict[sender_op]["num_leaf_interface"] = 4 
+                is_NoC_bot_addressed = True
 
             # Increase sender's num_leaf_interface
             receiver_op = connection.split('->')[1].split('.')[0]
@@ -568,15 +649,38 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
             cur_sender_num_leaf_interface = cur_param_dict[receiver_op]
             if cur_sender_num_leaf_interface == 1 and num_receiver_input > 1:
                 cur_param_dict[receiver_op]["num_leaf_interface"] = 2 
+                is_NoC_bot_addressed = True
             elif cur_sender_num_leaf_interface == 2 and num_receiver_input > 2:
                 cur_param_dict[receiver_op]["num_leaf_interface"] = 4 
+                is_NoC_bot_addressed = True
+
+            # NoC bottleneck exists, and 
+            #   1) can't resolve it by increasing num_leaf_interface and
+            #   2) the operator has not been merged to other ops yet
+            if (is_NoC_bot_addressed == False) and "merged_to" not in cur_param_dict[sender_op].keys():
+            # if (is_NoC_bot_addressed == False):
+                cur_param_dict[sender_op]["merged_to_try"] = receiver_op
+                is_NoC_bot_addressed = True
     return cur_param_dict
 
 
-def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin):
+def no_merge_op_list(benchmark):
+    with open('./input_src/' + benchmark + '/host/top_no_merge.cpp', 'r') as infile:
+        lines = infile.readlines()
+    operator_list = []
+    for line in lines:
+        op_name = line.split('(')[0]
+        operator_list.append(func_name)
+    return operator_list
+
+
+def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin):
     # Load previous parameter dictionary and will update this
     cur_param_dict = prev_param_dict
+    # operator_list = no_merge_op_list(benchmark)
+    # operator_list is all ops without merging
     operator_list = list(prev_param_dict.keys())
+    operator_list.remove("metric")
 
     with open('./input_src/' + benchmark + '/params_annotate.json', 'r') as infile:
         params_annotate_dict = json.load(infile)
@@ -586,6 +690,10 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     with open('./input_src/' + benchmark + '/params.json', 'r') as infile:
         params_search_space_dict = json.load(infile)
     # print(params_search_space_dict)
+    if "MIN_ACCURACY" in params_search_space_dict:
+        minimum_accuracy = params_search_space_dict["MIN_ACCURACY"]
+    else:
+        minimum_accuracy = -1
 
     ###############################
     ## Bottleneck identification ##
@@ -625,12 +733,16 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     # print(cur_param_dict)
 
     if minimum_accuracy != -1: # Benchmarks that have accuracy metric like Digit Recognition, Optical Flow, etc
-        if accuracy > minimum_accuracy:
+        if accuracy < minimum_accuracy:
             metric = "accuracy"
         else:
             metric = "latency"
     else:
         metric = "latency"
+    print()
+    print("metric: " + metric)
+    print()
+    cur_param_dict['metric'] = metric
 
     ######################
     ## Parameter tuning ## ==> update cur_param_dict and save cur_param_dict.json
@@ -651,10 +763,11 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
                 found = False
                 # Greedily increment this parameter for accuracy
                 for op in cur_param_dict.keys():
-                    if (not found) and (param_acc in cur_param_dict[op].keys()):
-                        op_accuracy = op # any operator that's holding this param_acc
-                        cur_param_val = cur_param_dict[op_accuracy][param_acc]
-                        found = True
+                    if op != 'metric':
+                        if (not found) and (param_acc in cur_param_dict[op].keys()):
+                            op_accuracy = op # any operator that's holding this param_acc
+                            cur_param_val = cur_param_dict[op_accuracy][param_acc]
+                            found = True
                 param_search_space = params_search_space_dict[param_acc]
                 if cur_param_val != param_search_space[-1]:
                     # param_to_tune = param_acc
@@ -677,17 +790,15 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
         print("new_param_val: " + str(new_param_val))
         # Update cur_param for the incremental refinement
         if param_to_tune != None and new_param_val != None:
-            # For kernel_clk, update one operator at a time
-            if param_to_tune == "kernel_clk":
-                cur_param_dict[op][param_to_tune] = new_param_val
-            else:
-                # Update for all other ops if they have param_to_tune because
-                # if param variable names are the same, the values are consistent accross operators
-                for op in cur_param_dict.keys():
-                    if param_to_tune != "num_leaf_interface" and \
-                       param_to_tune in cur_param_dict[op]:
+            assert(param_to_tune != 'kernel_clk')
+            assert(param_to_tune != 'num_leaf_interface')            
+            # Update for all other ops if they have param_to_tune because
+            # if param variable names are the same, the values are consistent accross operators
+            for op in cur_param_dict.keys():
+                if op != 'metric':
+                    if param_to_tune in cur_param_dict[op]:
                         cur_param_dict[op][param_to_tune] = new_param_val
-                print(cur_param_dict)
+            print(cur_param_dict)
 
             with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
                 json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
@@ -745,6 +856,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
                 break
 
         print()
+        print(">> bottleneck_op: " + str(bottleneck_op))
         print(">> param_to_tune: " + str(param_to_tune))
         print(">> new_param_val: " + str(new_param_val))
         print()
@@ -757,9 +869,10 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
                 # Update for all other ops if they have param_to_tune because
                 # if param variable names are the same, the values are consistent accross operators
                 for op in cur_param_dict.keys():
-                    if param_to_tune != "num_leaf_interface" and \
-                       param_to_tune in cur_param_dict[op]:
-                        cur_param_dict[op][param_to_tune] = new_param_val
+                    if op != 'metric':
+                        if param_to_tune != "num_leaf_interface" and \
+                           param_to_tune in cur_param_dict[op]:
+                            cur_param_dict[op][param_to_tune] = new_param_val
                 print(cur_param_dict)
 
             with open('./input_src/' + benchmark + '/params/cur_param.json', 'w') as outfile:
@@ -795,7 +908,7 @@ if __name__ == '__main__':
     parser.add_argument('-t',         '--NoC_timing_violate',              action='store_true')
     parser.add_argument('-ms',        '--monolithic_success',              action='store_true')
     parser.add_argument('-mf',        '--monolithic_fail',                 action='store_true')
-    parser.add_argument('-a',         '--minimum_accuracy',                default = -1)
+    # parser.add_argument('-a',         '--minimum_accuracy',                default = -1)
 
     args = parser.parse_args()
     benchmark = args.benchmark
@@ -803,8 +916,8 @@ if __name__ == '__main__':
     is_NoC_timing_violate = args.NoC_timing_violate
     is_monolithic_success = args.monolithic_success
     is_monolithic_fail = args.monolithic_fail
-    minimum_accuracy = args.minimum_accuracy
-    error_margin = 0.05
+    # minimum_accuracy = args.minimum_accuracy
+    error_margin = 0.10
     os.system('mkdir -p ./input_src/' + benchmark + '/params/visited')
 
 
@@ -838,8 +951,9 @@ if __name__ == '__main__':
         if prev_overlay_type == 'NoC':
             latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict) # use reverted summary.csv
         else:
-            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv            
-        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin)
+            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv
+
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin)
 
     # Previous run was successful
     else:
@@ -862,16 +976,44 @@ if __name__ == '__main__':
         print(latency, accuracy)
         print(cnt_dict)
 
-        # If previous run didn't improve the latency, revert and save the previous param
-        if latency*(1-error_margin) > best_latency:
 
+        min_stall = sys.maxsize
+        bottleneck_op = None
+        bottleneck_op_list = []
+        print()
+        for op_name in sorted(cnt_dict.keys()):
+            stall_cnt = cnt_dict[op_name][0]['stall']
+            print(op_name, str(stall_cnt))
+
+            if stall_cnt < min_stall:
+                min_stall = stall_cnt
+                bottleneck_op = op_name
+        print()
+        print("bottleneck_op: ")
+        print(bottleneck_op, min_stall)
+
+        # The idea of having a bottleneck_op_list instead of a single bottleneck_op is to 
+        # explore more in NoC ver. as the compile time is shorter.
+        for op_name in cnt_dict:
+            stall_cnt = cnt_dict[op_name][0]['stall']
+
+            if stall_cnt*(1-error_margin) < min_stall:
+                bottleneck_op_list.append((op_name,stall_cnt))
+        print()
+        print("bottleneck_op_list: ")
+        print(sorted(bottleneck_op_list, key=lambda x: x[1]))
+
+
+        # If previous run didn't improve the latency, revert and save the previous param
+        if prev_param_dict['metric'] == "latency" and latency*(1-error_margin) > best_latency:
             prev_param_dict, prev_idx_dict, prev_overlay_type = revert_cur_param(benchmark, prev_param_dict, prev_idx_dict,
                                                                                  overlay_type = overlay_type, fail_type = None)
             print("Param, reverted")
             print(prev_param_dict)
             save_prev_param(benchmark, prev_param_dict, prev_idx_dict, prev_overlay_type)
 
-        # If previous run improved the latency, save the previous param
+        # If previous run was to improve accuracy or
+        # if previous run improved the latency, save the previous param
         else:
             save_prev_param(benchmark, prev_param_dict, prev_idx_dict, overlay_type)
             if latency < best_latency:
@@ -879,7 +1021,7 @@ if __name__ == '__main__':
                 with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
                     outfile.write(str(latency))
 
-        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, minimum_accuracy, error_margin)
+        no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin)
 
 
     # Touch status flag

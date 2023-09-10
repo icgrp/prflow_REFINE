@@ -9,11 +9,11 @@
 # prj_name=optical_flow_64_final
 # prj_name=optical_flow_96_single
 # prj_name=optical_flow_96_final
-# prj_name=optical_flow
+prj_name=optical_flow
 
 # prj_name=rendering_par_1
 # prj_name=rendering_par_2
-prj_name=rendering
+# prj_name=rendering
 
 #prj_name=spam_filter_par_32
 # prj_name=spam_filter_par_32_dot_merged
@@ -127,9 +127,6 @@ sync_impl: $(operators_bit_targets)
 	fi;\
 # 		make incr --no-print-directory && make bits -j$(NPROC) --no-print-directory && make sync_impl --no-print-directory;\
 
-# test:
-# 	./test.sh
-# 	echo "reach here?"
 
 record_NoC_success:
 	python pr_flow.py $(prj_name) --record_time --impl_success
@@ -148,7 +145,7 @@ incr_NoC:./input_src/$(prj_name)/__NoC_done__
 incr_mono:./input_src/$(prj_name)/__mono_done__
 ./input_src/$(prj_name)/__mono_done__:
 	python pr_flow.py $(prj_name) -incr
-	make mono --ignore-errors
+	make mono --ignore-errors -j$(NPROC)
 	./run_on_fpga_mono.sh
 
 bits:$(operators_bit_targets) # NOTE: operators_impl
@@ -202,9 +199,6 @@ report_mono:
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt_m -freq=$(freq)
 
 
-# Routing test
-update: $(operators_syn_targets)
-	python cp_update.py -freq=$(freq) -prj=$(prj_name) -ops='$(operators)'
 
 
 

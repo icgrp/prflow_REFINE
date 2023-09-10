@@ -838,3 +838,15 @@ class monolithic(gen_basic):
     # Save mono_counter_idx_dict for counter_analyze.py
     with open(self.mono_dir + '/mono_counter_idx_dict.json', 'w') as outfile:
       json.dump(mono_counter_idx_dict, outfile, sort_keys=True, indent=4)
+
+    # Optical flow host code compile, TODO: standardize this...
+    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'r') as infile:
+      lines = infile.readlines()
+    filedata = ''
+    for line in lines:
+      if '${CXX}' in line:
+        line = line.replace('./mono_host/host/host.cpp', './mono_host/host/host.cpp ./mono_host/host/imageLib/*.o')
+      filedata += line
+
+    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'w') as outfile:
+      outfile.write(filedata)
