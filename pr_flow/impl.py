@@ -205,12 +205,18 @@ class impl(gen_basic):
 
     # self.shell.cp_dir('./common/script_src/monitor_impl.sh', self.pr_dir+'/monitor.sh') # syn and impl are type 2
     # self.shell.cp_dir('./common/script_src/parse_htop.py', self.pr_dir)
-    self.shell.cp_dir('./common/script_src/write_result.py', self.pr_dir+'/'+operator_impl)
 
     self.shell.cp_dir('./common/constraints/'+self.prflow_params['board']+'/*', self.pr_dir+'/'+operator_impl)
     self.shell.mkdir(self.pr_dir+'/'+operator_impl+'/output')
     os.system('touch '+self.pr_dir+'/'+operator_impl+'/output/_user_impl_clk.xdc') 
     self.shell.replace_lines(self.pr_dir+'/'+operator_impl+'/impl_'+operator_impl+'.tcl', tmp_dict)    
+
+    self.shell.cp_dir('./common/script_src/write_result.py', self.pr_dir+'/'+operator_impl)
+    tmp_dict = {}
+    tmp_dict['PARAM_FILE'] = '            cur_param_dict_file = "../../../input_src/' + self.prflow_params['benchmark_name'] + '/params/cur_param.json"'
+    self.shell.replace_lines(self.pr_dir+'/'+operator_impl+'/write_result.py', tmp_dict)    
+
+
     self.shell.write_lines(self.pr_dir+'/'+operator_impl+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 
                                                                                  'impl_'+operator_impl+'.tcl', 
                                                                                  self.prflow_params['back_end'],

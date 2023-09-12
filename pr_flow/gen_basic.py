@@ -768,9 +768,18 @@ class _verilog:
           ack_in_list_dict[j].append('ack_interface2user_'+str(i))
 
     for j in range(num_leaf_interface):
-      din_str_dict[j] = '{'+','.join(din_list_dict[j])+'}'
-      val_in_str_dict[j] = '{'+','.join(val_in_list_dict[j])+'}'
-      ack_in_str_dict[j] = '{'+','.join(ack_in_list_dict[j])+'}'
+      if len(din_list_dict[j]) == 0:
+        din_str_dict[j] = ''
+      else:
+        din_str_dict[j] = '{'+','.join(din_list_dict[j])+'}'
+      if len(val_in_list_dict[j]) == 0:
+        val_in_str_dict[j] = ''
+      else:
+        val_in_str_dict[j] = '{'+','.join(val_in_list_dict[j])+'}'
+      if len(ack_in_list_dict[j]) == 0:
+        ack_in_str_dict[j] = ''
+      else:
+        ack_in_str_dict[j] = '{'+','.join(ack_in_list_dict[j])+'}'
 
     lines_list.append('    wire clk_user;')
     # lines_list.append('    wire reset_user;')

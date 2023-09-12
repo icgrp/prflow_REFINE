@@ -3,8 +3,10 @@ import argparse
 import re
 from collections import Counter
 
-# Based on the search space (params.json), update ./host/typedefs.h, ./operators/specs.json and cur_param.json.
-# Generate ./operators/*.cpp if necessary => this file is benchmark-specific
+
+##################
+## Common field ## => TODO: code refactor later
+##################
 
 # Helper functions stolen from runtime.py
 def return_operator_io_argument_dict_local(operator_list, benchmark):
@@ -102,15 +104,33 @@ def return_operator_connect_list_local(operator_arg_dict, operator_var_dict):
 # e.g.  e.g. {'zculling_bot': {0: (Input, 32),
 #                              1: (Input, 32),
 #                              2: (Output, 32)}, ...
-def return_operator_io_type_and_width(operator_list):
+def return_operator_io_type_and_width(operator_list, filedata_dict):
     # operator_list = operators.split()
+    # operator_io_type_and_width_dict = {}
+    # for operator in operator_list:
+    #     io_type_and_width_dict = {}
+    #     with open('./operators/'+operator+'.h', 'r') as infile:
+    #         file_list = infile.readlines()
+    #     index = 0
+    #     for line in file_list:
+    #         if 'Input_' in line or 'Output_' in line:
+    #             if 'Input_' in line:
+    #                 io_type = 'Input'
+    #             else:
+    #                 io_type = 'Output'
+    #             ap_uint_str = re.findall(r"ap_uint\<\d+\>", line)[0]
+    #             # print(ap_uint_str)
+    #             width = int(ap_uint_str.split('<')[1].split('>')[0])
+    #             io_type_and_width_dict[index] = (io_type, width)
+    #             index += 1
+    #     operator_io_type_and_width_dict[operator] = io_type_and_width_dict
     operator_io_type_and_width_dict = {}
     for operator in operator_list:
         io_type_and_width_dict = {}
-        with open('./operators/'+operator+'.h', 'r') as infile:
-            file_list = infile.readlines()
+        filedata, filedata_header = filedata_dict[operator]
         index = 0
-        for line in file_list:
+        lines = filedata_header.split('\n')
+        for line in lines:
             if 'Input_' in line or 'Output_' in line:
                 if 'Input_' in line:
                     io_type = 'Input'
@@ -124,6 +144,491 @@ def return_operator_io_type_and_width(operator_list):
         operator_io_type_and_width_dict[operator] = io_type_and_width_dict
 
     return operator_io_type_and_width_dict 
+
+# Determine whether we need to write new src code
+def needs_write_param(func_name, filedata):
+    with open('./params/cur_param.json', 'r') as infile:
+        cur_param_dict = json.load(infile)
+
+    # 1) if new operator
+    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
+        print('NEEDS WRITE: new operator ' + func_name)
+        return True
+    else:
+        # # 2) if function contents changed (filedata)
+        # with open('./operators/' + func_name + '.cpp', 'r') as infile:
+        #     prev_filedata = infile.read()
+        #     # print(filedata)
+        #     # print(prev_filedata)
+        #     if filedata != prev_filedata:
+        #         print('NEEDS WRITE: ' + func_name + ' file contents changed')
+        #         # print(filedata_header)
+        #         # print(prev_filedata_header)
+        #         return True
+
+        if os.path.isfile('./params/prev_param.json'):
+            with open('./params/prev_param.json', 'r') as infile:
+                prev_param_dict = json.load(infile)
+
+            # 3) if param/kernel_clk/num_leaf_interface changed
+            for param in cur_param_dict[func_name].keys():
+                # if param != "num_leaf_interface" and param != "merged_to_try":
+                if param != "merged_to_try":
+                    if cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
+                        print('NEEDS WRITE: ' + param + ' changed for ' + func_name)
+                        return True
+
+        return False
+
+def needs_write_filedata(func_name, filedata):
+    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
+        print('NEEDS WRITE: new operator ' + func_name)
+        return True
+    else:
+        # 2) if function contents changed (filedata)
+        with open('./operators/' + func_name + '.cpp', 'r') as infile:
+            prev_filedata = infile.read()
+            # print(filedata)
+            # print(prev_filedata)
+            if filedata != prev_filedata:
+                print('NEEDS WRITE: ' + func_name + ' file contents changed')
+                # print(filedata_header)
+                # print(prev_filedata_header)
+                return True
+    return False
+
+
+
+def get_flat_list(nested_list):
+    flat_list = []
+    for sublist in nested_list:
+        for op in sublist:
+            flat_list.append(op)
+    return flat_list
+
+# E.g.: A->B->  D
+#        ->C->
+#       Returns [[D],[B,C],[A]]
+def sorted_op_list_backward(operator_list, connection_list):
+    # List of operators, starting from backward
+    sorted_backward_op_list = []
+    for connection in connection_list:
+        if 'DMA.Input_' in connection:
+            start_op = connection.split('->')[0].split('.')[0]
+
+    sorted_backward_op_list.append([start_op])
+    for i in range(len(operator_list)-1):
+        sublist = sorted_backward_op_list[-1]
+        flat_list = get_flat_list(sorted_backward_op_list)
+        new_sublist = [] # list of operators
+        for op in sublist:
+            for connection in connection_list:
+                if op + '.Input_' in connection:
+                    sender_op = connection.split('->')[0].split('.')[0]
+                    if sender_op not in flat_list and sender_op not in new_sublist:
+                        new_sublist.append(sender_op)
+        sorted_backward_op_list.append(sorted(new_sublist))
+
+        flat_list = get_flat_list(sorted_backward_op_list)
+        if sorted(flat_list) == sorted(operator_list):
+            break
+    return sorted_backward_op_list
+
+
+def divide_ops(cur_param_dict, ops_to_compile_list):
+    independent_op_list = []
+    operator_list = list(cur_param_dict.keys())
+    operator_list.remove("metric")
+    # When multiple clusters are merged
+    represent_op_list = []
+    for func_name in operator_list:
+        if 'merged_to' in cur_param_dict[func_name].keys():
+            if cur_param_dict[func_name]['merged_to'] not in represent_op_list:
+                represent_op_list.append(cur_param_dict[func_name]['merged_to'])
+    for represent_op in represent_op_list:
+        if 'merged_to_try' in cur_param_dict[represent_op].keys():
+            new_represent_op = cur_param_dict[represent_op]['merged_to_try']
+            for func_name in operator_list:
+                if 'merged_to' in cur_param_dict[func_name].keys():
+                    if cur_param_dict[func_name]['merged_to'] == represent_op:
+                        del cur_param_dict[func_name]['merged_to']
+                        cur_param_dict[func_name]['merged_to_try'] = new_represent_op
+
+    for func_name in operator_list:
+        # Already merged
+        if 'merged_to' in cur_param_dict[func_name].keys():
+            receiver_op = cur_param_dict[func_name]['merged_to']
+            found = False
+            for sub_list in independent_op_list:
+                if receiver_op in sub_list:
+                    found = True
+                    sub_list.append(func_name)
+                elif func_name in sub_list:
+                    found = True
+                    sub_list.append(receiver_op)
+            if not found:
+                independent_op_list.append([func_name, receiver_op])
+        elif 'merged_to_try' in cur_param_dict[func_name].keys():
+            receiver_op = cur_param_dict[func_name]['merged_to_try']
+            # Let's merge!
+            if func_name not in ops_to_compile_list and receiver_op not in ops_to_compile_list:
+                found = False
+                for sub_list in independent_op_list:
+                    if receiver_op in sub_list:
+                        found = True
+                        print(func_name)
+                        del cur_param_dict[func_name]['merged_to_try']
+                        cur_param_dict[func_name]['merged_to'] = receiver_op
+                        sub_list.append(func_name)
+                    elif func_name in sub_list:
+                        found = True
+                        print(func_name)
+                        del cur_param_dict[func_name]['merged_to_try']
+                        cur_param_dict[func_name]['merged_to'] = receiver_op
+                        sub_list.append(receiver_op)
+                if not found:
+                    del cur_param_dict[func_name]['merged_to_try']
+                    cur_param_dict[func_name]['merged_to'] = receiver_op
+                    independent_op_list.append([func_name, receiver_op])
+            # Can't merge this time, TODO: outdated
+            else: 
+                del cur_param_dict[func_name]['merged_to_try']
+                found = False
+                for sub_list in independent_op_list:
+                    if func_name in sub_list:
+                        found = True
+                if not found:
+                    independent_op_list.append([func_name])
+        else:
+            found = False
+            for sub_list in independent_op_list:
+                if func_name in sub_list:
+                    found = True
+            if not found:
+                independent_op_list.append([func_name])
+
+    # Reflect the represent_op's kernel_clk to all children ops
+    for func_name in operator_list:
+        if 'merged_to' in cur_param_dict[func_name].keys():
+            represent_op = cur_param_dict[func_name]['merged_to']
+            cur_param_dict[func_name]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
+
+    return independent_op_list, cur_param_dict
+
+
+# cur_param_dict, ops_to_compile_list are updated
+# Does followings:
+#   - divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
+#   - assign representative operator to each group (the one with the last in the graph)
+#   - write operators that are not merged with others
+#   - write operators that are merged with others, the top level is representative op
+#   - returns top_str_dict
+#     e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
+def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict):
+    top_str_dict = {}
+
+    is_merged_to_exist = False
+    for func_name in cur_param_dict:
+        if func_name != 'metric':
+            if 'merged_to' in cur_param_dict[func_name] or 'merged_to_try' in cur_param_dict[func_name]:
+                is_merged_to_exist = True
+
+    if not is_merged_to_exist:
+        # Write operators that are not merged with other ops
+        for func_name in operator_list:
+            filedata, filedata_header = filedata_dict[func_name]
+            if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
+                with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
+                    outfile.write(filedata)
+                with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
+                    outfile.write(filedata_header)
+                if func_name not in ops_to_compile_list:
+                    ops_to_compile_list.append(func_name)
+        return top_str_dict
+
+    else:
+        operator_arg_dict = return_operator_io_argument_dict_local(operator_list, None)
+        operator_var_dict = return_operator_inst_dict_local(operator_list, None)
+        connection_list = return_operator_connect_list_local(operator_arg_dict, operator_var_dict)
+        # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
+        # print(connection_list)
+        sorted_backward_op_list = sorted_op_list_backward(operator_list, connection_list)
+        # print(sorted_backward_op_list)
+        sorted_forward_op_list = sorted_backward_op_list[::-1]
+
+
+        independent_op_list, cur_param_dict = divide_ops(cur_param_dict, ops_to_compile_list)
+        # print(independent_op_list)
+
+        independent_op_dict = {} # key is list of merged ops, item is representative op
+        for merged_ops in independent_op_list:
+            found = False
+            for op_list in sorted_backward_op_list:
+                if not found:
+                    for op in op_list:
+                        if op in merged_ops:
+                            represent_op = op
+                            found = True
+                            independent_op_dict[tuple(merged_ops)] = represent_op
+                            break
+        # print(independent_op_dict)
+
+        with open('./host/top_no_merge.cpp', 'r') as infile:
+            lines = infile.readlines()
+        non_merged_ops = []
+        merged_ops = []
+        for op_tup, represent_op in independent_op_dict.items():
+            inst_lines = []
+            if len(op_tup) !=1:
+                for op in op_tup:
+                    merged_ops.append(op)
+                    for line in lines:
+                        if op+'(' in line:
+                            inst_lines.append(line)
+            else:
+                non_merged_ops.append(op_tup[0])
+            independent_op_dict[op_tup] = (represent_op, inst_lines)
+
+        # # Write operators that are merged with other ops, not used in compile though
+        # for func_name in merged_ops:
+        #     filedata, filedata_header = filedata_dict[func_name]
+        #     if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
+        #         with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
+        #             outfile.write(filedata)
+        #         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
+        #             outfile.write(filedata_header)
+        #         # if func_name not in ops_to_compile_list:
+        #         #     ops_to_compile_list.append(func_name)
+
+        # Write operators that are not merged with other ops
+        for func_name in non_merged_ops:
+            del independent_op_dict[tuple([func_name])]
+            filedata, filedata_header = filedata_dict[func_name]
+            if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
+                with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
+                    outfile.write(filedata)
+                with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
+                    outfile.write(filedata_header)
+                if func_name not in ops_to_compile_list:
+                    ops_to_compile_list.append(func_name)
+
+        # Write operators that are merged with other ops
+        # print("independent_op_dict")
+        # print(independent_op_dict)
+        for op_tup in independent_op_dict:
+            represent_op, inst_lines = independent_op_dict[op_tup]
+
+            # Update "merged_to" in cur_param_dict
+            for func_name in op_tup:
+                cur_param_dict[func_name]['merged_to'] = represent_op
+            if 'merged_to' in cur_param_dict[represent_op]: # like tensor_weight_y_i1...
+                del cur_param_dict[represent_op]['merged_to']
+
+
+            # Write operators that are merged with other ops, not used in compile though
+            for func_name in op_tup:
+                if func_name != represent_op:
+                    filedata, filedata_header = filedata_dict[func_name]
+                    if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
+                        with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
+                            outfile.write(filedata)
+                        with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
+                            outfile.write(filedata_header)
+
+
+            stream_list = []
+            # print()
+            # print("inst_lines:")
+            # print(inst_lines)
+            for line in inst_lines:
+                streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
+                stream_list += streams
+
+            # print(stream_list)
+            counter = Counter(stream_list)
+            # print(counter)
+
+            io_stream_list = []
+            non_io_stream_list = []
+            for stream in counter:
+                if counter[stream] == 1:
+                    io_stream_list.append(stream)
+                else:
+                    non_io_stream_list.append(stream)
+            # print(io_stream_list)
+            # print(non_io_stream_list)
+
+            op_io_type_and_width_dict = return_operator_io_type_and_width(operator_list, filedata_dict)
+            # print("op_io_type_and_width_dict:")
+            # print(op_io_type_and_width_dict)
+            input_index = 1
+            output_index = 1
+
+            input_stream_dict = {}
+            output_stream_dict = {}
+            for io_straem in io_stream_list:
+                for line in inst_lines:
+                    if io_straem in line:
+                        func_name = line.split('(')[0]
+                        streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
+                        stream_num = streams.index(io_straem)
+                        # print(io_straem)
+                        # print(stream_num)
+                        if op_io_type_and_width_dict[func_name][stream_num][0] == 'Input':
+                            width = op_io_type_and_width_dict[func_name][stream_num][1]
+                            # print(io_straem, 'Input_' + str(input_index), str(width))
+                            input_stream_dict[io_straem] = ('Input_' + str(input_index), width)
+                            input_index += 1
+                        elif op_io_type_and_width_dict[func_name][stream_num][0] == 'Output':
+                            width = op_io_type_and_width_dict[func_name][stream_num][1]
+                            # print(io_straem, 'Output_' + str(output_index), str(width))
+                            output_stream_dict[io_straem] = ('Output_' + str(output_index), width)
+                            output_index += 1
+
+            non_io_stream_dict = {}
+            for non_io_stream in non_io_stream_list:
+                for line in inst_lines:
+                    if non_io_stream in line:
+                        func_name = line.split('(')[0]
+                        streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
+                        stream_num = streams.index(non_io_stream)
+                        # print(io_straem)
+                        # print(stream_num)
+
+                        width = op_io_type_and_width_dict[func_name][stream_num][1]
+                        non_io_stream_dict[non_io_stream] = (None, width)
+
+            # Merge filedata
+            filedata_rep_op, filedata_header_rep_op = filedata_dict[represent_op]
+            filedata_rep_op = filedata_rep_op.replace('void ' + represent_op, 'static void ' + represent_op + '_body')
+            # filedata_header_rep_op = filedata_header_rep_op.replace('void ' + represent_op, 'void ' + represent_op + '_body')
+            # print(filedata_rep_op)
+
+            for func_name in list(op_tup):
+                if func_name != represent_op:
+                    filedata, filedata_header = filedata_dict[func_name]
+                    filedata = filedata.replace('void ' + func_name, 'static void ' + func_name)
+                    filedata_rep_op += filedata
+
+            # Add top level - io streams
+            filedata_rep_op += '\n'
+            filedata_rep_op += 'void ' + represent_op + '(\n'
+            input_stream_dict = dict(sorted(input_stream_dict.items(), key=lambda x:int(x[1][0].split('_')[1])))
+            # print("input_stream_dict:")
+            # print(input_stream_dict)
+            output_stream_dict = dict(sorted(output_stream_dict.items(), key=lambda x:int(x[1][0].split('_')[1])))
+            # print("output_stream_dict:")
+            # print(output_stream_dict)
+            # print("non_io_stream_dict:")
+            # print(non_io_stream_dict)
+
+            top_str = represent_op + '('
+            for stream in input_stream_dict:
+                top_str += stream + ','
+                io_name = input_stream_dict[stream][0] # e.g. Input_1
+                width = input_stream_dict[stream][1]
+                filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
+            for i, stream in enumerate(output_stream_dict):
+                io_name = output_stream_dict[stream][0] # e.g. Output_1
+                width = output_stream_dict[stream][1]
+                if i == len(output_stream_dict)-1:
+                    top_str += stream + ');\n'
+                    filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ')\n'
+                else:
+                    top_str += stream + ', '
+                    filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
+            filedata_rep_op += '{\n'
+            for stream in input_stream_dict:
+                io_name = input_stream_dict[stream][0]
+                filedata_rep_op += '#pragma HLS interface axis register port=' + str(io_name) + '\n'
+            for stream in output_stream_dict:
+                io_name = output_stream_dict[stream][0]
+                filedata_rep_op += '#pragma HLS interface axis register port=' + str(io_name) + '\n'
+            filedata_rep_op += '\n'
+
+
+            top_str_dict[op_tup] = top_str
+
+            # Add top level - non_io streams
+            for non_io_stream in non_io_stream_dict:
+                width = non_io_stream_dict[non_io_stream][1]
+                filedata_rep_op += '    static hls::stream<ap_uint<' + str(width) + '>> ' + str(non_io_stream) + '("' + str(non_io_stream) + '_stream");\n'
+
+            filedata_rep_op += '\n'
+            filedata_rep_op += '#pragma HLS dataflow\n'
+
+
+            # Modify stream name with Input_* and Output_* 
+            new_inst_lines = []
+            for line in inst_lines:
+                for stream in input_stream_dict:
+                    if stream in line:
+                        io_name = input_stream_dict[stream][0]
+                        line = line.replace(stream, io_name)
+                for stream in output_stream_dict:
+                    if stream in line:
+                        io_name = output_stream_dict[stream][0]
+                        line = line.replace(stream, io_name)
+                if represent_op + '(' in line:
+                    line = line.replace(represent_op + '(', represent_op + '_body' + '(')
+                new_inst_lines.append(line)
+
+            ordered_inst_lines = []
+            # Reorder function instantiation
+            print("sorted_forward_op_list:")
+            print(sorted_forward_op_list)
+            for sublist in sorted_forward_op_list:
+                for op in sublist:
+                    for line in new_inst_lines:
+                        if line.startswith(op + '(') or line.startswith(op + '_body' + '('):
+                            ordered_inst_lines.append(line)
+
+            for line in ordered_inst_lines:
+                filedata_rep_op += '    ' + line
+            filedata_rep_op += '}\n'
+
+            # filedata_header_rep_op
+            filedata_header_rep_op = ''
+            filedata_header_rep_op += 'void ' + represent_op + '(\n'
+            for stream in input_stream_dict:
+                io_name = input_stream_dict[stream][0] # e.g. Input_1
+                width = input_stream_dict[stream][1]
+                filedata_header_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
+            for i, stream in enumerate(output_stream_dict):
+                io_name = output_stream_dict[stream][0] # e.g. Output_1
+                width = output_stream_dict[stream][1]
+                if i == len(output_stream_dict)-1:
+                    filedata_header_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ');\n'
+                else:
+                    filedata_header_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
+            filedata_header_rep_op += '#pragma map_target = HW\n'
+
+
+            if needs_write_param(represent_op, filedata_rep_op) or needs_write_filedata(represent_op, filedata_rep_op):
+                with open(op_dir + '/' + represent_op + '.cpp', 'w') as outfile:
+                    outfile.write(filedata_rep_op)
+                with open(op_dir + '/' + represent_op + '.h', 'w') as outfile:
+                    outfile.write(filedata_header_rep_op)
+                if represent_op not in ops_to_compile_list:
+                    ops_to_compile_list.append(represent_op)
+
+        return top_str_dict
+
+
+def merge_op_list():
+    with open('./host/top.cpp', 'r') as infile:
+        lines = infile.readlines()
+    operator_list = []
+    for line in lines:
+        op_name = line.split('(')[0]
+        operator_list.append(op_name)
+    return operator_list
+
+
+########################
+## Benchmark-specific ##
+########################
+
 
 def gen_data_transfer_func():
     func_str_list = []
@@ -949,390 +1454,6 @@ def gen_output_data_header():
     return 'output_data', "\n".join(func_str_list)
 
 
-# Determine whether we need to write new src code
-def needs_write_param(func_name, filedata):
-    with open('./params/cur_param.json', 'r') as infile:
-        cur_param_dict = json.load(infile)
-
-    # 1) if new operator
-    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
-        return True
-    else:
-        # # 2) if function contents changed (filedata)
-        # with open('./operators/' + func_name + '.cpp', 'r') as infile:
-        #     prev_filedata = infile.read()
-        #     # print(filedata)
-        #     # print(prev_filedata)
-        #     if filedata != prev_filedata:
-        #         print('NEEDS WRITE: ' + func_name + ' file contents changed')
-        #         # print(filedata_header)
-        #         # print(prev_filedata_header)
-        #         return True
-
-        if os.path.isfile('./params/prev_param.json'):
-            with open('./params/prev_param.json', 'r') as infile:
-                prev_param_dict = json.load(infile)
-
-            # 3) if param/kernel_clk changed
-            for param in cur_param_dict[func_name].keys():
-                if param != 'metric':
-                    if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
-                        print('NEEDS WRITE: ' + param + ' changed for ' + func_name)
-                        return True
-
-        return False
-
-def needs_write_filedata(func_name, filedata):
-    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
-        return True
-    else:
-        # 2) if function contents changed (filedata)
-        with open('./operators/' + func_name + '.cpp', 'r') as infile:
-            prev_filedata = infile.read()
-            # print(filedata)
-            # print(prev_filedata)
-            if filedata != prev_filedata:
-                print('NEEDS WRITE: ' + func_name + ' file contents changed')
-                # print(filedata_header)
-                # print(prev_filedata_header)
-                return True
-    return False
-
-
-def get_flat_list(nested_list):
-    flat_list = []
-    for sublist in nested_list:
-        for op in sublist:
-            flat_list.append(op)
-    return flat_list
-
-# E.g.: A->B->  D
-#        ->C->
-#       Returns [[D],[B,C],[A]]
-def sorted_op_list_backward(operator_list, connection_list):
-    # List of operators, starting from backward
-    sorted_backward_op_list = []
-    for connection in connection_list:
-        if 'DMA.Input_' in connection:
-            start_op = connection.split('->')[0].split('.')[0]
-
-    sorted_backward_op_list.append([start_op])
-    for i in range(len(operator_list)-1):
-        sublist = sorted_backward_op_list[-1]
-        flat_list = get_flat_list(sorted_backward_op_list)
-        new_sublist = [] # list of operators
-        for op in sublist:
-            for connection in connection_list:
-                if op + '.Input_' in connection:
-                    sender_op = connection.split('->')[0].split('.')[0]
-                    if sender_op not in flat_list and sender_op not in new_sublist:
-                        new_sublist.append(sender_op)
-        sorted_backward_op_list.append(sorted(new_sublist))
-
-        flat_list = get_flat_list(sorted_backward_op_list)
-        if sorted(flat_list) == sorted(operator_list):
-            break
-    return sorted_backward_op_list
-
-
-def divide_ops(cur_param_dict, ops_to_compile_list):
-    independent_op_list = []
-    operator_list = list(cur_param_dict.keys())
-    operator_list.remove("metric")
-    for func_name in operator_list:
-        # Already merged
-        if 'merged_to' in cur_param_dict[func_name].keys():
-            receiver_op = cur_param_dict[func_name]['merged_to']
-            found = False
-            for sub_list in independent_op_list:
-                if receiver_op in sub_list:
-                    found = True
-                    sub_list.append(func_name)
-                elif func_name in sub_list:
-                    found = True
-                    sub_list.append(receiver_op)
-            if not found:
-                independent_op_list.append([func_name, receiver_op])
-        elif 'merged_to_try' in cur_param_dict[func_name].keys():
-            receiver_op = cur_param_dict[func_name]['merged_to_try']
-            # Let's merge!
-            if func_name not in ops_to_compile_list and receiver_op not in ops_to_compile_list:
-                found = False
-                for sub_list in independent_op_list:
-                    if receiver_op in sub_list:
-                        found = True
-                        del cur_param_dict[func_name]['merged_to_try']
-                        cur_param_dict[func_name]['merged_to'] = receiver_op
-                        sub_list.append(func_name)
-                    elif func_name in sub_list:
-                        found = True
-                        del cur_param_dict[func_name]['merged_to_try']
-                        cur_param_dict[func_name]['merged_to'] = receiver_op
-                        sub_list.append(receiver_op)
-                if not found:
-                    del cur_param_dict[func_name]['merged_to_try']
-                    cur_param_dict[func_name]['merged_to'] = receiver_op
-                    independent_op_list.append([func_name, receiver_op])
-            # Can't merge this time
-            else: 
-                del cur_param_dict[func_name]['merged_to_try']
-                found = False
-                for sub_list in independent_op_list:
-                    if func_name in sub_list:
-                        found = True
-                if not found:
-                    independent_op_list.append([func_name])
-        else:
-            found = False
-            for sub_list in independent_op_list:
-                if func_name in sub_list:
-                    found = True
-            if not found:
-                independent_op_list.append([func_name])
-    return independent_op_list, cur_param_dict
-
-
-# cur_param_dict, ops_to_compile_list are updated
-# Does followings:
-#   - divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
-#   - assign representative operator to each group (the one with the last in the graph)
-#   - write operators that are not merged with others
-#   - write operators that are merged with others, the top level is representative op
-#   - returns top_str_dict
-#     e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
-def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict):
-    top_str_dict = {}
-
-    is_merged_to_exist = False
-    for func_name in cur_param_dict:
-        if func_name != 'metric':
-            if 'merged_to' in cur_param_dict[func_name] or 'merged_to_try' in cur_param_dict[func_name]:
-                is_merged_to_exist = True
-
-    if not is_merged_to_exist:
-        # Write operators that are not merged with other ops
-        for func_name in operator_list:
-            filedata, filedata_header = filedata_dict[func_name]
-            if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
-                with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-                    outfile.write(filedata)
-                with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-                    outfile.write(filedata_header)
-                if func_name not in ops_to_compile_list:
-                    ops_to_compile_list.append(func_name)
-        return top_str_dict
-
-    else:
-        operator_arg_dict = return_operator_io_argument_dict_local(operator_list, None)
-        operator_var_dict = return_operator_inst_dict_local(operator_list, None)
-        connection_list = return_operator_connect_list_local(operator_arg_dict, operator_var_dict)
-        # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
-        # print(connection_list)
-        sorted_backward_op_list = sorted_op_list_backward(operator_list, connection_list)
-        # print(sorted_backward_op_list)
-
-        independent_op_list, cur_param_dict = divide_ops(cur_param_dict, ops_to_compile_list)
-        # print(independent_op_list)
-
-        independent_op_dict = {} # key is list of merged ops, item is representative op
-        for merged_ops in independent_op_list:
-            found = False
-            for op_list in sorted_backward_op_list:
-                if not found:
-                    for op in op_list:
-                        if op in merged_ops:
-                            represent_op = op
-                            found = True
-                            independent_op_dict[tuple(merged_ops)] = represent_op
-                            break
-        # print(independent_op_dict)
-
-        with open('./host/top_no_merge.cpp', 'r') as infile:
-            lines = infile.readlines()
-        non_merged_ops = []
-        for op_tup, represent_op in independent_op_dict.items():
-            inst_lines = []
-            if len(op_tup) !=1:
-                for op in op_tup:
-                    for line in lines:
-                        if op+'(' in line:
-                            inst_lines.append(line)
-            else:
-                non_merged_ops.append(op_tup[0])
-            independent_op_dict[op_tup] = (represent_op, inst_lines)
-
-
-        # Write operators that are not merged with other ops
-        for func_name in non_merged_ops:
-            del independent_op_dict[tuple([func_name])]
-            filedata, filedata_header = filedata_dict[func_name]
-            if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata):
-                with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-                    outfile.write(filedata)
-                with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-                    outfile.write(filedata_header)
-                if func_name not in ops_to_compile_list:
-                    ops_to_compile_list.append(func_name)
-
-        # Write operators that are merged with other ops
-        # print("independent_op_dict")
-        # print(independent_op_dict)
-        for op_tup in independent_op_dict:
-            represent_op, inst_lines = independent_op_dict[op_tup]
-
-            stream_list = []
-            # print()
-            # print("inst_lines:")
-            # print(inst_lines)
-            for line in inst_lines:
-                streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
-                stream_list += streams
-
-            # print(stream_list)
-            counter = Counter(stream_list)
-            # print(counter)
-
-            io_stream_list = []
-            non_io_stream_list = []
-            for stream in counter:
-                if counter[stream] == 1:
-                    io_stream_list.append(stream)
-                else:
-                    non_io_stream_list.append(stream)
-            # print(io_stream_list)
-            # print(non_io_stream_list)
-
-            op_io_type_and_width_dict = return_operator_io_type_and_width(operator_list)
-            # print("op_io_type_and_width_dict:")
-            # print(op_io_type_and_width_dict)
-            input_index = 1
-            output_index = 1
-
-            input_stream_dict = {}
-            output_stream_dict = {}
-            for io_straem in io_stream_list:
-                for line in inst_lines:
-                    if io_straem in line:
-                        func_name = line.split('(')[0]
-                        streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
-                        stream_num = streams.index(io_straem)
-                        # print(io_straem)
-                        # print(stream_num)
-                        if op_io_type_and_width_dict[func_name][stream_num][0] == 'Input':
-                            width = op_io_type_and_width_dict[func_name][stream_num][1]
-                            # print(io_straem, 'Input_' + str(input_index), str(width))
-                            input_stream_dict[io_straem] = ('Input_' + str(input_index), width)
-                            input_index += 1
-                        elif op_io_type_and_width_dict[func_name][stream_num][0] == 'Output':
-                            width = op_io_type_and_width_dict[func_name][stream_num][1]
-                            # print(io_straem, 'Output_' + str(output_index), str(width))
-                            output_stream_dict[io_straem] = ('Output_' + str(output_index), width)
-                            output_index += 1
-
-            non_io_stream_dict = {}
-            for non_io_stream in non_io_stream_list:
-                for line in inst_lines:
-                    if non_io_stream in line:
-                        func_name = line.split('(')[0]
-                        streams = line.split('(')[1].split(')')[0].replace(' ','').split(',')
-                        stream_num = streams.index(non_io_stream)
-                        # print(io_straem)
-                        # print(stream_num)
-
-                        width = op_io_type_and_width_dict[func_name][stream_num][1]
-                        non_io_stream_dict[non_io_stream] = (None, width)
-
-            # Merge filedata
-            filedata_rep_op, filedata_header_rep_op = filedata_dict[represent_op]
-            filedata_rep_op = filedata_rep_op.replace('void ' + represent_op, 'static void ' + represent_op + '_body')
-            filedata_header_rep_op = filedata_header_rep_op.replace('void ' + represent_op, 'void ' + represent_op + '_body')
-            # print(filedata_rep_op)
-
-            for func_name in list(op_tup):
-                if func_name != represent_op:
-                    filedata, filedata_header = filedata_dict[func_name]
-                    filedata = filedata.replace('void ' + func_name, 'static void ' + func_name)
-                    filedata_rep_op += filedata
-
-            # Add top level - io streams
-            filedata_rep_op += '\n'
-            filedata_rep_op += 'void ' + represent_op + '(\n'
-            input_stream_dict = dict(sorted(input_stream_dict.items(), key=lambda x:int(x[1][0].split('_')[1])))
-            # print("input_stream_dict:")
-            # print(input_stream_dict)
-            output_stream_dict = dict(sorted(output_stream_dict.items(), key=lambda x:int(x[1][0].split('_')[1])))
-            # print("output_stream_dict:")
-            # print(output_stream_dict)
-            # print("non_io_stream_dict:")
-            # print(non_io_stream_dict)
-
-            top_str = represent_op + '('
-            for stream in input_stream_dict:
-                top_str += stream + ','
-                io_name = input_stream_dict[stream][0] # e.g. Input_1
-                width = input_stream_dict[stream][1]
-                filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
-            for i, stream in enumerate(output_stream_dict):
-                io_name = output_stream_dict[stream][0] # e.g. Output_1
-                width = output_stream_dict[stream][1]
-                if i == len(output_stream_dict)-1:
-                    top_str += stream + ');\n'
-                    filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ')\n'
-                else:
-                    top_str += stream + ', '
-                    filedata_rep_op += '    hls::stream<ap_uint<' + str(width) + '>> &' + str(io_name) + ',\n'
-            filedata_rep_op += '{\n'
-            for stream in input_stream_dict:
-                io_name = input_stream_dict[stream][0]
-                filedata_rep_op += '#pragma HLS interface axis register port=' + str(io_name) + '\n'
-            for stream in output_stream_dict:
-                io_name = output_stream_dict[stream][0]
-                filedata_rep_op += '#pragma HLS interface axis register port=' + str(io_name) + '\n'
-            filedata_rep_op += '\n'
-
-
-            top_str_dict[op_tup] = top_str
-
-            # Add top level - non_io streams
-            for non_io_stream in non_io_stream_dict:
-                width = non_io_stream_dict[non_io_stream][1]
-                filedata_rep_op += '    static hls::stream<ap_uint<' + str(width) + '>> ' + str(non_io_stream) + '("' + str(non_io_stream) + '_stream");\n'
-
-            filedata_rep_op += '\n'
-            filedata_rep_op += '#pragma HLS dataflow\n'
-            for line in inst_lines:
-                for stream in input_stream_dict:
-                    if stream in line:
-                        io_name = input_stream_dict[stream][0]
-                        line = line.replace(stream, io_name)
-                for stream in output_stream_dict:
-                    if stream in line:
-                        io_name = output_stream_dict[stream][0]
-                        line = line.replace(stream, io_name)
-                if represent_op + '(' in line:
-                    line = line.replace(represent_op + '(', represent_op + '_body' + '(')
-                filedata_rep_op += '    ' + line
-            filedata_rep_op += '}\n'
-
-            if needs_write_param(represent_op, filedata_rep_op) or needs_write_filedata(represent_op, filedata_rep_op):
-                with open(op_dir + '/' + represent_op + '.cpp', 'w') as outfile:
-                    outfile.write(filedata_rep_op)
-                with open(op_dir + '/' + represent_op + '.h', 'w') as outfile:
-                    outfile.write(filedata_header_rep_op)
-                if represent_op not in ops_to_compile_list:
-                    ops_to_compile_list.append(represent_op)
-
-        return top_str_dict
-
-# def no_merge_op_list(benchmark):
-#     with open('./host/top_no_merge.cpp', 'r') as infile:
-#         lines = infile.readlines()
-#     operator_list = []
-#     for line in lines:
-#         op_name = line.split('(')[0]
-#         operator_list.append(func_name)
-#     return operator_list
-
 
 # Based on ./params/cur_param.json, this file 
 # generates HLS source codes (if necessary)
@@ -1341,14 +1462,14 @@ if __name__ == '__main__':
 
     op_dir = './operators'
 
-    # #####################################
-    # ## Extract param from cur_par.json ##
-    # #####################################
+    #####################################
+    ## Extract param from cur_par.json ##
+    #####################################
     with open('./params/cur_param.json', 'r') as infile:
         cur_param_dict = json.load(infile)
     # print(cur_param_dict)
 
-    # Values for PAR_RAST, PAR_ZCULLING shuold be identical across all the ops
+    # Values for PAR_FACTOR, OUTER_WIDTH shuold be identical across all the ops
     for prev_op, param_dict in cur_param_dict.items():
         if prev_op != 'metric':
             # print(prev_op)
@@ -1365,55 +1486,9 @@ if __name__ == '__main__':
     print(cast_float)
 
 
-    # outer_width_int, calc_width_int values could be also design space, but
-    # we fix these vals for each outer_width val
-    # TODO: dummy_len is required to flush out all the outputs in optical_flow benchmark.
-    #       This is a bug in current decomposition of optical_flow benchmark.
-    if outer_width == 16:
-        outer_width_int, calc_width_int = 11, 24
-        dummy_len = 775
-    elif outer_width == 32:
-        outer_width_int, calc_width_int = 27, 56
-        dummy_len = 774
-    elif outer_width == 48:
-        outer_width_int, calc_width_int = 27, 56
-        dummy_len = 774
-
-    # par_factor = 1 # 1, 2
-    # outer_width = 32 # 16, 32, 48
-    # dummy_len = 781
-    # outer_width_int = 27
-    # calc_width_int = 56
-    # cast_float = False
-
     ###########################################
     ## Generate src files based on cur param ##
     ###########################################
-
-    # Modify typedefs.h
-    filedata = ''
-    with open('./host/typedefs.h', 'r') as infile:
-        lines = infile.readlines()
-    for line in lines:
-        if line.startswith('#define PAR_FACTOR'):
-            line = '#define PAR_FACTOR ' + str(par_factor) + '\n'
-        elif line.startswith('#define OUTER_WIDTH '):
-            line = '#define OUTER_WIDTH ' + str(outer_width) + '\n'
-        elif line.startswith('#define OUTER_WIDTH_INT '):
-            line = '#define OUTER_WIDTH_INT ' + str(outer_width_int) + '\n'
-        elif line.startswith('#define CALC_WIDTH_INT '):
-            line = '#define CALC_WIDTH_INT ' + str(calc_width_int) + '\n'
-        elif line.startswith('#define DUMMY_LEN '):
-            line = '#define DUMMY_LEN ' + str(dummy_len) + '\n'
-        # elif line.startswith('#define CAST_FLOAT'):
-        #     if cast_float:
-        #         line = '#define CAST_FLOAT true\n'
-        #     else:
-        #         line = '#define CAST_FLOAT false\n'
-        filedata += line
-    with open('./host/typedefs.h', 'w') as outfile:
-        outfile.write(filedata)
-
 
     # cpp code gen
     func_name_list = []
@@ -1486,17 +1561,8 @@ if __name__ == '__main__':
     if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
-
-    # print(filedata_dict.keys())
-
-    #####################
-    ## Perform merging ##
-    #####################
-    operator_list = list(cur_param_dict.keys())
-    operator_list.remove("metric")
-
-    # Modify cur_param_dict, ops_to_compile_list and WRITE .cpp files
-    merged_top_str_dict = perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict)
+    print(filedata_dict.keys())
+    print()
 
     #############################################
     ## Update cur_param.json for new operators ##
@@ -1508,12 +1574,86 @@ if __name__ == '__main__':
             # Assume that kernel_clk, num_leaf_interface, and par factor are identical
             cur_param_dict[func_name] = cur_param_dict[represent_function_name]
 
+
+    #####################
+    ## Perform merging ##
+    #####################
+    operator_list = list(cur_param_dict.keys())
+    operator_list.remove("metric")
+    # operator_list = merge_op_list()
+
+    # Modify cur_param_dict, ops_to_compile_list and WRITE .cpp files
+    merged_top_str_dict = perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict)
+
+
+    # Save cur_param_dict updated by perform_merging
     with open('./params/cur_param.json', 'w') as outfile:
         json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
 
     # Save ops_to_compile.json, used to record compile time
     with open('./params/ops_to_compile.json', 'w') as outfile:
         json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
+
+
+
+    # outer_width_int, calc_width_int values could be also design space, but
+    # We fix these vals for each outer_width val
+    # TODO: dummy_len is required to flush out all the outputs in optical_flow benchmark.
+    #       This is a BUG in current decomposition of optical_flow benchmark.
+    if outer_width == 16:
+        outer_width_int, calc_width_int = 11, 24
+        dummy_len = 775
+    elif outer_width == 32:
+        outer_width_int, calc_width_int = 27, 56
+        dummy_len = 774
+    elif outer_width == 48:
+        outer_width_int, calc_width_int = 27, 56
+        dummy_len = 774
+        for op in cur_param_dict.keys():
+            if op != 'metric':
+                if (op.startswith('tensor_weight_x_i') and 'merged_to' in cur_param_dict[op].keys()) or\
+                   (op.startswith('tensor_weight_y_i') and 'merged_to' in cur_param_dict[op].keys()) or\
+                   (op.startswith('outer_product') and 'merged_to' in cur_param_dict[op].keys()):
+                    dummy_len = 775
+        if cur_param_dict['flow_calc']['kernel_clk'] == 250:
+            dummy_len = 777
+        elif cur_param_dict['flow_calc']['kernel_clk'] == 300:
+            dummy_len = 777
+        elif cur_param_dict['flow_calc']['kernel_clk'] == 350:
+            dummy_len = 778
+        elif cur_param_dict['flow_calc']['kernel_clk'] == 400:
+            dummy_len = 779
+        if cur_param_dict['gradient_xyz_calc']['kernel_clk'] == 250:
+            dummy_len = 779            
+    # For monolithic ver., dummy_len = 1024 is fine
+    if os.path.isfile('./__NoC_done__'):
+        dummy_len = 1024
+
+
+    # Modify typedefs.h
+    filedata = ''
+    with open('./host/typedefs.h', 'r') as infile:
+        lines = infile.readlines()
+    for line in lines:
+        if line.startswith('#define PAR_FACTOR'):
+            line = '#define PAR_FACTOR ' + str(par_factor) + '\n'
+        elif line.startswith('#define OUTER_WIDTH '):
+            line = '#define OUTER_WIDTH ' + str(outer_width) + '\n'
+        elif line.startswith('#define OUTER_WIDTH_INT '):
+            line = '#define OUTER_WIDTH_INT ' + str(outer_width_int) + '\n'
+        elif line.startswith('#define CALC_WIDTH_INT '):
+            line = '#define CALC_WIDTH_INT ' + str(calc_width_int) + '\n'
+        elif line.startswith('#define DUMMY_LEN '):
+            line = '#define DUMMY_LEN ' + str(dummy_len) + '\n'
+        # elif line.startswith('#define CAST_FLOAT'):
+        #     if cast_float:
+        #         line = '#define CAST_FLOAT true\n'
+        #     else:
+        #         line = '#define CAST_FLOAT false\n'
+        filedata += line
+    with open('./host/typedefs.h', 'w') as outfile:
+        outfile.write(filedata)
+
 
 
     #################################################
@@ -1606,9 +1746,9 @@ if __name__ == '__main__':
     #################################
     ## Remove old src files if any ##
     #################################
-    cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
-    for cpp_file in cpp_file_list:
-        func_name = cpp_file.split('.')[0]
-        if func_name not in post_merging_func_name_list:
-            os.system('rm ./operators/' + func_name + '.cpp')
-            os.system('rm ./operators/' + func_name + '.h')
+    # cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
+    # for cpp_file in cpp_file_list:
+    #     func_name = cpp_file.split('.')[0]
+    #     if func_name not in post_merging_func_name_list:
+    #         os.system('rm ./operators/' + func_name + '.cpp')
+    #         os.system('rm ./operators/' + func_name + '.h')

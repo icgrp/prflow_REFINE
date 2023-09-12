@@ -357,7 +357,7 @@ class record_time(gen_basic):
       lines = infile.readlines()
       for line in lines:
         if line.startswith('accuracy: '):
-          accuracy = int(line.split()[1])
+          accuracy = float(line.split()[1])
 
     with open("./_bi_results/" + self.prflow_params['benchmark_name'] + "/summary.csv", "r") as infile:
         lines = infile.readlines()

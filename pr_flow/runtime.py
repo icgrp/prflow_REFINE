@@ -158,7 +158,7 @@ class runtime(gen_basic):
   #         'DMA.Output_1': (1, 9), 
   #         'data_redir_m.Input_1': (4, 2), 
   #         'data_redir_m.Input_2': (5, 2), ...}
-  def return_config_packet_list_local(self, port_page_assign_dict, connection_list, operators):
+  def return_config_packet_list_local(self, port_page_assign_dict, pblock_assign_dict, connection_list, operators):
     packet_list = []
     # packet_num = 2
     packet_num = 5 # changed for bottleneck identification
@@ -211,6 +211,37 @@ class runtime(gen_basic):
       packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = " + str(hex(value_low)).replace('L', '') + ";")
       packet_num += 1
 
+    # For leaf interface that has dummy output ports, send packet with port==0
+    for op in pblock_assign_dict.keys():
+      page_num = pblock_assign_dict[op]['page_num']
+      num_leaf_interface = len(pblock_assign_dict[op]['leaf_interface'])
+      for i in range(num_leaf_interface):
+        # e.g.: io_ports = ['Input_1', 'Input_2', 'Output_1']
+        io_ports = pblock_assign_dict[op]['leaf_interface'][str(i)]
+        is_output_port_exists = False
+        for io_port in io_ports:
+          if io_port.startswith('Output_'):
+            is_output_port_exists = True
+        if is_output_port_exists == False:
+          src_page = page_num + i
+          src_port = 9
+          dest_page = 1 # don't care
+          dest_port = 2 # don't care
+          src_page_packet =                   (src_page  << self.page_addr_offset)
+          src_page_packet = src_page_packet + (       0  << self.port_offset)
+          src_page_packet = src_page_packet + (src_port  << self.config_port_offset)
+          src_page_packet = src_page_packet + (dest_page << self.dest_page_offset)
+          src_page_packet = src_page_packet + (dest_port << self.dest_port_offset)
+          src_page_packet = src_page_packet + ((2**self.bram_addr_bits-1) << self.freespace_offset)
+          value_low  =  (src_page_packet      ) & 0xffffffff
+          value_high =  (src_page_packet >> 32) & 0xffffffff
+          # print 'src_page_packet: ', str(hex(value_high)).replace('L', ''), str(hex(value_low)).replace('L', '') 
+          # packet_list.append("  write_to_fifo(" + str(hex(value_high)).replace('L', '') + ', ' + str(hex(value_low)).replace('L', '') + ");")
+          packet_list.append("    in1["+str(packet_num)+"].range(63, 32) = 0x" + str(hex(value_high)).replace('L', '').replace('0x','').zfill(8) + '; ')
+          packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = " + str(hex(value_low)).replace('L', '') + ";")
+          packet_num += 1
+
+
     operator_list = operators.split()
     bft_addr_shift = int(self.prflow_params['pks']) - int(self.prflow_params['payload_bits']) - 1 - int(self.prflow_params['addr_bits'])
     include_str = '#include \"typedefs.h\"\n'
@@ -218,14 +249,24 @@ class runtime(gen_basic):
     op_page_dict = {}
     # op_page_dict[op] = list of page num that op's leaf interface is connected to
     # e.g. op_page_dict = {'data_redir_m': [4, 5], 'data_transfer': [6], ...}
-    for op_port_name in port_page_assign_dict.keys():
-      op = op_port_name.split('.')[0]
-      page_num = port_page_assign_dict[op_port_name][0]
-      if op not in op_page_dict.keys():
-        op_page_dict[op] = []
-      else:
-        if page_num not in op_page_dict[op]:
-          op_page_dict[op].append(page_num)
+    # for op_port_name in port_page_assign_dict.keys():
+    #   op = op_port_name.split('.')[0]
+    #   page_num = port_page_assign_dict[op_port_name][0]
+    #   if op not in op_page_dict.keys():
+    #     op_page_dict[op] = []
+    #   else:
+    #     if page_num not in op_page_dict[op]:
+    #       op_page_dict[op].append(page_num)
+
+    # Need to include leaf interface that has dummy ports only
+    for op in pblock_assign_dict.keys():
+      page_num = pblock_assign_dict[op]['page_num']
+      num_leaf_interface = len(pblock_assign_dict[op]['leaf_interface'])
+      for i in range(num_leaf_interface):
+        if i == 0:
+          op_page_dict[op] = [page_num]
+        else:
+          op_page_dict[op].append(page_num + i)
     print("op_page_dict:")
     print(op_page_dict)
     print()
@@ -407,7 +448,7 @@ class runtime(gen_basic):
 
 
 
-  def add_bft_config_to_host_cpp(self, operators, port_page_assign_dict, num_total_counter):
+  def add_bft_config_to_host_cpp(self, operators, port_page_assign_dict, pblock_assign_dict, num_total_counter):
 
     # page_assign_dict, overlay_n = self.return_page_assign_dict_local(self.syn_dir, operators)
     # page_assign_dict, e.g. {'DMA': 1, 'rasterization2_m_1': 7, 'coloringFB_bot_m': 2, 'zculling_bot': 12, ... }
@@ -424,7 +465,7 @@ class runtime(gen_basic):
     # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
     # print(connection_list)
 
-    packet_list, packet_num, num_is_done_config = self.return_config_packet_list_local(port_page_assign_dict, connection_list, operators)
+    packet_list, packet_num, num_is_done_config = self.return_config_packet_list_local(port_page_assign_dict, pblock_assign_dict, connection_list, operators)
     # num_total_counter = 0
     # num_total_ports = 0
     # for op in operator_var_dict:
@@ -510,7 +551,7 @@ class runtime(gen_basic):
 
     # add configuration packets to host.cpp
     # and reads overlay_n from syn_dir/page_assignment.pickle
-    self.add_bft_config_to_host_cpp(operators, port_page_assign_dict, num_total_counter)
+    self.add_bft_config_to_host_cpp(operators, port_page_assign_dict, pblock_assign_dict, num_total_counter)
 
     # prepare the gen_runtime.sh to generate the app.exe 
     self.gen_runtime_sh()

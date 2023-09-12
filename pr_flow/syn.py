@@ -111,10 +111,10 @@ class syn(gen_basic):
 
   # generates leaf interface mapping for user operator's IO to minimize the standard deviation of sums of channel widths
   # e.g.: num_leaf_interface = 2
-  # operator_input_width_dict, e.g. {'Input_1':96, 'Input_2':32, 'Input_3':128}
+  # operator_input_width_dict, e.g. {'Input_1':96, 'Input_2':128, 'Input_3':32}
   # operator_output_width_dict, e.g. {'Output_1':32}
-  # returns {0: ['Input_1', 'Input_2', 'Output_1'],   # sum of input ports' channel width: 128
-  #          1: ['Input_3']}                          # sum of input ports' channel width: 128
+  # returns {0: ['Input_1', 'Input_3', 'Output_1'],   # sum of input ports' channel width: 128
+  #          1: ['Input_2']}                          # sum of input ports' channel width: 128
   def gen_leaf_interface_mapping(self, operator_input_width_dict, operator_output_width_dict, num_leaf_interface):
       
       ## dict input loading

@@ -2,7 +2,7 @@ all: package/sd_card.img
 #all:${kl_name}.xclbin 
 
 app.exe: ./mono_host/host/host.cpp
-	${CXX} -Wall -g -std=c++11 ./mono_host/host/host.cpp -o app.exe \
+	${CXX} -Wall -O3 -g -std=c++11 ./mono_host/host/host.cpp -o app.exe \
 		-I/usr/include/xrt \
 		-I${XILINX_HLS}/include \
 		-lOpenCL \

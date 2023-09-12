@@ -1,25 +1,12 @@
 ############################################################################################
 
-# prj_name=digit_rec_test
-# prj_name=digit_reg_par_80
-# prj_name?=digit_reg_par_80
 # prj_name=digit_rec
-
-# prj_name=optical_flow_64_single
-# prj_name=optical_flow_64_final
-# prj_name=optical_flow_96_single
-# prj_name=optical_flow_96_final
 prj_name=optical_flow
-
-# prj_name=rendering_par_1
-# prj_name=rendering_par_2
 # prj_name=rendering
 
 #prj_name=spam_filter_par_32
 # prj_name=spam_filter_par_32_dot_merged
 #prj_name=spam_filter_par_64
-
-# prj_name=routing_test
 
 # prj_name=finn_cnn_cifar10
 # prj_name=test
@@ -38,9 +25,11 @@ ws_mono_overlay=$(ws)/F007_overlay_mono
 
 host_dir=./input_src/$(prj_name)/host
 operators_dir=./input_src/$(prj_name)/operators
-operators_src=$(wildcard $(operators_dir)/*.cpp)
+# operators_src=$(wildcard $(operators_dir)/*.cpp)
 
-operators=$(basename $(notdir $(operators_src)))
+# operators=$(basename $(notdir $(operators_src)))
+operators=$(shell python ./pr_flow/parse_op_list.py -prj $(prj_name))
+
 operators_hls_targets=$(foreach n, $(operators), $(ws_hls)/run_log_$(n).log)
 operators_syn_targets=$(foreach n, $(operators), $(ws_syn)/$(n)/page_netlist.dcp)
 
@@ -138,7 +127,7 @@ record_mono_success:
 incr_NoC:./input_src/$(prj_name)/__NoC_done__
 ./input_src/$(prj_name)/__NoC_done__:
 	python pr_flow.py $(prj_name) -incr
-	make sync_pg_assign -j$(NPROC)
+	make sync_pg_assign --ignore-errors -j$(NPROC)
 	make all --ignore-errors -j$(NPROC)
 	./run_on_fpga.sh
 
@@ -161,6 +150,12 @@ $(operators_pblocks):$(ws_syn)/%/pblock.json: pg_assign
 pg_assign:$(ws_syn)/pblock_assignment.json
 $(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/specs.json
 	python pr_flow.py $(prj_name) -pg -op '$(operators_impl)'
+	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then\
+		python pr_flow.py $(prj_name) --record_time;\
+		touch './input_src/'$(prj_name)'/__NoC_done__';\
+		# If no pblock maping available, move to monolithic (using current failed parameters) \
+		make incr_mono;\
+	fi;\
 # 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
 	#if [ ! -f $(ws_syn)/pblock_assignment.json ]; then make incr_mono; fi
 
@@ -174,7 +169,7 @@ $(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/run_log_%.log $(
 # HLS
 hls: $(operators_hls_targets)
 # High-Level-Synthesis from C to Verilog
-$(operators_hls_targets):$(ws_hls)/run_log_%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h $(host_dir)/typedefs.h ./pr_flow/hls.py
+$(operators_hls_targets):$(ws_hls)/run_log_%.log:$(operators_dir)/%.cpp $(operators_dir)/%.h ./pr_flow/hls.py
 	python pr_flow.py $(prj_name) -hls -op $(basename $(notdir $<))
 	cd $(ws_hls) && ./main_$(basename $(notdir $<)).sh $(operators)
 
@@ -216,6 +211,7 @@ clear_incr:
 	rm -rf ./input_src/$(prj_name)/params/best.txt
 	rm -rf ./input_src/$(prj_name)/params/visited/*
 	rm -rf ./input_src/$(prj_name)/params/results/*
+	rm -rf ./input_src/$(prj_name)/operators/*
 	cp ./input_src/$(prj_name)/params/init_param.json ./input_src/$(prj_name)/params/cur_param.json 
 	cd ./input_src/$(prj_name)/ && python gen_next_param.py
 	cp ./input_src/$(prj_name)/params/ops_init.json ./input_src/$(prj_name)/params/ops_to_compile.json 

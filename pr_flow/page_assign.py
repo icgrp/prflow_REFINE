@@ -938,6 +938,9 @@ class page_assign(gen_basic):
       is_ops_all_fit = True
       for op in operators_list:
         frequency = specs_dict[op]['kernel_clk']
+        with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
+          leaf_interface_mapping_dict = json.load(infile)
+        num_leaf_interface = len(leaf_interface_mapping_dict)
 
         if op not in pblock_assign_dict: # new operator
           is_ops_all_fit = False
@@ -947,14 +950,30 @@ class page_assign(gen_basic):
           op_resource_dict = util_dict[op]
           if_fit_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
           # if_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
-          if not if_fit_result:
+          if not if_fit_result or self.get_page_size(pblock_name) < num_leaf_interface:
             is_ops_all_fit = False
+
       if is_ops_all_fit:
         print("##################################")
         print("## Previous page mapping works! ##")
         print("##################################")
         # In this case, there's no such op that runs implementation only ==> ops_to_compile.json and ops_to_pnr.json are the same
         os.system('cp ./input_src/' + self.prflow_params['benchmark_name'] + '/params/ops_to_compile.json ' + self.syn_dir + '/ops_to_pnr.json')
+        # IMPORTANT!, remove ops that are merged to other ops
+        new_pblock_assign_dict = {}
+        for op in pblock_assign_dict:
+          if op in operators_list:
+            with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
+              # print(op)
+              leaf_interface_mapping_dict = json.load(infile)
+            new_pblock_assign_dict[op] = {}
+            new_pblock_assign_dict[op]["leaf_interface"] = leaf_interface_mapping_dict
+            new_pblock_assign_dict[op]['page_num'] = pblock_assign_dict[op]['page_num']
+            new_pblock_assign_dict[op]['pblock'] = pblock_assign_dict[op]['pblock']
+
+        with open(self.syn_dir + '/pblock_assignment.json', 'w') as outfile:
+          json.dump(new_pblock_assign_dict, outfile, sort_keys=True, indent=4)
+
         # IMPORTANT!, write pblock.json only if the file doesn't exist (because it's newly generated and the syn directory was reset)
         for op in operators_list:
           pblock_name = pblock_assign_dict[op]["pblock"]
@@ -1011,9 +1030,8 @@ class page_assign(gen_basic):
     with open(overlay_util_json_file, 'r') as infile:
       pblock_all_resource_dict = json.load(infile)
 
-
     # Previous page assignment failed in implementation
-    if operators_tmp_list != operators_list:
+    if sorted(operators_tmp_list) != sorted(operators_list):
       if operators_tmp_list == []:
         raise Exception("Which operators failed in previous implementation?")
 
@@ -1140,7 +1158,7 @@ class page_assign(gen_basic):
       new_pblock_assign_dict[op]["page_num"] = page_assign_dict[op]
 
       with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
-        print(op)
+        # print(op)
         leaf_interface_mapping_dict = json.load(infile)
       new_pblock_assign_dict[op]["leaf_interface"] = leaf_interface_mapping_dict
 
