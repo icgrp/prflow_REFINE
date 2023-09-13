@@ -1,7 +1,7 @@
 ############################################################################################
 
-# prj_name=digit_rec
-prj_name=optical_flow
+prj_name=digit_rec
+# prj_name=optical_flow
 # prj_name=rendering
 
 #prj_name=spam_filter_par_32
@@ -133,6 +133,7 @@ incr_NoC:./input_src/$(prj_name)/__NoC_done__
 
 incr_mono:./input_src/$(prj_name)/__mono_done__
 ./input_src/$(prj_name)/__mono_done__:
+	touch ./input_src/$(prj_name)/__NoC_done__
 	python pr_flow.py $(prj_name) -incr
 	make mono --ignore-errors -j$(NPROC)
 	./run_on_fpga_mono.sh

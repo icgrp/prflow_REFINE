@@ -562,6 +562,9 @@ OPTRACE "read constraints: write_bitstream" END { }
 OPTRACE "write_bitstream setup" END { }
 OPTRACE "write_bitstream" START { }
   ## CHANGED
+  set_property IS_ENABLED 0 [get_drc_checks {PPURQ-1}]
+  # Below line is necessary for optical flow benchmark
+  set_property SEVERITY {Warning} [get_drc_checks LUTLP-1]
   write_bitstream -force mono.bit 
 OPTRACE "write_bitstream" END { }
 OPTRACE "write_bitstream misc" START { }

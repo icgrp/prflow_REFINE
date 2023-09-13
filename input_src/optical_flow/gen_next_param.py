@@ -198,7 +198,7 @@ def needs_write_filedata(func_name, filedata):
     return False
 
 
-
+# E.g.: [[A,B],[C]] => [A,B,C]
 def get_flat_list(nested_list):
     flat_list = []
     for sublist in nested_list:
@@ -234,7 +234,8 @@ def sorted_op_list_backward(operator_list, connection_list):
             break
     return sorted_backward_op_list
 
-
+# Based on 'merged_to' or 'merged_to_try', it creates "clusters" of operators (independent_op_list). 
+# E.g.: [[A,F,G],[X,Y],C,D] when A,F,G are merged and X,Y are merged.
 def divide_ops(cur_param_dict, ops_to_compile_list):
     independent_op_list = []
     operator_list = list(cur_param_dict.keys())
@@ -318,12 +319,12 @@ def divide_ops(cur_param_dict, ops_to_compile_list):
 
 # cur_param_dict, ops_to_compile_list are updated
 # Does followings:
-#   - divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
-#   - assign representative operator to each group (the one with the last in the graph)
-#   - write operators that are not merged with others
-#   - write operators that are merged with others, the top level is representative op
-#   - returns top_str_dict
-#     e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
+#   - Divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
+#   - Assign representative operator to each group (the one with the last in the graph)
+#   - Write cpp codes for operators that are not merged with others
+#   - Write cpp codes for operators that are merged with others, the top level is representative op
+#   - Returns top_str_dict (used to write graph file, top.cpp)
+#             e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
 def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict):
     top_str_dict = {}
 
@@ -333,6 +334,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             if 'merged_to' in cur_param_dict[func_name] or 'merged_to_try' in cur_param_dict[func_name]:
                 is_merged_to_exist = True
 
+    # No 'merged_to' or 'merged_to_try' because NoC bottleneck does not exist
     if not is_merged_to_exist:
         # Write operators that are not merged with other ops
         for func_name in operator_list:
@@ -355,7 +357,6 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         sorted_backward_op_list = sorted_op_list_backward(operator_list, connection_list)
         # print(sorted_backward_op_list)
         sorted_forward_op_list = sorted_backward_op_list[::-1]
-
 
         independent_op_list, cur_param_dict = divide_ops(cur_param_dict, ops_to_compile_list)
         # print(independent_op_list)
@@ -424,7 +425,6 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             if 'merged_to' in cur_param_dict[represent_op]: # like tensor_weight_y_i1...
                 del cur_param_dict[represent_op]['merged_to']
 
-
             # Write operators that are merged with other ops, not used in compile though
             for func_name in op_tup:
                 if func_name != represent_op:
@@ -435,7 +435,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
                             outfile.write(filedata_header)
 
-
+            # From here, write merged operator
             stream_list = []
             # print()
             # print("inst_lines:")
@@ -454,13 +454,16 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                 if counter[stream] == 1:
                     io_stream_list.append(stream)
                 else:
-                    non_io_stream_list.append(stream)
+                    non_io_stream_list.append(stream) # Counter val for internal stream is 2
             # print(io_stream_list)
             # print(non_io_stream_list)
 
             op_io_type_and_width_dict = return_operator_io_type_and_width(operator_list, filedata_dict)
             # print("op_io_type_and_width_dict:")
             # print(op_io_type_and_width_dict)
+            #       e.g. {'zculling_bot': {0: (Input, 32),
+            #                              1: (Input, 32),
+            #                              2: (Output, 32)}, ...
             input_index = 1
             output_index = 1
 
@@ -577,7 +580,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             # Reorder function instantiation
             print("sorted_forward_op_list:")
             print(sorted_forward_op_list)
-            for sublist in sorted_forward_op_list:
+            for sublist in sorted_forward_op_list: # Dataflow pragma requires correct order
                 for op in sublist:
                     for line in new_inst_lines:
                         if line.startswith(op + '(') or line.startswith(op + '_body' + '('):
@@ -623,6 +626,7 @@ def merge_op_list():
         op_name = line.split('(')[0]
         operator_list.append(op_name)
     return operator_list
+
 
 
 ########################
@@ -1561,7 +1565,7 @@ if __name__ == '__main__':
     if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
-    print(filedata_dict.keys())
+    # print(filedata_dict.keys())
     print()
 
     #############################################
@@ -1615,9 +1619,7 @@ if __name__ == '__main__':
                    (op.startswith('tensor_weight_y_i') and 'merged_to' in cur_param_dict[op].keys()) or\
                    (op.startswith('outer_product') and 'merged_to' in cur_param_dict[op].keys()):
                     dummy_len = 775
-        if cur_param_dict['flow_calc']['kernel_clk'] == 250:
-            dummy_len = 777
-        elif cur_param_dict['flow_calc']['kernel_clk'] == 300:
+        if cur_param_dict['flow_calc']['kernel_clk'] == 250 or cur_param_dict['flow_calc']['kernel_clk'] == 300:
             dummy_len = 777
         elif cur_param_dict['flow_calc']['kernel_clk'] == 350:
             dummy_len = 778
@@ -1653,7 +1655,6 @@ if __name__ == '__main__':
         filedata += line
     with open('./host/typedefs.h', 'w') as outfile:
         outfile.write(filedata)
-
 
 
     #################################################
@@ -1725,7 +1726,6 @@ if __name__ == '__main__':
         outfile.write("\n".join(post_merging_top_str_list))
 
 
-    # TODO: specs.json and cur_param.json are redundant
     ###############################################
     ## Update specs.json -- may be removed later ##
     ###############################################

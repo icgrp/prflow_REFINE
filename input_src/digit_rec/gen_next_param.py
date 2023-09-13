@@ -198,7 +198,7 @@ def needs_write_filedata(func_name, filedata):
     return False
 
 
-
+# E.g.: [[A,B],[C]] => [A,B,C]
 def get_flat_list(nested_list):
     flat_list = []
     for sublist in nested_list:
@@ -234,11 +234,27 @@ def sorted_op_list_backward(operator_list, connection_list):
             break
     return sorted_backward_op_list
 
-
+# Based on 'merged_to' or 'merged_to_try', it creates "clusters" of operators (independent_op_list). 
+# E.g.: [[A,F,G],[X,Y],C,D] when A,F,G are merged and X,Y are merged.
 def divide_ops(cur_param_dict, ops_to_compile_list):
     independent_op_list = []
     operator_list = list(cur_param_dict.keys())
     operator_list.remove("metric")
+    # When multiple clusters are merged
+    represent_op_list = []
+    for func_name in operator_list:
+        if 'merged_to' in cur_param_dict[func_name].keys():
+            if cur_param_dict[func_name]['merged_to'] not in represent_op_list:
+                represent_op_list.append(cur_param_dict[func_name]['merged_to'])
+    for represent_op in represent_op_list:
+        if 'merged_to_try' in cur_param_dict[represent_op].keys():
+            new_represent_op = cur_param_dict[represent_op]['merged_to_try']
+            for func_name in operator_list:
+                if 'merged_to' in cur_param_dict[func_name].keys():
+                    if cur_param_dict[func_name]['merged_to'] == represent_op:
+                        del cur_param_dict[func_name]['merged_to']
+                        cur_param_dict[func_name]['merged_to_try'] = new_represent_op
+
     for func_name in operator_list:
         # Already merged
         if 'merged_to' in cur_param_dict[func_name].keys():
@@ -261,11 +277,13 @@ def divide_ops(cur_param_dict, ops_to_compile_list):
                 for sub_list in independent_op_list:
                     if receiver_op in sub_list:
                         found = True
+                        print(func_name)
                         del cur_param_dict[func_name]['merged_to_try']
                         cur_param_dict[func_name]['merged_to'] = receiver_op
                         sub_list.append(func_name)
                     elif func_name in sub_list:
                         found = True
+                        print(func_name)
                         del cur_param_dict[func_name]['merged_to_try']
                         cur_param_dict[func_name]['merged_to'] = receiver_op
                         sub_list.append(receiver_op)
@@ -273,7 +291,7 @@ def divide_ops(cur_param_dict, ops_to_compile_list):
                     del cur_param_dict[func_name]['merged_to_try']
                     cur_param_dict[func_name]['merged_to'] = receiver_op
                     independent_op_list.append([func_name, receiver_op])
-            # Can't merge this time
+            # Can't merge this time, TODO: outdated
             else: 
                 del cur_param_dict[func_name]['merged_to_try']
                 found = False
@@ -289,17 +307,24 @@ def divide_ops(cur_param_dict, ops_to_compile_list):
                     found = True
             if not found:
                 independent_op_list.append([func_name])
+
+    # Reflect the represent_op's kernel_clk to all children ops
+    for func_name in operator_list:
+        if 'merged_to' in cur_param_dict[func_name].keys():
+            represent_op = cur_param_dict[func_name]['merged_to']
+            cur_param_dict[func_name]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
+
     return independent_op_list, cur_param_dict
 
 
 # cur_param_dict, ops_to_compile_list are updated
 # Does followings:
-#   - divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
-#   - assign representative operator to each group (the one with the last in the graph)
-#   - write operators that are not merged with others
-#   - write operators that are merged with others, the top level is representative op
-#   - returns top_str_dict
-#     e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
+#   - Divide ops with cur_param_dict's "merged_to" param and "merged_to_try" param
+#   - Assign representative operator to each group (the one with the last in the graph)
+#   - Write cpp codes for operators that are not merged with others
+#   - Write cpp codes for operators that are merged with others, the top level is representative op
+#   - Returns top_str_dict (used to write graph file, top.cpp)
+#             e.g. {('flow_calc', 'tensor_weight_x_i1', 'tensor_weight_y_i1'): 'flow_calc(outer_product_out_1,flow_calc_1, flow_calc_2);\n'}
 def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict):
     top_str_dict = {}
 
@@ -309,6 +334,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             if 'merged_to' in cur_param_dict[func_name] or 'merged_to_try' in cur_param_dict[func_name]:
                 is_merged_to_exist = True
 
+    # No 'merged_to' or 'merged_to_try' because NoC bottleneck does not exist
     if not is_merged_to_exist:
         # Write operators that are not merged with other ops
         for func_name in operator_list:
@@ -331,7 +357,6 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         sorted_backward_op_list = sorted_op_list_backward(operator_list, connection_list)
         # print(sorted_backward_op_list)
         sorted_forward_op_list = sorted_backward_op_list[::-1]
-
 
         independent_op_list, cur_param_dict = divide_ops(cur_param_dict, ops_to_compile_list)
         # print(independent_op_list)
@@ -394,6 +419,12 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         for op_tup in independent_op_dict:
             represent_op, inst_lines = independent_op_dict[op_tup]
 
+            # Update "merged_to" in cur_param_dict
+            for func_name in op_tup:
+                cur_param_dict[func_name]['merged_to'] = represent_op
+            if 'merged_to' in cur_param_dict[represent_op]: # like tensor_weight_y_i1...
+                del cur_param_dict[represent_op]['merged_to']
+
             # Write operators that are merged with other ops, not used in compile though
             for func_name in op_tup:
                 if func_name != represent_op:
@@ -404,7 +435,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                         with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
                             outfile.write(filedata_header)
 
-
+            # From here, write merged operator
             stream_list = []
             # print()
             # print("inst_lines:")
@@ -423,13 +454,16 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                 if counter[stream] == 1:
                     io_stream_list.append(stream)
                 else:
-                    non_io_stream_list.append(stream)
+                    non_io_stream_list.append(stream) # Counter val for internal stream is 2
             # print(io_stream_list)
             # print(non_io_stream_list)
 
             op_io_type_and_width_dict = return_operator_io_type_and_width(operator_list, filedata_dict)
             # print("op_io_type_and_width_dict:")
             # print(op_io_type_and_width_dict)
+            #       e.g. {'zculling_bot': {0: (Input, 32),
+            #                              1: (Input, 32),
+            #                              2: (Output, 32)}, ...
             input_index = 1
             output_index = 1
 
@@ -546,7 +580,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             # Reorder function instantiation
             print("sorted_forward_op_list:")
             print(sorted_forward_op_list)
-            for sublist in sorted_forward_op_list:
+            for sublist in sorted_forward_op_list: # Dataflow pragma requires correct order
                 for op in sublist:
                     for line in new_inst_lines:
                         if line.startswith(op + '(') or line.startswith(op + '_body' + '('):
@@ -592,6 +626,7 @@ def merge_op_list():
         op_name = line.split('(')[0]
         operator_list.append(op_name)
     return operator_list
+
 
 
 ########################
@@ -911,7 +946,7 @@ def gen_update_knn_i1_header():
     func_str_list.append('#pragma map_target = HW')
     return 'update_knn_i1', "\n".join(func_str_list)
 
-def gen_update_knnN_func(N):
+def gen_update_knn_iN_func(N):
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
@@ -1185,7 +1220,7 @@ def gen_update_knnN_func(N):
     func_str_list.append('}')
     return 'update_knn_i'+str(N), "\n".join(func_str_list)
 
-def gen_update_knnN_header(N):
+def gen_update_knn_iN_header(N):
     func_str_list = []
     func_str_list.append('void update_knn_i' + str(N) + '(')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
@@ -1456,7 +1491,6 @@ def gen_update_knn_i10_header():
 
 
 
-
 # Based on ./params/cur_param.json, this file 
 # generates HLS source codes (if necessary)
 # updates ./host/typedefs.h, ./operators/specs.json, cur_parm.json
@@ -1484,29 +1518,30 @@ if __name__ == '__main__':
     ###########################################
     ## Generate src files based on cur param ##
     ###########################################
+
     # cpp code gen
     func_name_list = []
     ops_to_compile_list = []
     filedata_dict = {}
 
-    func_name, filedata = gen_update_knn1_func()
+    func_name, filedata = gen_update_knn_i1_func()
     func_name_list.append(func_name)
-    func_name, filedata_header = gen_update_knn1_header()
+    func_name, filedata_header = gen_update_knn_i1_header()
     filedata_dict[func_name] = (filedata, filedata_header)
     if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
     for i in range(2,10):
-        func_name, filedata = gen_update_knnN_func(i)
+        func_name, filedata = gen_update_knn_iN_func(i)
         func_name_list.append(func_name)
-        func_name, filedata_header = gen_update_knnN_header(i)
+        func_name, filedata_header = gen_update_knn_iN_header(i)
         filedata_dict[func_name] = (filedata, filedata_header)
         if needs_write_param(func_name, filedata):
             ops_to_compile_list.append(func_name)
 
-    func_name, filedata = gen_update_knn10_func()
+    func_name, filedata = gen_update_knn_i10_func()
     func_name_list.append(func_name)
-    func_name, filedata_header = gen_update_knn10_header()
+    func_name, filedata_header = gen_update_knn_i10_header()
     filedata_dict[func_name] = (filedata, filedata_header)
     if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
@@ -1515,7 +1550,7 @@ if __name__ == '__main__':
     #############################################
     ## Update cur_param.json for new operators ##
     #############################################
-    # Nothing to do for this benchmark
+    # Nothing to do for this benchmark because no new operator is generated
 
 
     #####################
@@ -1596,7 +1631,7 @@ if __name__ == '__main__':
     with open('./host/top.cpp', 'w') as outfile:
         outfile.write("\n".join(post_merging_top_str_list))
 
-    # TODO: specs.json and cur_param.json are redundant
+
     ###############################################
     ## Update specs.json -- may be removed later ##
     ###############################################
