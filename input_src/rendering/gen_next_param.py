@@ -1,6 +1,16 @@
-import json, math, os
+import json, math, os, sys
 import argparse
+import re
+from collections import Counter
+sys.path.append('../')
+from code_gen_util import return_operator_io_argument_dict_local, return_operator_inst_dict_local, return_operator_connect_list_local,\
+                          return_operator_io_type_and_width, needs_write_param, needs_write_filedata, sorted_op_list_backward, divide_ops,\
+                          perform_merging, merge_op_list
 
+
+########################
+## Benchmark-specific ##
+########################
 
 def gen_projection_func(idx):
     func_str_list = []
@@ -752,38 +762,6 @@ def gen_data_transfer_header():
     return 'data_transfer', "\n".join(func_str_list)
 
 
-# Determine whether we need to write new src code
-def needs_write(func_name, filedata):
-    with open('./params/cur_param.json', 'r') as infile:
-        cur_param_dict = json.load(infile)
-
-    # 1) if new operator
-    if not os.path.isfile('./operators/' + func_name + '.cpp') or func_name not in cur_param_dict: 
-        return True
-    else:
-        # 2) if function contents changed (filedata)
-        with open('./operators/' + func_name + '.cpp', 'r') as infile:
-            prev_filedata = infile.read()
-            # print(filedata)
-            # print(prev_filedata)
-            if filedata != prev_filedata:
-                print('NEEDS WRITE: ' + func_name + ' file contents changed')
-                # print(filedata_header)
-                # print(prev_filedata_header)
-                return True
-
-        if os.path.isfile('./params/prev_param.json'):
-            with open('./params/prev_param.json', 'r') as infile:
-                prev_param_dict = json.load(infile)
-
-            # 3) if param/kernel_clk changed
-            for param in cur_param_dict[func_name].keys():
-                if param != "num_leaf_interface" and cur_param_dict[func_name][param] != prev_param_dict[func_name][param]:
-                    print('NEEDS WRITE: ' + param + ' changed for ' + func_name)
-                    return True
-
-        return False
-
 
 # Based on ./params/cur_param.json, this file 
 # generates HLS source codes (if necessary)
@@ -801,90 +779,73 @@ if __name__ == '__main__':
 
     # Values for PAR_RAST, PAR_ZCULLING shuold be identical across all the ops
     for prev_op, param_dict in cur_param_dict.items():
-        # print(prev_op)
-        # print(param_dict)
-        if 'PAR_RAST' in param_dict:
-            par_rast = param_dict['PAR_RAST']
-        if 'PAR_ZCULLING' in param_dict:
-            par_zculling = param_dict['PAR_ZCULLING']
+        if prev_op != 'metric':
+            # print(prev_op)
+            # print(param_dict)
+            if 'PAR_RAST' in param_dict:
+                par_rast = param_dict['PAR_RAST']
+            if 'PAR_ZCULLING' in param_dict:
+                par_zculling = param_dict['PAR_ZCULLING']
     # par_rast = 4
     # par_zculling = 4
     print(par_rast)
     print(par_zculling)
 
+
     ###########################################
     ## Generate src files based on cur param ##
     ###########################################
+
+    # cpp code gen
     func_name_list = []
     ops_to_compile_list = []
+    filedata_dict = {}
 
     func_name, filedata = gen_data_transfer_func()
     func_name_list.append(func_name)
     func_name, filedata_header = gen_data_transfer_header()
-    if needs_write(func_name, filedata):
-        with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-            outfile.write(filedata)
-        with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-            outfile.write(filedata_header)
+    filedata_dict[func_name] = (filedata, filedata_header)
+    if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_prj_rast1_func(par_rast)
     func_name_list.append(func_name)
     func_name, filedata_header = gen_prj_rast1_header(par_rast)
-    if needs_write(func_name, filedata):
-        # print("here?")
-        with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-            outfile.write(filedata)
-        with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-            outfile.write(filedata_header)
+    filedata_dict[func_name] = (filedata, filedata_header)
+    if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
     for idx_par_rast in range(par_rast):
         func_name, filedata = gen_rast2_func(idx_par_rast, par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_rast2_header(idx_par_rast)
-        if needs_write(func_name, filedata):
-            with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-                outfile.write(filedata)
-            with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-                outfile.write(filedata_header)
+        filedata_dict[func_name] = (filedata, filedata_header)
+        if needs_write_param(func_name, filedata):
             ops_to_compile_list.append(func_name)
 
     for idx_par_zculling in range(par_zculling):
         func_name, filedata = gen_zculling_func(par_rast, idx_par_zculling, par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_zculling_header(par_rast, idx_par_zculling)
-        if needs_write(func_name, filedata):
-            with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-                outfile.write(filedata)
-            with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-                outfile.write(filedata_header)
+        filedata_dict[func_name] = (filedata, filedata_header)
+        if needs_write_param(func_name, filedata):
             ops_to_compile_list.append(func_name)
 
         func_name, filedata = gen_coloring_func(par_zculling, idx_par_zculling)
         func_name_list.append(func_name)
         func_name, filedata_header = gen_coloring_header(idx_par_zculling)
-        if needs_write(func_name, filedata):
-            with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-                outfile.write(filedata)
-            with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-                outfile.write(filedata_header)
+        filedata_dict[func_name] = (filedata, filedata_header)
+        if needs_write_param(func_name, filedata):
             ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_output_data_func(par_zculling)
     func_name_list.append(func_name)
     func_name, filedata_header = gen_output_data_header(par_zculling)
-    if needs_write(func_name, filedata):
-        with open(op_dir + '/' + func_name + '.cpp', 'w') as outfile:
-            outfile.write(filedata)
-        with open(op_dir + '/' + func_name + '.h', 'w') as outfile:
-            outfile.write(filedata_header)
+    filedata_dict[func_name] = (filedata, filedata_header)
+    if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
-    # Save ops_to_compile.json, used to record compile time
-    with open('./params/ops_to_compile.json', 'w') as outfile:
-        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
-
+    print()
 
     #############################################
     ## Update cur_param.json for new operators ##
@@ -897,26 +858,33 @@ if __name__ == '__main__':
             cur_param_dict[func_name] = cur_param_dict[represent_function_name]
 
 
+    #####################
+    ## Perform merging ##
+    #####################
+    operator_list = list(cur_param_dict.keys())
+    operator_list.remove("metric")
+    # operator_list = merge_op_list()
+
+    # Modify cur_param_dict, ops_to_compile_list and WRITE .cpp files
+    merged_top_str_dict = perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict)
+
+
+    # Save cur_param_dict updated by perform_merging
     with open('./params/cur_param.json', 'w') as outfile:
         json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
 
-
-    # TODO: specs.json and cur_param.json are redundant
-    ###############################################
-    ## Update specs.json -- may be removed later ##
-    ###############################################
-    spec_dict = {}
-    for func_name in func_name_list:
-        spec_dict[func_name] = {}
-        spec_dict[func_name]['kernel_clk'] = cur_param_dict[func_name]['kernel_clk']
-        spec_dict[func_name]['num_leaf_interface'] = cur_param_dict[func_name]['num_leaf_interface']
-    with open(op_dir + '/specs.json', 'w') as outfile:
-        json.dump(spec_dict, outfile, sort_keys=True, indent=4)
+    # Save ops_to_compile.json, used to record compile time
+    with open('./params/ops_to_compile.json', 'w') as outfile:
+        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
 
 
-    ########################################
-    ## Update application graph (top.cpp) ##
-    ########################################
+    # Modify typedefs.h
+    # Nothing to do for Rendering
+
+
+    #################################################
+    ## Update application graph (top_no_merge.cpp) ##
+    #################################################
     top_str_list = ["data_transfer(Input_1, data_transfer_out);"]
     # print(func_name_list)
     base_func_name_list = ["data_transfer", "prj_rast1", "rast2", "zculling", 'coloringFB', 'output_data']
@@ -955,13 +923,13 @@ if __name__ == '__main__':
                 output_data_str += 'coloringFB_i' + str(idx_par_zculling + 1) + '_out, '
             output_data_str += 'Output_1);'
             top_str_list.append(output_data_str)
-    with open('./host/top.cpp', 'w') as outfile:
+    with open('./host/top_no_merge.cpp', 'w') as outfile:
         outfile.write("\n".join(top_str_list))
 
     
-    # Check all the functions are instantiated in top.cpp
+    # Check all the functions are instantiated in top_no_merge.cpp
     top_func_name_list = []
-    with open('./host/top.cpp', 'r') as infile:
+    with open('./host/top_no_merge.cpp', 'r') as infile:
         lines = infile.readlines()
         for line in lines:
             func_name = line.split('(')[0]
@@ -969,15 +937,45 @@ if __name__ == '__main__':
     assert(top_func_name_list.sort() == func_name_list.sort())
 
 
-    ##################################
-    ## Removed old src files if any ##
-    ##################################
-    cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
-    for cpp_file in cpp_file_list:
-        func_name = cpp_file.split('.')[0]
-        if func_name not in func_name_list:
-            os.system('rm ./operators/' + func_name + '.cpp')
-            os.system('rm ./operators/' + func_name + '.h')
+    #######################################################
+    ## Update application graph (top.cpp) - post merging ##
+    #######################################################
+    post_merging_top_str_list = top_str_list
+    for op_tup in merged_top_str_dict:
+        for op in op_tup:
+            for line in top_str_list:
+                if line.startswith(op + '('):
+                    post_merging_top_str_list.remove(line)
+
+    for op_tup in merged_top_str_dict:
+        merged_top_str = merged_top_str_dict[op_tup]
+        post_merging_top_str_list.append(merged_top_str)
+
+    with open('./host/top.cpp', 'w') as outfile:
+        outfile.write("\n".join(post_merging_top_str_list))
+
+
+    ###############################################
+    ## Update specs.json -- may be removed later ##
+    ###############################################
+    spec_dict = {}
+    for func_name in func_name_list:
+        spec_dict[func_name] = {}
+        spec_dict[func_name]['kernel_clk'] = cur_param_dict[func_name]['kernel_clk']
+        spec_dict[func_name]['num_leaf_interface'] = cur_param_dict[func_name]['num_leaf_interface']
+    with open(op_dir + '/specs.json', 'w') as outfile:
+        json.dump(spec_dict, outfile, sort_keys=True, indent=4)
+
+
+    #################################
+    ## Remove old src files if any ##
+    #################################
+    # cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
+    # for cpp_file in cpp_file_list:
+    #     func_name = cpp_file.split('.')[0]
+    #     if func_name not in func_name_list:
+    #         os.system('rm ./operators/' + func_name + '.cpp')
+    #         os.system('rm ./operators/' + func_name + '.h')
     # os.system('rm ./operators/prj_rast1*')
     # os.system('rm ./operators/rast2_*')
     # os.system('rm ./operators/zculling*')

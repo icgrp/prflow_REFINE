@@ -788,45 +788,44 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     is_NoC_bot_addressed = False
     # If NoC is bottleneck, perform only one change at a time
     for connection_list in connection_list_sorted:
-        if is_NoC_bot_addressed == False:
-            for connection in connection_list:
-                full_diff, empty_diff = connection_diff_dict[connection]
-                if (full_diff > 0 or empty_diff > 0): # NoC bandwidth could be bottleneck
+        for connection in connection_list:
+            full_diff, empty_diff = connection_diff_dict[connection]
+            if (full_diff > 0 or empty_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
 
-                    print("fix this connection: " + str(connection))
-                    # Increase sender's num_leaf_interface
-                    sender_op = connection.split('->')[0].split('.')[0]
-                    num_sender_output = len([port for port in operator_arg_dict[sender_op] if port.startswith('Output_')])
-                    cur_sender_num_leaf_interface = cur_param_dict[sender_op]["num_leaf_interface"]
-                    if cur_sender_num_leaf_interface < 4 and num_sender_output > 2:
-                        cur_param_dict[sender_op]["num_leaf_interface"] = 4 
-                        cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
-                        is_NoC_bot_addressed = True
-                    if cur_sender_num_leaf_interface < 2 and num_sender_output > 1:
-                        cur_param_dict[sender_op]["num_leaf_interface"] = 2 
-                        cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
-                        is_NoC_bot_addressed = True
+                print("fix this connection: " + str(connection))
+                # Increase sender's num_leaf_interface
+                sender_op = connection.split('->')[0].split('.')[0]
+                num_sender_output = len([port for port in operator_arg_dict[sender_op] if port.startswith('Output_')])
+                cur_sender_num_leaf_interface = cur_param_dict[sender_op]["num_leaf_interface"]
+                if cur_sender_num_leaf_interface < 4 and num_sender_output > 2:
+                    cur_param_dict[sender_op]["num_leaf_interface"] = 4 
+                    cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
+                    is_NoC_bot_addressed = True
+                if cur_sender_num_leaf_interface < 2 and num_sender_output > 1:
+                    cur_param_dict[sender_op]["num_leaf_interface"] = 2 
+                    cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
+                    is_NoC_bot_addressed = True
 
-                    # Increase receiver's num_leaf_interface
-                    receiver_op = connection.split('->')[1].split('.')[0]
-                    num_receiver_input = len([port for port in operator_arg_dict[receiver_op] if port.startswith('Input_')])
-                    cur_receiver_num_leaf_interface = cur_param_dict[receiver_op]["num_leaf_interface"]
-                    if cur_receiver_num_leaf_interface < 4 and num_receiver_input > 2:
-                        cur_param_dict[receiver_op]["num_leaf_interface"] = 4 
-                        cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
-                        is_NoC_bot_addressed = True
-                    if cur_receiver_num_leaf_interface < 2 and num_receiver_input > 1:
-                        cur_param_dict[receiver_op]["num_leaf_interface"] = 2 
-                        cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
-                        is_NoC_bot_addressed = True
+                # Increase receiver's num_leaf_interface
+                receiver_op = connection.split('->')[1].split('.')[0]
+                num_receiver_input = len([port for port in operator_arg_dict[receiver_op] if port.startswith('Input_')])
+                cur_receiver_num_leaf_interface = cur_param_dict[receiver_op]["num_leaf_interface"]
+                if cur_receiver_num_leaf_interface < 4 and num_receiver_input > 2:
+                    cur_param_dict[receiver_op]["num_leaf_interface"] = 4 
+                    cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
+                    is_NoC_bot_addressed = True
+                if cur_receiver_num_leaf_interface < 2 and num_receiver_input > 1:
+                    cur_param_dict[receiver_op]["num_leaf_interface"] = 2 
+                    cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
+                    is_NoC_bot_addressed = True
 
-                    # NoC bottleneck exists, and 
-                    #   1) can't resolve it by increasing num_leaf_interface and
-                    #   2) the operator has not been merged to other ops yet
-                    if "merged_to" not in cur_param_dict[sender_op].keys() and is_NoC_bot_addressed == False:
-                        cur_param_dict[sender_op]["merged_to_try"] = receiver_op
-                        cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
-                        is_NoC_bot_addressed = True
+                # NoC bottleneck exists, and 
+                #   1) can't resolve it by increasing num_leaf_interface and
+                #   2) the operator has not been merged to other ops yet
+                if "merged_to" not in cur_param_dict[sender_op].keys() and is_NoC_bot_addressed == False:
+                    cur_param_dict[sender_op]["merged_to_try"] = receiver_op
+                    cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
+                    is_NoC_bot_addressed = True
     return cur_param_dict, is_NoC_bot_addressed
 
 

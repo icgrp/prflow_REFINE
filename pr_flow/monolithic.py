@@ -766,7 +766,7 @@ class monolithic(gen_basic):
     # Copy hls results for synthesis
     os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.v ' + self.mono_dir + '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
     os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.dat ' + self.mono_dir + '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
-    # os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.tcl ' + self.mono_dir +  '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
+    os.system('cp ' + self.hls_dir + '/*/*/syn/verilog/*.tcl ' + self.mono_dir +  '/' + self.prflow_params['board'] + '/mono_syn/app_src/')
 
     # Place design command
     if self.prflow_params['place_design_mono_directive'] != '':
@@ -840,13 +840,13 @@ class monolithic(gen_basic):
       json.dump(mono_counter_idx_dict, outfile, sort_keys=True, indent=4)
 
     # Optical flow host code compile, TODO: standardize this...
-    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'r') as infile:
-      lines = infile.readlines()
-    filedata = ''
-    for line in lines:
-      if '${CXX}' in line:
-        line = line.replace('./mono_host/host/host.cpp', './mono_host/host/host.cpp ./mono_host/host/imageLib/*.o')
-      filedata += line
-
-    with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'w') as outfile:
-      outfile.write(filedata)
+    if self.prflow_params['benchmark_name'].startswith('optical_flow'):
+      with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'r') as infile:
+        lines = infile.readlines()
+      filedata = ''
+      for line in lines:
+        if '${CXX}' in line:
+          line = line.replace('./mono_host/host/host.cpp', './mono_host/host/host.cpp ./mono_host/host/imageLib/*.o')
+        filedata += line
+      with open(self.mono_dir +  '/' + self.prflow_params['board'] + '/Makefile', 'w') as outfile:
+        outfile.write(filedata)
