@@ -195,7 +195,8 @@ class page_assign(gen_basic):
 
   # is_fit based on hard constraint for one operator
   # returns whether the operator fits in the page
-  def is_fit_hard(self, op_resource_dict, pblock_resource_dict, pblock_name, frequency):
+  def is_fit_hard(self, op_resource_dict, pblock_resource_dict, pblock_name):
+    frequency = 400
 
     pblock_pages = pblock_page_dict[pblock_name]
     pblock_size = len(pblock_pages)
@@ -284,7 +285,7 @@ class page_assign(gen_basic):
     for pblock_name in sorted(pblock_in_range_resource_dict.keys()):
       pblock_resource_dict = pblock_in_range_resource_dict[pblock_name]
       # is_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
-      is_fit_hard_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
+      is_fit_hard_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
       # print(is_fit_result)
       # if(not is_fit_result and is_fit_hard_result):
       #   print("examples---")
@@ -948,7 +949,7 @@ class page_assign(gen_basic):
           pblock_name = pblock_assign_dict[op]['pblock']
           pblock_resource_dict = pblock_all_resource_dict[pblock_name]
           op_resource_dict = util_dict[op]
-          if_fit_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
+          if_fit_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
           # if_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
           if not if_fit_result or self.get_page_size(pblock_name) < num_leaf_interface:
             is_ops_all_fit = False
@@ -992,8 +993,7 @@ class page_assign(gen_basic):
 
 
   # For ops in operators_list, increment the pblock size based on the previous mapping (pblock.json)
-  def increment_pblock_size(self, operators_list):
-    requirements = {}
+  def increment_pblock_size(self, operators_list, requirements):
     for op in operators_list:
       with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
         old_pblock_dict = json.load(infile)
@@ -1030,6 +1030,13 @@ class page_assign(gen_basic):
     with open(overlay_util_json_file, 'r') as infile:
       pblock_all_resource_dict = json.load(infile)
 
+    # If there are requirements learned from previously failed implementations...
+    if(os.path.exists(self.syn_dir + '/requirements.json')):
+      with open(self.syn_dir + '/requirements.json', 'r') as infile:
+        requirements = json.load(infile)
+    else:
+      requirements = {}
+
     # Previous page assignment failed in implementation
     if sorted(operators_tmp_list) != sorted(operators_list):
       if operators_tmp_list == []:
@@ -1038,8 +1045,11 @@ class page_assign(gen_basic):
       if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
         os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
 
-      # Set requirements and revert operators_list to normal
-      requirements = self.increment_pblock_size(operators_tmp_list)
+      # Update requirements
+      requirements = self.increment_pblock_size(operators_tmp_list, requirements)
+      with open(self.syn_dir + '/requirements.json', 'w') as outfile:
+        json.dump(requirements, outfile, sort_keys=True, indent=4)
+
       util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
       # print(util_dict)
       # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
@@ -1048,7 +1058,7 @@ class page_assign(gen_basic):
         json.dump(operators_tmp_list, outfile, sort_keys=True, indent=4)
 
     else:
-      requirements = {}
+      # requirements = {}
       util_dict = self.add_criteria_util_dict(util_dict, pblock_all_resource_dict, requirements)
       # print(util_dict)
       # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
@@ -1058,6 +1068,7 @@ class page_assign(gen_basic):
       if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
         os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
 
+    print("requirements:")
     print(requirements)
 
 

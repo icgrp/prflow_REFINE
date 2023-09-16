@@ -706,7 +706,7 @@ def update_for_idetical_op(cur_param_dict, bottleneck_op, param):
 
 
 
-def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict):
+def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, params_search_space_dict, params_annotate_dict):
     # For each link in the graph, full_diff = sender's full cnt - receiver's full cnt
     #     => if the link's full_diff is large, NoC could be bottleneck
     # For each link in the graph, empty_diff = receiver's empty_cnt - sender's empty_cnt
@@ -821,8 +821,27 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
 
                 # NoC bottleneck exists, and 
                 #   1) can't resolve it by increasing num_leaf_interface and
-                #   2) the operator has not been merged to other ops yet
-                if "merged_to" not in cur_param_dict[sender_op].keys() and is_NoC_bot_addressed == False:
+                #   2) the sender_op has not been merged to other ops yet
+                #   3) the sender_op's param reached to max
+
+                params_sender_op = cur_param_dict[sender_op].keys()
+                param_for_lat_list = [] # list of sender_op's param that can improve latency
+                for param in params_sender_op:
+                    if param in params_annotate_dict: # except kernel_clk, num_leaf_interface, merged_to
+                        effect_list = params_annotate_dict[param] # e.g. ["latency", "accuracy", ...]
+                    else:
+                        effect_list = []
+                    if 'latency' in effect_list:
+                        param_for_lat_list.append(param)
+
+                is_reached_max = True
+                for param in param_for_lat_list:
+                    param_search_space = params_search_space_dict[param] # e.g. [1,2,4]
+                    cur_param_val = cur_param_dict[sender_op][param] # e.g. 2
+                    if cur_param_val != param_search_space[-1]:
+                        is_reached_max = False
+
+                if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False:
                     cur_param_dict[sender_op]["merged_to_try"] = receiver_op
                     cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
                     is_NoC_bot_addressed = True
@@ -886,7 +905,8 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict
     #############################################
     if overlay_type == 'NoC':
-        cur_param_dict, is_NoC_bot_addressed = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict)
+        cur_param_dict, is_NoC_bot_addressed = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, \
+                                                                               params_search_space_dict, params_annotate_dict)
     else:
         is_NoC_bot_addressed = False
     # print(cur_param_dict)

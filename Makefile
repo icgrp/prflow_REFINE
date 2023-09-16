@@ -1,8 +1,8 @@
 ############################################################################################
 
-prj_name=digit_rec
-# prj_name=optical_flow
 # prj_name=rendering
+# prj_name=optical_flow
+prj_name=digit_rec
 
 #prj_name=spam_filter_par_32
 # prj_name=spam_filter_par_32_dot_merged
@@ -128,8 +128,10 @@ incr_NoC:./input_src/$(prj_name)/__NoC_done__
 ./input_src/$(prj_name)/__NoC_done__:
 	python pr_flow.py $(prj_name) -incr
 	make sync_pg_assign --ignore-errors -j$(NPROC)
-	make all --ignore-errors -j$(NPROC)
-	./run_on_fpga.sh
+	if [ ! -f ./input_src/$(prj_name)/__NoC_done__ ]; then\
+		make all --ignore-errors -j$(NPROC);\
+		./run_on_fpga.sh;\
+	fi;\
 
 incr_mono:./input_src/$(prj_name)/__mono_done__
 ./input_src/$(prj_name)/__mono_done__:

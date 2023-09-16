@@ -17,58 +17,65 @@ class record_time(gen_basic):
     ## NoC ver. ##
     ##############
     if not is_mono:
-      with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-        pblock_assign_dict = json.load(infile)
 
       for fun_name in operators_list:
-        pblock_name = pblock_assign_dict[fun_name]['pblock']
-        page_num = pblock_assign_dict[fun_name]["page_num"]
+        if os.path.isfile(self.syn_dir+'/pblock_assignment.json'): 
+          with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
+            pblock_assign_dict = json.load(infile)
 
-        # Post-synthesis resource utilization
-        # if os.path.isfile(self.syn_dir + '/' + fun_name + '/utilization.rpt'):
-        #   file_name = self.syn_dir + '/' + fun_name + '/utilization.rpt'
-        #   file_list = self.shell.file_to_list(file_name)
-        #   for idx, line in enumerate(file_list):
-        #     if 'Instance' in line:
-        #       resource_list =  file_list[idx+2].replace(' ', '').split('|')
-        #       num_LUT = int(resource_list[3])
-        #       num_LUT_mem = int(resource_list[5])
-        #       num_FF = int(resource_list[7])
-        #       num_ram18 = int(resource_list[8])*2+int(resource_list[9])
-        #       num_dsp = int(resource_list[11])
-        #       resource_report_dict[fun_name] = {}
-        #       resource_report_dict[fun_name]['pblock'] = pblock_name
-        #       resource_report_dict[fun_name]['LUT'] = num_LUT
-        #       resource_report_dict[fun_name]['LUT_mem'] = num_LUT_mem
-        #       resource_report_dict[fun_name]['FF'] = num_FF
-        #       resource_report_dict[fun_name]['RAMB18'] = num_ram18
-        #       resource_report_dict[fun_name]['DSP48E2'] = num_dsp
-        # else:
-        #       resource_report_dict[fun_name] = {}
-        #       resource_report_dict[fun_name]['pblock'] = None
-        #       resource_report_dict[fun_name]['LUT'] = -1
-        #       resource_report_dict[fun_name]['LUT_mem'] = -1
-        #       resource_report_dict[fun_name]['FF'] = -1
-        #       resource_report_dict[fun_name]['RAMB18'] = -1
-        #       resource_report_dict[fun_name]['DSP48E2'] = -1
-        # print(fun_name)
-        # print(pblock_name)
-        # print(page_num)
+          pblock_name = pblock_assign_dict[fun_name]['pblock']
+          page_num = pblock_assign_dict[fun_name]["page_num"]
 
-        # Post-implementation resource utilization
-        num_LUT, num_LUT_mem, num_FF, num_ram18, num_dsp = -1, -1, -1, -1, -1
+          # Post-synthesis resource utilization
+          # if os.path.isfile(self.syn_dir + '/' + fun_name + '/utilization.rpt'):
+          #   file_name = self.syn_dir + '/' + fun_name + '/utilization.rpt'
+          #   file_list = self.shell.file_to_list(file_name)
+          #   for idx, line in enumerate(file_list):
+          #     if 'Instance' in line:
+          #       resource_list =  file_list[idx+2].replace(' ', '').split('|')
+          #       num_LUT = int(resource_list[3])
+          #       num_LUT_mem = int(resource_list[5])
+          #       num_FF = int(resource_list[7])
+          #       num_ram18 = int(resource_list[8])*2+int(resource_list[9])
+          #       num_dsp = int(resource_list[11])
+          #       resource_report_dict[fun_name] = {}
+          #       resource_report_dict[fun_name]['pblock'] = pblock_name
+          #       resource_report_dict[fun_name]['LUT'] = num_LUT
+          #       resource_report_dict[fun_name]['LUT_mem'] = num_LUT_mem
+          #       resource_report_dict[fun_name]['FF'] = num_FF
+          #       resource_report_dict[fun_name]['RAMB18'] = num_ram18
+          #       resource_report_dict[fun_name]['DSP48E2'] = num_dsp
+          # else:
+          #       resource_report_dict[fun_name] = {}
+          #       resource_report_dict[fun_name]['pblock'] = None
+          #       resource_report_dict[fun_name]['LUT'] = -1
+          #       resource_report_dict[fun_name]['LUT_mem'] = -1
+          #       resource_report_dict[fun_name]['FF'] = -1
+          #       resource_report_dict[fun_name]['RAMB18'] = -1
+          #       resource_report_dict[fun_name]['DSP48E2'] = -1
+          # print(fun_name)
+          # print(pblock_name)
+          # print(page_num)
 
-        if os.path.isfile(self.pr_dir + '/' + fun_name + '/' + fun_name + '_' + pblock_name + '.rpt'):
-          file_name = self.pr_dir + '/' + fun_name + '/' + fun_name + '_' + pblock_name + '.rpt'
-          file_list = self.shell.file_to_list(file_name)
-          for idx, line in enumerate(file_list):
-            if 'PR_pages_top_0' in line:
-              resource_list =  file_list[idx].replace(' ', '').split('|')
-              num_LUT = int(resource_list[5])
-              num_LUT_mem = int(resource_list[7])
-              num_FF = int(resource_list[9])
-              num_ram18 = int(resource_list[10])*2+int(resource_list[11])
-              num_dsp = int(resource_list[13])
+          # Post-implementation resource utilization
+          num_LUT, num_LUT_mem, num_FF, num_ram18, num_dsp = -1, -1, -1, -1, -1
+
+          if os.path.isfile(self.pr_dir + '/' + fun_name + '/' + fun_name + '_' + pblock_name + '.rpt'):
+            file_name = self.pr_dir + '/' + fun_name + '/' + fun_name + '_' + pblock_name + '.rpt'
+            file_list = self.shell.file_to_list(file_name)
+            for idx, line in enumerate(file_list):
+              if 'PR_pages_top_0' in line:
+                resource_list =  file_list[idx].replace(' ', '').split('|')
+                num_LUT = int(resource_list[5])
+                num_LUT_mem = int(resource_list[7])
+                num_FF = int(resource_list[9])
+                num_ram18 = int(resource_list[10])*2+int(resource_list[11])
+                num_dsp = int(resource_list[13])
+
+        # If failed in page assignment,
+        else:
+          pblock_name = None
+          num_LUT, num_LUT_mem, num_FF, num_ram18, num_dsp = -1, -1, -1, -1, -1
 
         resource_report_dict[fun_name] = {}
         resource_report_dict[fun_name]['pblock'] = pblock_name
@@ -182,12 +189,16 @@ class record_time(gen_basic):
             elif(line.startswith('bitgen:')):
               t_bitgen = int(re.findall(r"\d+", line)[0])
           file_in.close()
-          t_total_max_syn = t_hls_syn_max + t_rdchk + t_opt + t_place + t_popt + t_route + t_bitgen
-          t_total = t_hls + t_syn + t_rdchk + t_opt + t_place + t_popt + t_route + t_bitgen
-
 
         if fun_name in ops_only_pnr:
           t_hls, t_syn = 0, 0
+
+        # If failed in page assignment,
+        if not os.path.isfile(self.syn_dir+'/pblock_assignment.json'): 
+          t_rdchk, t_opt, t_place, t_popt, t_route, t_bitgen = 0, 0, 0, 0, 0, 0
+
+        t_total_max_syn = t_hls_syn_max + t_rdchk + t_opt + t_place + t_popt + t_route + t_bitgen
+        t_total = t_hls + t_syn + t_rdchk + t_opt + t_place + t_popt + t_route + t_bitgen
 
         time_report_dict[fun_name] = {}
         time_report_dict[fun_name]['hls'] = t_hls
@@ -292,30 +303,36 @@ class record_time(gen_basic):
     ## NoC ver. ##
     ##############
     if not is_mono:
-      with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
-        pblock_assign_dict = json.load(infile)
 
       for fun_name in operators_list:
-        pblock_name = pblock_assign_dict[fun_name]['pblock']
-        page_num = pblock_assign_dict[fun_name]["page_num"]
+        if os.path.isfile(self.syn_dir+'/pblock_assignment.json'): 
+          with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
+            pblock_assign_dict = json.load(infile)
 
-        # Timing report
-        WNS = None
-        if os.path.isfile(self.pr_dir + '/' + fun_name + '/timing_' + pblock_name + '.rpt'):
-          file_name = self.pr_dir + '/' + fun_name + '/timing_' + pblock_name + '.rpt'
-          file_in = open(file_name, 'r')
-          find_summary_flag = False
-          line_offset = 0
-          for line in file_in:
-            if 'Design Timing Summary' in line:
-              find_summary_flag = True
-            if find_summary_flag:
-              line_offset += 1
-            if line_offset == 7:
-              timing_list =  line.split()
-              WNS = timing_list[0]
+          pblock_name = pblock_assign_dict[fun_name]['pblock']
+          page_num = pblock_assign_dict[fun_name]["page_num"]
 
-          file_in.close()
+          # Timing report
+          WNS = None
+          if os.path.isfile(self.pr_dir + '/' + fun_name + '/timing_' + pblock_name + '.rpt'):
+            file_name = self.pr_dir + '/' + fun_name + '/timing_' + pblock_name + '.rpt'
+            file_in = open(file_name, 'r')
+            find_summary_flag = False
+            line_offset = 0
+            for line in file_in:
+              if 'Design Timing Summary' in line:
+                find_summary_flag = True
+              if find_summary_flag:
+                line_offset += 1
+              if line_offset == 7:
+                timing_list =  line.split()
+                WNS = timing_list[0]
+
+            file_in.close()
+
+        # If failed in page assignment,
+        else:
+          WNS = None
 
         timing_report_dict[fun_name] = WNS
 
@@ -407,8 +424,8 @@ class record_time(gen_basic):
     if(os.path.exists(self.syn_dir + '/ops_to_pnr.json')):
       with open(self.syn_dir + '/ops_to_pnr.json', 'r') as infile:
         ops_to_pnr = json.load(infile)
-    else:
-      ops_to_pnr = []
+    else: # If page assignment failed,
+      ops_to_pnr = ops_to_compile_list
     os.system('rm -rf ' + self.syn_dir + '/ops_to_pnr.json')
 
     ops_only_pnr = []
@@ -456,9 +473,20 @@ class record_time(gen_basic):
           if op not in ops_only_pnr:
             ops_only_pnr.append(op)
 
+      print("ops_to_pnr:")
+      print(ops_to_pnr)
+      print("ops_only_pnr:")
+      print(ops_only_pnr)
+
       resource_report_dict = self.gen_resource_report(self.prflow_params['benchmark_name'], ops_to_pnr, is_mono)
       compile_time_report_dict = self.gen_compile_time_report(self.prflow_params['benchmark_name'], ops_to_pnr, ops_only_pnr, is_mono)
       timing_report_dict = self.gen_timing_report(self.prflow_params['benchmark_name'], ops_to_pnr, is_mono)
+      print("resource_report_dict:")
+      print(resource_report_dict)
+      print("compile_time_report_dict:")
+      print(compile_time_report_dict)
+      print("timing_report_dict:")
+      print(timing_report_dict)
 
       self.record_results(resource_report_dict, compile_time_report_dict, timing_report_dict, is_impl_success)
 

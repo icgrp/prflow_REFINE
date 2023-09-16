@@ -116,457 +116,54 @@ BRAM_MARGIN_quad_dict_400MHz = {
     'p20': 0.30}
 
 LUT_MARGIN_single_dict_400MHz = {
-    'p2_p0': 0.20, 
-    'p2_p1': 0.20, 
-    'p4_p0_p0': 0.20, 
-    'p4_p0_p1': 0.20, 
-    'p4_p1_p0': 0.20, 
-    'p4_p1_p1': 0.20, 
-    'p8_p0_p0': 0.20, 
-    'p8_p0_p1': 0.20, 
-    'p8_p1_p0': 0.20, 
-    'p8_p1_p1': 0.20, 
-    'p12_p0_p0': 0.20, 
-    'p12_p0_p1': 0.20, 
-    'p12_p1_p0': 0.20, 
-    'p12_p1_p1': 0.20, 
-    'p16_p0_p0': 0.20, 
-    'p16_p0_p1': 0.20, 
-    'p16_p1_p0': 0.20, 
-    'p16_p1_p1': 0.20, 
-    'p20_p0_p0': 0.20, 
-    'p20_p0_p1': 0.20, 
-    'p20_p1_p0': 0.20, 
-    'p20_p1_p1': 0.20}
+    'p2_p0': 0.30, 
+    'p2_p1': 0.30, 
+    'p4_p0_p0': 0.30, 
+    'p4_p0_p1': 0.30, 
+    'p4_p1_p0': 0.30, 
+    'p4_p1_p1': 0.30, 
+    'p8_p0_p0': 0.30, 
+    'p8_p0_p1': 0.30, 
+    'p8_p1_p0': 0.30, 
+    'p8_p1_p1': 0.30, 
+    'p12_p0_p0': 0.30, 
+    'p12_p0_p1': 0.30, 
+    'p12_p1_p0': 0.30, 
+    'p12_p1_p1': 0.30, 
+    'p16_p0_p0': 0.30, 
+    'p16_p0_p1': 0.30, 
+    'p16_p1_p0': 0.30, 
+    'p16_p1_p1': 0.30, 
+    'p20_p0_p0': 0.30, 
+    'p20_p0_p1': 0.30, 
+    'p20_p1_p0': 0.30, 
+    'p20_p1_p1': 0.30}
 
 LUT_MARGIN_double_dict_400MHz = {
-    'p2': 0.20, 
-    'p4_p0': 0.20, 
-    'p4_p1': 0.20, 
-    'p8_p0': 0.20, 
-    'p8_p1': 0.20, 
-    'p12_p0': 0.20, 
-    'p12_p1': 0.20, 
-    'p16_p0': 0.20, 
-    'p16_p1': 0.20, 
-    'p20_p0': 0.20, 
-    'p20_p1': 0.20}
+    'p2': 0.30, 
+    'p4_p0': 0.30, 
+    'p4_p1': 0.30, 
+    'p8_p0': 0.30, 
+    'p8_p1': 0.30, 
+    'p12_p0': 0.30, 
+    'p12_p1': 0.30, 
+    'p16_p0': 0.30, 
+    'p16_p1': 0.30, 
+    'p20_p0': 0.30, 
+    'p20_p1': 0.30}
 
 LUT_MARGIN_quad_dict_400MHz = {
-    'p4': 0.20, 
-    'p8': 0.20, 
-    'p12': 0.20, 
-    'p16': 0.20, 
-    'p20': 0.20}
+    'p4': 0.30, 
+    'p8': 0.30, 
+    'p12': 0.30, 
+    'p16': 0.30, 
+    'p20': 0.30}
 
 
-##
-## 350MHz overlay
-##
+BRAM_MARGIN_single_dict = {400: BRAM_MARGIN_single_dict_400MHz}
+BRAM_MARGIN_double_dict = {400: BRAM_MARGIN_double_dict_400MHz}
+BRAM_MARGIN_quad_dict = {400: BRAM_MARGIN_quad_dict_400MHz}
 
-BRAM_MARGIN_single_dict_350MHz = {
-    'p2_p0': 0.10, 
-    'p2_p1': 0.10, 
-    'p4_p0_p0': 0.20, 
-    'p4_p0_p1': 0.20, 
-    'p4_p1_p0': 0.10, 
-    'p4_p1_p1': 0.10, 
-    'p8_p0_p0': 0.10, 
-    'p8_p0_p1': 0.10, 
-    'p8_p1_p0': 0.10, 
-    'p8_p1_p1': 0.10, 
-    'p12_p0_p0': 0.10, 
-    'p12_p0_p1': 0.10, 
-    'p12_p1_p0': 0.10, 
-    'p12_p1_p1': 0.10, 
-    'p16_p0_p0': 0.20, 
-    'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.20, 
-    'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.20, 
-    'p20_p0_p1': 0.10, 
-    'p20_p1_p0': 0.20, 
-    'p20_p1_p1': 0.10}
-
-BRAM_MARGIN_double_dict_350MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.20, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.20, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-BRAM_MARGIN_quad_dict_350MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-LUT_MARGIN_single_dict_350MHz = {
-    'p2_p0': 0.15, 
-    'p2_p1': 0.15, 
-    'p4_p0_p0': 0.15, 
-    'p4_p0_p1': 0.15, 
-    'p4_p1_p0': 0.15, 
-    'p4_p1_p1': 0.15, 
-    'p8_p0_p0': 0.15, 
-    'p8_p0_p1': 0.15, 
-    'p8_p1_p0': 0.15, 
-    'p8_p1_p1': 0.15, 
-    'p12_p0_p0': 0.15, 
-    'p12_p0_p1': 0.15, 
-    'p12_p1_p0': 0.15, 
-    'p12_p1_p1': 0.15, 
-    'p16_p0_p0': 0.15, 
-    'p16_p0_p1': 0.15, 
-    'p16_p1_p0': 0.15, 
-    'p16_p1_p1': 0.15, 
-    'p20_p0_p0': 0.15, 
-    'p20_p0_p1': 0.15, 
-    'p20_p1_p0': 0.15, 
-    'p20_p1_p1': 0.15}
-
-LUT_MARGIN_double_dict_350MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.10, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.10, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-LUT_MARGIN_quad_dict_350MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-
-##
-## 300MHz overlay
-##
-
-BRAM_MARGIN_single_dict_300MHz = {
-    'p2_p0': 0.10, 
-    'p2_p1': 0.10, 
-    'p4_p0_p0': 0.20, 
-    'p4_p0_p1': 0.10, 
-    'p4_p1_p0': 0.10, 
-    'p4_p1_p1': 0.10, 
-    'p8_p0_p0': 0.10, 
-    'p8_p0_p1': 0.10, 
-    'p8_p1_p0': 0.10, 
-    'p8_p1_p1': 0.10, 
-    'p12_p0_p0': 0.10, 
-    'p12_p0_p1': 0.10, 
-    'p12_p1_p0': 0.10, 
-    'p12_p1_p1': 0.10, 
-    'p16_p0_p0': 0.10, 
-    'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.20, 
-    'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.20, 
-    'p20_p0_p1': 0.10, 
-    'p20_p1_p0': 0.10, 
-    'p20_p1_p1': 0.10}
-
-BRAM_MARGIN_double_dict_300MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.20, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.20, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-BRAM_MARGIN_quad_dict_300MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-LUT_MARGIN_single_dict_300MHz = {
-    'p2_p0': 0.15, 
-    'p2_p1': 0.15, 
-    'p4_p0_p0': 0.15, 
-    'p4_p0_p1': 0.15, 
-    'p4_p1_p0': 0.15, 
-    'p4_p1_p1': 0.15, 
-    'p8_p0_p0': 0.15, 
-    'p8_p0_p1': 0.15, 
-    'p8_p1_p0': 0.15, 
-    'p8_p1_p1': 0.15, 
-    'p12_p0_p0': 0.15, 
-    'p12_p0_p1': 0.15, 
-    'p12_p1_p0': 0.15, 
-    'p12_p1_p1': 0.15, 
-    'p16_p0_p0': 0.15, 
-    'p16_p0_p1': 0.15, 
-    'p16_p1_p0': 0.15, 
-    'p16_p1_p1': 0.15, 
-    'p20_p0_p0': 0.15, 
-    'p20_p0_p1': 0.15, 
-    'p20_p1_p0': 0.15, 
-    'p20_p1_p1': 0.15}
-
-LUT_MARGIN_double_dict_300MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.10, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.10, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-LUT_MARGIN_quad_dict_300MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-
-##
-## 250MHz overlay
-##
-
-BRAM_MARGIN_single_dict_250MHz = {
-    'p2_p0': 0.10, 
-    'p2_p1': 0.10, 
-    'p4_p0_p0': 0.20, 
-    'p4_p0_p1': 0.10, 
-    'p4_p1_p0': 0.10, 
-    'p4_p1_p1': 0.10, 
-    'p8_p0_p0': 0.10, 
-    'p8_p0_p1': 0.10, 
-    'p8_p1_p0': 0.10, 
-    'p8_p1_p1': 0.10, 
-    'p12_p0_p0': 0.10, 
-    'p12_p0_p1': 0.10, 
-    'p12_p1_p0': 0.10, 
-    'p12_p1_p1': 0.10, 
-    'p16_p0_p0': 0.10, 
-    'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.20, 
-    'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.20, 
-    'p20_p0_p1': 0.10, 
-    'p20_p1_p0': 0.20, 
-    'p20_p1_p1': 0.10}
-
-BRAM_MARGIN_double_dict_250MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.20, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.10, 
-    'p20_p0': 0.20, 
-    'p20_p1': 0.10}
-
-BRAM_MARGIN_quad_dict_250MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-LUT_MARGIN_single_dict_250MHz = {
-    'p2_p0': 0.15, 
-    'p2_p1': 0.15, 
-    'p4_p0_p0': 0.15, 
-    'p4_p0_p1': 0.15, 
-    'p4_p1_p0': 0.15, 
-    'p4_p1_p1': 0.15, 
-    'p8_p0_p0': 0.15, 
-    'p8_p0_p1': 0.15, 
-    'p8_p1_p0': 0.15, 
-    'p8_p1_p1': 0.15, 
-    'p12_p0_p0': 0.15, 
-    'p12_p0_p1': 0.15, 
-    'p12_p1_p0': 0.15, 
-    'p12_p1_p1': 0.15, 
-    'p16_p0_p0': 0.15, 
-    'p16_p0_p1': 0.15, 
-    'p16_p1_p0': 0.15, 
-    'p16_p1_p1': 0.15, 
-    'p20_p0_p0': 0.15, 
-    'p20_p0_p1': 0.15, 
-    'p20_p1_p0': 0.15, 
-    'p20_p1_p1': 0.15}
-
-LUT_MARGIN_double_dict_250MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.10, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.10, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-LUT_MARGIN_quad_dict_250MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-
-##
-## 200MHz overlay
-##
-
-BRAM_MARGIN_single_dict_200MHz = {
-    'p2_p0': 0.10, 
-    'p2_p1': 0.10, 
-    'p4_p0_p0': 0.10, 
-    'p4_p0_p1': 0.10, 
-    'p4_p1_p0': 0.10, 
-    'p4_p1_p1': 0.10, 
-    'p8_p0_p0': 0.10, 
-    'p8_p0_p1': 0.10, 
-    'p8_p1_p0': 0.10, 
-    'p8_p1_p1': 0.10, 
-    'p12_p0_p0': 0.10, 
-    'p12_p0_p1': 0.10, 
-    'p12_p1_p0': 0.10, 
-    'p12_p1_p1': 0.10, 
-    'p16_p0_p0': 0.10, 
-    'p16_p0_p1': 0.10, 
-    'p16_p1_p0': 0.10, 
-    'p16_p1_p1': 0.10, 
-    'p20_p0_p0': 0.10, 
-    'p20_p0_p1': 0.10, 
-    'p20_p1_p0': 0.10, 
-    'p20_p1_p1': 0.10}
-
-BRAM_MARGIN_double_dict_200MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.20, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.20, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-BRAM_MARGIN_quad_dict_200MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-LUT_MARGIN_single_dict_200MHz = {
-    'p2_p0': 0.15, 
-    'p2_p1': 0.15, 
-    'p4_p0_p0': 0.15, 
-    'p4_p0_p1': 0.15, 
-    'p4_p1_p0': 0.15, 
-    'p4_p1_p1': 0.15, 
-    'p8_p0_p0': 0.15, 
-    'p8_p0_p1': 0.15, 
-    'p8_p1_p0': 0.15, 
-    'p8_p1_p1': 0.15, 
-    'p12_p0_p0': 0.15, 
-    'p12_p0_p1': 0.15, 
-    'p12_p1_p0': 0.15, 
-    'p12_p1_p1': 0.15, 
-    'p16_p0_p0': 0.15, 
-    'p16_p0_p1': 0.15, 
-    'p16_p1_p0': 0.15, 
-    'p16_p1_p1': 0.15, 
-    'p20_p0_p0': 0.15, 
-    'p20_p0_p1': 0.15, 
-    'p20_p1_p0': 0.15, 
-    'p20_p1_p1': 0.15}
-
-LUT_MARGIN_double_dict_200MHz = {
-    'p2': 0.10, 
-    'p4_p0': 0.10, 
-    'p4_p1': 0.10, 
-    'p8_p0': 0.10, 
-    'p8_p1': 0.10, 
-    'p12_p0': 0.10, 
-    'p12_p1': 0.10, 
-    'p16_p0': 0.10, 
-    'p16_p1': 0.10, 
-    'p20_p0': 0.10, 
-    'p20_p1': 0.10}
-
-LUT_MARGIN_quad_dict_200MHz = {
-    'p4': 0.10, 
-    'p8': 0.10, 
-    'p12': 0.10, 
-    'p16': 0.10, 
-    'p20': 0.10}
-
-
-
-
-# TODO: fix these hard numbers
-BRAM_MARGIN_single_dict = {400: BRAM_MARGIN_single_dict_400MHz,
-                           350: BRAM_MARGIN_single_dict_350MHz,
-                           300: BRAM_MARGIN_single_dict_300MHz,
-                           250: BRAM_MARGIN_single_dict_250MHz,
-                           200: BRAM_MARGIN_single_dict_200MHz}
-
-BRAM_MARGIN_double_dict = {400: BRAM_MARGIN_double_dict_400MHz,
-                           350: BRAM_MARGIN_double_dict_350MHz,
-                           300: BRAM_MARGIN_double_dict_300MHz,
-                           250: BRAM_MARGIN_double_dict_250MHz,
-                           200: BRAM_MARGIN_double_dict_200MHz}
-
-BRAM_MARGIN_quad_dict = {400: BRAM_MARGIN_quad_dict_400MHz,
-                         350: BRAM_MARGIN_quad_dict_350MHz,
-                         300: BRAM_MARGIN_quad_dict_300MHz,
-                         250: BRAM_MARGIN_quad_dict_250MHz,
-                         200: BRAM_MARGIN_quad_dict_200MHz}
-
-LUT_MARGIN_single_dict = {400: LUT_MARGIN_single_dict_400MHz,
-                          350: LUT_MARGIN_single_dict_350MHz,
-                          300: LUT_MARGIN_single_dict_300MHz,
-                          250: LUT_MARGIN_single_dict_250MHz,
-                          200: LUT_MARGIN_single_dict_200MHz}
-
-LUT_MARGIN_double_dict = {400: LUT_MARGIN_double_dict_400MHz,
-                          350: LUT_MARGIN_double_dict_350MHz,
-                          300: LUT_MARGIN_double_dict_300MHz,
-                          250: LUT_MARGIN_double_dict_250MHz,
-                          200: LUT_MARGIN_double_dict_200MHz}
-
-LUT_MARGIN_quad_dict = {400: LUT_MARGIN_quad_dict_400MHz,
-                        350: LUT_MARGIN_quad_dict_350MHz,
-                        300: LUT_MARGIN_quad_dict_300MHz,
-                        250: LUT_MARGIN_quad_dict_250MHz,
-                        200: LUT_MARGIN_quad_dict_200MHz}
+LUT_MARGIN_single_dict = {400: LUT_MARGIN_single_dict_400MHz}
+LUT_MARGIN_double_dict = {400: LUT_MARGIN_double_dict_400MHz}
+LUT_MARGIN_quad_dict = {400: LUT_MARGIN_quad_dict_400MHz}

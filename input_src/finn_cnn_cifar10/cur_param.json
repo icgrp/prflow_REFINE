@@ -12,7 +12,7 @@
     "ram_style": "distributed"
   },
   "MatrixVectorActivation_0": {
-    "PE": 8,
+    "PE": 16,
     "SIMD": 27,
     "ram_style": "auto",
     "resType": "lut",
@@ -27,7 +27,7 @@
   },
   "MatrixVectorActivation_1": {
     "PE": 64, 
-    "SIMD": 72, 
+    "SIMD": 96, 
     "ram_style": "auto",
     "resType": "lut",
     "mem_mode": "const",
@@ -57,7 +57,7 @@
     "ram_style": "distributed"
   },
   "MatrixVectorActivation_3": {
-    "PE": 32,
+    "PE": 64,
     "SIMD": 72, 
     "ram_style": "auto",
     "resType": "lut",
@@ -98,7 +98,7 @@
 
 
   "MatrixVectorActivation_6": {
-    "PE": 1,
+    "PE": 2,
     "SIMD": 16,
     "ram_style": "auto",
     "resType": "lut",
@@ -106,7 +106,7 @@
     "runtime_writeable_weights": 0
   },
   "MatrixVectorActivation_7": {
-    "PE": 1,
+    "PE": 2,
     "SIMD": 32,
     "ram_style": "auto",
     "resType": "lut",
@@ -115,7 +115,7 @@
   },
   "MatrixVectorActivation_8": {
     "PE": 1,
-    "SIMD": 1,
+    "SIMD": 8,
     "ram_style": "auto",
     "resType": "lut",
     "mem_mode": "const",
