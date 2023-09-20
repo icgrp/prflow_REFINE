@@ -1,0 +1,15 @@
+{
+  "PE1_mva_0": ["latency"],
+  "SIMD1_conv_1": ["latency"],
+  "PE1_mva_1": ["latency"],
+  "SIMD1_conv_2": ["latency"],
+  "PE1_mva_2": ["latency"],
+  "SIMD1_conv_3": ["latency"],
+  "PE1_mva_3": ["latency"],
+  "SIMD1_conv_4": ["latency"],
+  "PE1_mva_4": ["latency"],
+  "SIMD1_conv_5": ["latency"],
+  "PE1_mva_5": ["latency"],
+  "PE1_mva_6": ["latency"],
+  "PE1_mva_7": ["latency"]
+}

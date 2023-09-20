@@ -2,14 +2,9 @@
 
 # prj_name=rendering
 # prj_name=optical_flow
-prj_name=digit_rec
+# prj_name=digit_rec
 
-#prj_name=spam_filter_par_32
-# prj_name=spam_filter_par_32_dot_merged
-#prj_name=spam_filter_par_64
-
-# prj_name=finn_cnn_cifar10
-# prj_name=test
+prj_name=finn_cnn_cifar10_small
 
 #############################################################################################
 
@@ -215,6 +210,9 @@ clear_incr:
 	rm -rf ./input_src/$(prj_name)/params/visited/*
 	rm -rf ./input_src/$(prj_name)/params/results/*
 	rm -rf ./input_src/$(prj_name)/operators/*
+	if [ -f ./input_src/$(prj_name)/folding_config_init.json ]; then\
+		cp ./input_src/$(prj_name)/folding_config_init.json ./input_src/$(prj_name)/folding_config.json;\
+	fi;\
 	cp ./input_src/$(prj_name)/params/init_param.json ./input_src/$(prj_name)/params/cur_param.json 
 	cd ./input_src/$(prj_name)/ && python gen_next_param.py
 	cp ./input_src/$(prj_name)/params/ops_init.json ./input_src/$(prj_name)/params/ops_to_compile.json 

@@ -8,9 +8,13 @@ if [ ! -f ./input_src/BENCHMARK/__NoC_done__ ]; then
     # Record resource util, compile time, impl, results, timing
     make record_NoC_success
     python counter_analyze.py -b BENCHMARK --NoC_success
-    cd ./input_src/BENCHMARK/ && python gen_next_param.py
-    cd -
-    make incr_NoC
+    if [ ! -f ./input_src/BENCHMARK/__NoC_done__ ]; then
+        cd ./input_src/BENCHMARK/ && python gen_next_param.py
+        cd -
+        make incr_NoC
+    else
+        make incr_mono
+    fi
 else
     make incr_mono
 fi

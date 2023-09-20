@@ -1,0 +1,85 @@
+{
+    "data_transfer": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_0_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_0_1": {
+        "PE1_mva_0": 32,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_1_0": {
+        "SIMD1_conv_1": 32,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_1_1": {
+        "PE1_mva_1": 32,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_2_0": {
+        "SIMD1_conv_2": 8,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_2_1": {
+        "PE1_mva_2": 8,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_3_0": {
+        "SIMD1_conv_3": 8,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_3_1": {
+        "PE1_mva_3": 8,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_4_0": {
+        "SIMD1_conv_4": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_4_1": {
+        "PE1_mva_4": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_5_0": {
+        "SIMD1_conv_5": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_5_1": {
+        "PE1_mva_5": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_0": {
+        "PE1_mva_6": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_1": {
+        "PE1_mva_7": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_2": {
+        "PE1_mva_8": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "metric": null,
+    "out_data_collect": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

@@ -1,0 +1,17 @@
+data_transfer(Input_1, data_transfer_OUT_1);
+layer_0_0(data_transfer_OUT_1, layer_0_0_OUT_1);
+layer_0_1(layer_0_0_OUT_1, layer_0_1_OUT_1);
+layer_1_0(layer_0_1_OUT_1, layer_1_0_OUT_1);
+layer_1_1(layer_1_0_OUT_1, layer_1_1_OUT_1);
+layer_2_0(layer_1_1_OUT_1, layer_2_0_OUT_1);
+layer_2_1(layer_2_0_OUT_1, layer_2_1_OUT_1);
+layer_3_0(layer_2_1_OUT_1, layer_3_0_OUT_1);
+layer_3_1(layer_3_0_OUT_1, layer_3_1_OUT_1);
+layer_4_0(layer_3_1_OUT_1, layer_4_0_OUT_1);
+layer_4_1(layer_4_0_OUT_1, layer_4_1_OUT_1);
+layer_5_0(layer_4_1_OUT_1, layer_5_0_OUT_1);
+layer_5_1(layer_5_0_OUT_1, layer_5_1_OUT_1);
+layer_last_0(layer_5_1_OUT_1, layer_last_0_OUT_1);
+layer_last_1(layer_last_0_OUT_1, layer_last_1_OUT_1);
+layer_last_2(layer_last_1_OUT_1, layer_last_2_OUT_1);
+out_data_collect(layer_last_2_OUT_1, Output_1);

@@ -241,7 +241,7 @@ def mono_connection_from_idx(mono_counter_idx_dict, idx):
 #                                 0: {'stall': 117130}, 
 #                                 9: {'full': 16735, 'empty': 210347}}
 # ...
-def coutner_mono_dict(benchmark, mono_counter_idx_dict):
+def counter_mono_dict(benchmark, mono_counter_idx_dict):
     cnt_dict = {}
     accuracy = -1
 
@@ -702,6 +702,7 @@ def update_for_idetical_op(cur_param_dict, bottleneck_op, param):
                 # identical ops and not merged to anything
                 if op.startswith(base_name) and 'merged_to' not in cur_param_dict[op].keys():
                     cur_param_dict[op][param] = new_param_val
+
     return cur_param_dict
 
 
@@ -793,7 +794,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
             if (full_diff > 0 or empty_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
 
                 print("fix this connection: " + str(connection))
-                # Increase sender's num_leaf_interface
+                # Increase sender's num_leaf_interface, TODO: check_visited
                 sender_op = connection.split('->')[0].split('.')[0]
                 num_sender_output = len([port for port in operator_arg_dict[sender_op] if port.startswith('Output_')])
                 cur_sender_num_leaf_interface = cur_param_dict[sender_op]["num_leaf_interface"]
@@ -806,7 +807,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                     cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
                     is_NoC_bot_addressed = True
 
-                # Increase receiver's num_leaf_interface
+                # Increase receiver's num_leaf_interface, TODO: check_visited
                 receiver_op = connection.split('->')[1].split('.')[0]
                 num_receiver_input = len([port for port in operator_arg_dict[receiver_op] if port.startswith('Input_')])
                 cur_receiver_num_leaf_interface = cur_param_dict[receiver_op]["num_leaf_interface"]
@@ -819,6 +820,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                     cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
                     is_NoC_bot_addressed = True
 
+                # TODO: check_visited
                 # NoC bottleneck exists, and 
                 #   1) can't resolve it by increasing num_leaf_interface and
                 #   2) the sender_op has not been merged to other ops yet
@@ -1148,7 +1150,7 @@ if __name__ == '__main__':
         if prev_overlay_type == 'NoC':
             latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict) # use reverted summary.csv
         else:
-            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv
+            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv
 
         no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin, prev_idx_dict)
 
@@ -1168,7 +1170,7 @@ if __name__ == '__main__':
             overlay_type = 'mono'
             with open("./workspace/F007_mono_" + benchmark + "/mono_counter_idx_dict.json", "r") as infile:
                 prev_idx_dict = json.load(infile)
-            latency, accuracy, cnt_dict = coutner_mono_dict(benchmark, prev_idx_dict) 
+            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict) 
 
         # print(latency, accuracy)
         # print(cnt_dict)
