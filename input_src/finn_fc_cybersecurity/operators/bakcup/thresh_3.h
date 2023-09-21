@@ -1,1 +1,0 @@
-static ThresholdsActivation<1,1,1,ap_int<9>,ap_uint<1>,0,comp::less_equal<ap_int<9>, ap_int<9>>> threshs                     = {{{{1}}}};

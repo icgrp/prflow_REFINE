@@ -1,0 +1,98 @@
+{
+    "data_transfer": {
+        "hls": 10,
+        "syn": 37,
+        "rdchk": 19,
+        "opt": 8,
+        "place": 69,
+        "popt": 1,
+        "route": 30,
+        "bitgen": 16,
+        "total_max_syn": 269,
+        "total": 190
+    },
+    "layer_0_0": {
+        "hls": 69,
+        "syn": 57,
+        "rdchk": 21,
+        "opt": 8,
+        "place": 75,
+        "popt": 2,
+        "route": 34,
+        "bitgen": 16,
+        "total_max_syn": 282,
+        "total": 282
+    },
+    "layer_1_0": {
+        "hls": 15,
+        "syn": 34,
+        "rdchk": 21,
+        "opt": 8,
+        "place": 62,
+        "popt": 1,
+        "route": 28,
+        "bitgen": 17,
+        "total_max_syn": 263,
+        "total": 186
+    },
+    "layer_2_0": {
+        "hls": 15,
+        "syn": 34,
+        "rdchk": 21,
+        "opt": 9,
+        "place": 72,
+        "popt": 1,
+        "route": 30,
+        "bitgen": 14,
+        "total_max_syn": 273,
+        "total": 196
+    },
+    "layer_3_0": {
+        "hls": 15,
+        "syn": 34,
+        "rdchk": 20,
+        "opt": 8,
+        "place": 71,
+        "popt": 1,
+        "route": 31,
+        "bitgen": 16,
+        "total_max_syn": 273,
+        "total": 196
+    },
+    "layer_4_0": {
+        "hls": 11,
+        "syn": 35,
+        "rdchk": 20,
+        "opt": 8,
+        "place": 65,
+        "popt": 1,
+        "route": 27,
+        "bitgen": 15,
+        "total_max_syn": 262,
+        "total": 182
+    },
+    "layer_last_0": {
+        "hls": 10,
+        "syn": 32,
+        "rdchk": 21,
+        "opt": 10,
+        "place": 88,
+        "popt": 2,
+        "route": 31,
+        "bitgen": 21,
+        "total_max_syn": 299,
+        "total": 215
+    },
+    "out_data_collect": {
+        "hls": 10,
+        "syn": 36,
+        "rdchk": 22,
+        "opt": 10,
+        "place": 97,
+        "popt": 2,
+        "route": 33,
+        "bitgen": 18,
+        "total_max_syn": 308,
+        "total": 228
+    }
+}

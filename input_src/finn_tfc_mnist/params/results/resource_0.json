@@ -1,0 +1,66 @@
+{
+    "data_transfer": {
+        "DSP48E2": 0,
+        "FF": 3157,
+        "LUT": 1460,
+        "LUT_mem": 20,
+        "RAMB18": 8,
+        "pblock": "p16_p0"
+    },
+    "layer_0_0": {
+        "DSP48E2": 0,
+        "FF": 2849,
+        "LUT": 3267,
+        "LUT_mem": 20,
+        "RAMB18": 40,
+        "pblock": "p16_p1"
+    },
+    "layer_1_0": {
+        "DSP48E2": 0,
+        "FF": 1467,
+        "LUT": 1100,
+        "LUT_mem": 16,
+        "RAMB18": 10,
+        "pblock": "p20_p0"
+    },
+    "layer_2_0": {
+        "DSP48E2": 0,
+        "FF": 1426,
+        "LUT": 1101,
+        "LUT_mem": 8,
+        "RAMB18": 10,
+        "pblock": "p20_p1"
+    },
+    "layer_3_0": {
+        "DSP48E2": 0,
+        "FF": 1426,
+        "LUT": 1097,
+        "LUT_mem": 8,
+        "RAMB18": 10,
+        "pblock": "p12_p0"
+    },
+    "layer_4_0": {
+        "DSP48E2": 0,
+        "FF": 1201,
+        "LUT": 1055,
+        "LUT_mem": 8,
+        "RAMB18": 9,
+        "pblock": "p12_p1"
+    },
+    "layer_last_0": {
+        "DSP48E2": 0,
+        "FF": 987,
+        "LUT": 980,
+        "LUT_mem": 8,
+        "RAMB18": 8,
+        "pblock": "p8"
+    },
+    "out_data_collect": {
+        "DSP48E2": 0,
+        "FF": 3086,
+        "LUT": 1574,
+        "LUT_mem": 8,
+        "RAMB18": 8,
+        "pblock": "p4"
+    }
+}

@@ -1,0 +1,41 @@
+{
+    "data_transfer": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_0_0": {
+        "PE1_mva_0": 64,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_1_0": {
+        "PE1_mva_1": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_2_0": {
+        "PE1_mva_2": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_3_0": {
+        "PE1_mva_3": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_4_0": {
+        "PE1_mva_4": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_0": {
+        "PE1_lab_sel_0": 1,
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "metric": "latency",
+    "out_data_collect": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

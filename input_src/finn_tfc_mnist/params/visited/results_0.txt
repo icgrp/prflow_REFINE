@@ -1,0 +1,68 @@
+Thu Dec 30 03:26:23 UTC 2021
+Loading: 'dynamic_region.xclbin'
+Loading: 'p20_subdivide.xclbin'
+Loading: 'p12_subdivide.xclbin'
+Loading: 'p16_subdivide.xclbin'
+Loading: 'data_transfer.xclbin'
+Loading: 'layer_0_0.xclbin'
+Loading: 'layer_1_0.xclbin'
+Loading: 'layer_2_0.xclbin'
+Loading: 'layer_3_0.xclbin'
+Loading: 'layer_4_0.xclbin'
+Loading: 'layer_last_0.xclbin'
+Loading: 'out_data_collect.xclbin'
+Done!
+INFO: Loading 'out_data_collect.xclbin'
+Init input data 
+Init input data - Batch idx: 0
+start 
+out1[0] = 0001091090000280
+out1[1] = 00010910a001f974
+out1[2] = 00010940a0000555
+out1[3] = 000109409001ea00
+out1[4] = 00010948a00002f9
+out1[5] = 000109489001ea00
+out1[6] = 00010958a0015bf4
+out1[7] = 00010948b00206e2
+out1[8] = 0001095a70000000
+out1[9] = 0001094a6003ede9
+out1[10] = 0001095800015bf4
+out1[11] = 00010958b0000000
+out1[12] = 00010948000002fa
+out1[13] = 0001095a600357eb
+out1[14] = 0001094a70000000
+out1[15] = 000109589000a000
+out1[16] = 00010938a0015bf4
+out1[17] = 000109389000a000
+out1[18] = 0001092270000000
+out1[19] = 00010920b0000000
+out1[20] = 00010920a001e2f4
+out1[21] = 0001092090001900
+out1[22] = 000109226003f56c
+out1[23] = 000109200001e2f4
+out1[24] = 0001093270000000
+out1[25] = 00010930b0000000
+out1[26] = 0001093a70000000
+out1[27] = 00010938b0000000
+out1[28] = 0001093800015bf4
+out1[29] = 00010932600357ea
+out1[30] = 0001093a6003deeb
+out1[31] = 0001093000015bf3
+out1[32] = 000109100001f974
+out1[33] = 000109126003f74b
+out1[34] = 0001091270000000
+out1[35] = 00010910b0000000
+out1[36] = 00010950a001f1f3
+out1[37] = 0001095090000a00
+out1[38] = 0001094270000cbc
+out1[39] = 00010940b002032e
+out1[40] = 000109500001f1f3
+out1[41] = 00010952600357ea
+out1[42] = 0001094000001212
+out1[43] = 0001094260001023
+out1[44] = 00010930a0015bf3
+out1[45] = 000109309000a000
+out1[46] = 0001095270000000
+out1[47] = 00010950b0000000
+elapsed time: 1603 us
+accuracy: 0.915625 
