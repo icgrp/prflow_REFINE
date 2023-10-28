@@ -322,7 +322,8 @@ def counter_mono_dict(benchmark, mono_counter_idx_dict):
     print(">> accuracy: " + str(accuracy))
     print(">> latency: " + str(latency))
     for op_name in sorted(cnt_dict):
-        print(op_name, cnt_dict[op_name])
+        print(op_name, end=' ')
+        print(sorted(cnt_dict[op_name].items()))
 
     assert(int(num_enqueue) == 1)
 
@@ -427,7 +428,16 @@ def coutner_dict(benchmark, pblock_assign_dict):
     print(">> accuracy: " + str(accuracy))
     print(">> latency: " + str(latency))
     for op_name in sorted(cnt_dict):
-        print(op_name, cnt_dict[op_name])
+        print(op_name)
+        for page_num in sorted(cnt_dict[op_name]):
+            if page_num != 0: # not stall
+                print(page_num, end=' ')
+                for port_num in sorted(cnt_dict[op_name][page_num]):
+                    print(port_num, end=' ')
+                    for cnt in sorted(cnt_dict[op_name][page_num][port_num]):
+                        print(cnt, end=' ')
+                        print(cnt_dict[op_name][page_num][port_num][cnt], end=' ')
+                print()
 
     assert(int(num_enqueue) == 1)
 
@@ -761,7 +771,8 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
 
     print()
     print("connection_diff_dict: ")
-    print(connection_diff_dict)
+    for connection in sorted(connection_diff_dict):
+        print(str(connection) + ': ' + str(connection_diff_dict[connection]))
 
     operator_list_no_merge = no_merge_op_list(benchmark)
     operator_arg_dict_no_merge = return_operator_io_argument_dict_local(operator_list_no_merge, benchmark)
@@ -843,7 +854,13 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                     if cur_param_val != param_search_space[-1]:
                         is_reached_max = False
 
-                if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False:
+                print("param_for_lat_list:")
+                print(param_for_lat_list)
+                print("is_reached_max:")
+                print(is_reached_max)
+
+                if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False and\
+                    not sender_op.startswith('data') and not receiver_op.startswith('output'): # TODO: this is known issue
                     cur_param_dict[sender_op]["merged_to_try"] = receiver_op
                     cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
                     is_NoC_bot_addressed = True
@@ -1086,6 +1103,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
 
 # Save cur_param.json, results.txt, summary.csv, pblock_assignment.json(if NoC ver.) / mono_counter_idx_dict.json(if mono ver.)
 def save_prev_param(benchmark, prev_param_dict, prev_idx_dict, prev_overlay_type):
+    print("Param saved!")
     param_success_file, idx_most_recent = prev_param_success_file_idx()
     idx = idx_most_recent + 1
 
@@ -1215,12 +1233,14 @@ if __name__ == '__main__':
         # if previous run improved the latency, save the previous param
         else:
             save_prev_param(benchmark, prev_param_dict, prev_idx_dict, overlay_type)
-            if latency < best_latency:
-                # Update the best latency
-                with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
-                    outfile.write(str(latency))
 
         no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin, prev_idx_dict)
+        # current metric != accuracy; it's not valid design yet
+        if metric != "accuracy" and latency < best_latency:
+            # Update the best latency
+            with open('./input_src/' + benchmark + '/params/best.txt', 'w') as outfile:
+                outfile.write(str(latency))
+
 
 
     # Touch status flag

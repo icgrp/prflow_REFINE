@@ -11,7 +11,8 @@ from pr_flow.p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MAR
 import pandas as pd
 import numpy as np
 import pickle
-RECALL_THRESHOLD = 0.97
+HARD_CONSTRAINT = 0.7
+RECALL_THRESHOLD = 0.96
 resource_ratio_dict = {"single": [(0.6,1),(0.5,1),(0.5,1)],
                         "double": [(0.6,1),(0.6,1),(0.6,1)],
                         "quad": [(0.6,1),(0.6,1),(0.6,1)]}
@@ -160,8 +161,8 @@ class page_assign(gen_basic):
     LUT_low, LUT_high = resource_ratio_list[0][0], resource_ratio_list[0][1]
     BRAM_low, BRAM_high = resource_ratio_list[1][0], resource_ratio_list[1][1]
     DSP_low, DSP_high = resource_ratio_list[2][0], resource_ratio_list[2][1]
-    FF_low, FF_high = 0.6, 1.0
-    LUT_mem_low, LUT_mem_high = 0.6, 1.0
+    FF_low, FF_high = 1.0, 1.0 # just check if it's less than PR page
+    LUT_mem_low, LUT_mem_high = 1.0, 1.0 # just check if it's less than PR page
 
     cur_delay = 1000/int(frequency)
 
@@ -177,11 +178,15 @@ class page_assign(gen_basic):
 
     if LUT_ratio >= LUT_high or LUT_mem_ratio >= LUT_mem_high or FF_ratio >= FF_high or BRAM_ratio >= BRAM_high or DSP_ratio >= DSP_high:
       return False # may overutilize pblock
-    elif LUT_ratio < LUT_low and LUT_mem_ratio < LUT_mem_low and FF_ratio < FF_low and BRAM_ratio < BRAM_low and DSP_ratio < DSP_low and path_delay_ratio < 1:
+    # elif LUT_ratio < LUT_low and LUT_mem_ratio < LUT_mem_low and FF_ratio < FF_low and BRAM_ratio < BRAM_low and DSP_ratio < DSP_low and path_delay_ratio < 1:
+    elif LUT_ratio < LUT_low and LUT_mem_ratio < LUT_mem_low and FF_ratio < FF_low and BRAM_ratio < BRAM_low and DSP_ratio < DSP_low:
       return True # small enough
 
-    test_feature = pd.DataFrame(np.array([[LUT_ratio, LUT_mem_ratio, FF_ratio, BRAM_ratio, DSP_ratio, path_delay_ratio, rent, avg_fanout, total_inst]]), \
-      columns=['LUT ratio', 'LUT_mem ratio', 'FF ratio', 'BRAM ratio', 'DSP ratio', 'path delay', 'Rent', 'average fanout', 'total instances'])
+    # Remove path dealy
+    # test_feature = pd.DataFrame(np.array([[LUT_ratio, LUT_mem_ratio, FF_ratio, BRAM_ratio, DSP_ratio, path_delay_ratio, rent, avg_fanout, total_inst]]), \
+    #   columns=['LUT ratio', 'LUT_mem ratio', 'FF ratio', 'BRAM ratio', 'DSP ratio', 'path delay', 'Rent', 'average fanout', 'total instances'])
+    test_feature = pd.DataFrame(np.array([[LUT_ratio, FF_ratio, BRAM_ratio, DSP_ratio, rent, avg_fanout, total_inst]]), \
+      columns=['LUT ratio', 'FF ratio', 'BRAM ratio', 'DSP ratio', 'Rent', 'average fanout', 'total instances'])
 
     dir_name = str(RECALL_THRESHOLD).split('.')[1]
     best_model = pickle.load(open('./classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '.pickle', "rb"))
@@ -196,29 +201,29 @@ class page_assign(gen_basic):
   # is_fit based on hard constraint for one operator
   # returns whether the operator fits in the page
   def is_fit_hard(self, op_resource_dict, pblock_resource_dict, pblock_name):
-    frequency = 400
+    # frequency = 400
 
-    pblock_pages = pblock_page_dict[pblock_name]
-    pblock_size = len(pblock_pages)
-    FF_MARGIN = 0
-    LUT_MEM_MARGIN = 0
+    # pblock_pages = pblock_page_dict[pblock_name]
+    # pblock_size = len(pblock_pages)
+    # FF_MARGIN = 0
+    # LUT_MEM_MARGIN = 0
 
-    if(pblock_size == 1): LUT_MARGIN = LUT_MARGIN_single_dict[frequency][pblock_name]
-    elif(pblock_size == 2): LUT_MARGIN = LUT_MARGIN_double_dict[frequency][pblock_name]
-    elif(pblock_size == 4): LUT_MARGIN = LUT_MARGIN_quad_dict[frequency][pblock_name]
-    else: raise Exception("Invalid pblock size")
+    # if(pblock_size == 1): LUT_MARGIN = LUT_MARGIN_single_dict[frequency][pblock_name]
+    # elif(pblock_size == 2): LUT_MARGIN = LUT_MARGIN_double_dict[frequency][pblock_name]
+    # elif(pblock_size == 4): LUT_MARGIN = LUT_MARGIN_quad_dict[frequency][pblock_name]
+    # else: raise Exception("Invalid pblock size")
 
-    if(pblock_size == 1): RAM_DSP_MARGIN = BRAM_MARGIN_single_dict[frequency][pblock_name]
-    elif(pblock_size == 2): RAM_DSP_MARGIN = BRAM_MARGIN_double_dict[frequency][pblock_name]
-    elif(pblock_size == 4): RAM_DSP_MARGIN = BRAM_MARGIN_quad_dict[frequency][pblock_name]
-    else: raise Exception("Invalid pblock size")
+    # if(pblock_size == 1): RAM_DSP_MARGIN = BRAM_MARGIN_single_dict[frequency][pblock_name]
+    # elif(pblock_size == 2): RAM_DSP_MARGIN = BRAM_MARGIN_double_dict[frequency][pblock_name]
+    # elif(pblock_size == 4): RAM_DSP_MARGIN = BRAM_MARGIN_quad_dict[frequency][pblock_name]
+    # else: raise Exception("Invalid pblock size")
 
-    resource_condition = ((op_resource_dict['LUT'] * (1+LUT_MARGIN) < pblock_resource_dict['LUT']) and \
-                           op_resource_dict['LUT_mem'] * (1+LUT_MEM_MARGIN) < pblock_resource_dict['LUT_mem'] and \
-                           op_resource_dict['FF'] * (1+FF_MARGIN) < pblock_resource_dict['FF'] and \
-                           op_resource_dict['RAMB36'] * (1+RAM_DSP_MARGIN) <= pblock_resource_dict['RAMB36'] and \
-                           op_resource_dict['RAMB18'] * (1+RAM_DSP_MARGIN) <= pblock_resource_dict['RAMB18'] and \
-                           op_resource_dict['DSP48E2'] * (1+RAM_DSP_MARGIN) <= pblock_resource_dict['DSP48E2'])
+    resource_condition = ((op_resource_dict['LUT'] < pblock_resource_dict['LUT']) * HARD_CONSTRAINT and \
+                           op_resource_dict['LUT_mem'] < pblock_resource_dict['LUT_mem'] * 1 and \
+                           op_resource_dict['FF'] < pblock_resource_dict['FF'] * 1 and \
+                           op_resource_dict['RAMB36'] < pblock_resource_dict['RAMB36'] * HARD_CONSTRAINT and \
+                           op_resource_dict['RAMB18'] < pblock_resource_dict['RAMB18'] * HARD_CONSTRAINT and \
+                           op_resource_dict['DSP48E2'] < pblock_resource_dict['DSP48E2'] * HARD_CONSTRAINT)
     return resource_condition
 
 
@@ -284,8 +289,8 @@ class page_assign(gen_basic):
     possible_pblock_list = []
     for pblock_name in sorted(pblock_in_range_resource_dict.keys()):
       pblock_resource_dict = pblock_in_range_resource_dict[pblock_name]
-      # is_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
-      is_fit_hard_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
+      is_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
+      # is_fit_hard_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
       # print(is_fit_result)
       # if(not is_fit_result and is_fit_hard_result):
       #   print("examples---")
@@ -294,8 +299,8 @@ class page_assign(gen_basic):
       #   print(pblock_name)
       #   print(is_fit_result)
       #   print()
-      # TODO: Fix line below
-      if(is_fit_hard_result and 
+      # if(is_fit_hard_result and 
+      if(is_fit_result and 
         self.is_valid_pblock(page_valid_dict, pblock_name) and 
         self.get_page_size(pblock_name) >= num_leaf_interface and 
         self.get_page_size(pblock_name) >= min_size):
@@ -949,9 +954,9 @@ class page_assign(gen_basic):
           pblock_name = pblock_assign_dict[op]['pblock']
           pblock_resource_dict = pblock_all_resource_dict[pblock_name]
           op_resource_dict = util_dict[op]
-          if_fit_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
-          # if_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
-          if not if_fit_result or self.get_page_size(pblock_name) < num_leaf_interface:
+          # is_fit_result = self.is_fit_hard(op_resource_dict, pblock_resource_dict, pblock_name)
+          is_fit_result = self.is_fit(op_resource_dict, pblock_resource_dict, pblock_name, frequency)
+          if not is_fit_result or self.get_page_size(pblock_name) < num_leaf_interface:
             is_ops_all_fit = False
 
       if is_ops_all_fit:
@@ -1159,7 +1164,22 @@ class page_assign(gen_basic):
     # assert(len(operators.split()) == len(pblock_assign_dict))
     # assert(len(operators.split()) == len(page_assign_dict))
     if(not self.is_assigned_all(pblock_assign_dict, operators_list)):
-      raise Exception("SHOULD NOT REACH HERE, SHOULD HAVE CAUGHT EARLIER")    
+      # Use old greedy page assignment
+      node_w_dict, pblock_assign_dict = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict, requirements)
+      page_assign_dict = {}
+      for op, pblock in pblock_assign_dict.items():
+        page_num_list = pblock_page_dict[pblock]
+        page_num_int_list = [int(x) for x in page_num_list]
+        page_assign_dict[op] = min(page_num_int_list)
+
+      print("")
+      print("## Greedy page_assign_dict")
+      print(page_assign_dict)
+      print("")
+      print("## Greedy pblock_assign_dict")
+      print(pblock_assign_dict)
+      print("")
+      # raise Exception("SHOULD NOT REACH HERE, SHOULD HAVE CAUGHT EARLIER")    
 
     # Add leaf interface mapping to pblock_assign_dict
     new_pblock_assign_dict = {} 
