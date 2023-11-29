@@ -1,41 +1,41 @@
 {
-    "update_knn1": {
+    "update_knn_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn2": {
+    "update_knn_i10": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn3": {
+    "update_knn_i2": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn4": {
+    "update_knn_i3": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn5": {
+    "update_knn_i4": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn6": {
+    "update_knn_i5": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn7": {
+    "update_knn_i6": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn8": {
+    "update_knn_i7": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn9": {
+    "update_knn_i8": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "update_knn10": {
+    "update_knn_i9": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     }

@@ -29,7 +29,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include "typedefs.h"
 #include "input_data.h"
 #include <sys/time.h>
@@ -145,8 +145,8 @@ int main(int argc, char **argv)
     // Create the buffers and allocate memory
     cl::Buffer in1_buf(context, CL_MEM_READ_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
     cl::Buffer in2_buf(context, CL_MEM_READ_ONLY, sizeof(bit512) * INPUT_SIZE, NULL, &err);
-    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
-    cl::Buffer out2_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
+    cl::Buffer out1_buf(context, CL_MEM_READ_WRITE, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
+    cl::Buffer out2_buf(context, CL_MEM_READ_WRITE, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
 
     // Map buffers to kernel arguments, thereby assigning them to specific device memory banks
     krnl_ydma.setArg(0, in1_buf);
@@ -174,8 +174,6 @@ int main(int argc, char **argv)
     in1[3].range(31,  0) = OUTPUT_SIZE;
     in1[4].range(63, 32) = 0x00000000;
     in1[4].range(31,  0) = NUM_TOTAL_CNT;
-
-    // send input data buf size
 
     // configure packets
 
@@ -209,11 +207,9 @@ int main(int argc, char **argv)
 	krnl_ydma.setArg(3, out2_buf);
 	krnl_ydma.setArg(4, CONFIG_SIZE);
 	krnl_ydma.setArg(5, INPUT_SIZE);
-	//krnl_ydma.setArg(6, INPUT_SIZE);
 	krnl_ydma.setArg(6, OUTPUT_SIZE);
     krnl_ydma.setArg(7, NUM_TOTAL_CNT);
 
-    // std::cout << "1st iteration " << std::endl;
 	// Schedule transfer of inputs to device memory, execution of kernel, and transfer of outputs back to host memory
 	q.enqueueMigrateMemObjects({in1_buf, in2_buf}, 0 /* 0 means from host*/);
 	q.enqueueTask(krnl_ydma);
@@ -227,11 +223,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------------------------------------------
     bool match = true;
     check_results(out2);
-    // for(int i=0; i<CONFIG_SIZE; i++){
-    // int max_config = CONFIG_SIZE > 20 ? 20: CONFIG_SIZE;
     for(int i=0; i<NUM_TOTAL_CNT; i++){
-        // printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
-    	// std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
         printf("out1[%d] = %08x%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
     }
     

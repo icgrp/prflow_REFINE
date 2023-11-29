@@ -1,8 +1,4 @@
 {
-    "data_transfer": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
     "flow_calc": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
@@ -23,23 +19,11 @@
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "output_data": {
+    "tensor_weight_x_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "tensor_weight_x_1": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "tensor_weight_x_2": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "tensor_weight_y_1": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "tensor_weight_y_2": {
+    "tensor_weight_y_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     }

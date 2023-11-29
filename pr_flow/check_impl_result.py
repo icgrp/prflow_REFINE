@@ -1,4 +1,4 @@
-import os
+import os, json
 from pr_flow.gen_basic import gen_basic
 
 class check_impl_result(gen_basic):
@@ -7,6 +7,10 @@ class check_impl_result(gen_basic):
 
   # Depending on implementation results, it prints "Success" or "Fail"
   def run(self, operators):
+
+    with open('./input_src/' + self.prflow_params['benchmark_name'] + '/params/ops_to_compile.json', 'r') as infile:
+      ops_to_compile = json.load(infile)
+
     operator_list = operators.split()
     # print(operator_list)
     results_dict = {}
@@ -14,10 +18,14 @@ class check_impl_result(gen_basic):
       if os.path.isfile(self.pr_dir + '/' + op + '/__success__'):
         results_dict[op] = 'Success'
       elif os.path.isfile(self.pr_dir + '/' + op + '/__timing_violation__'):
-        results_dict[op] = 'Timing violation'
+        if op in ops_to_compile:
+          results_dict[op] = 'Timing violation'
+        else:
+          # Important: if operator that failed in timing is because of new page assingment, we just flag this operator as
+          #            impl failure and move to monolithic
+          results_dict[op] = 'Implementation failed'
       elif os.path.isfile(self.pr_dir + '/' + op + '/__impl_failure__'):
-        results_dict[op] = 'Implementation failed'
-
+        results_dict[op] = 'Implementation failed'\
 
     failed_ops_list = []
     for op in results_dict:

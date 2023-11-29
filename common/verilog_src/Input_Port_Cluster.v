@@ -45,18 +45,18 @@ module Input_Port_Cluster # (
     //user interface
     output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] dout2user,
     output [NUM_IN_PORTS-1:0] vld2user,
-    input [NUM_IN_PORTS-1:0] ack_user2b_in,
+    input [NUM_IN_PORTS-1:0] ack_user2b_in
 
-    input is_done_mode, // clk(_bft) domain
-    input is_done_mode_user, // clk_user domain
-    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_full_cnt,
-    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_empty_cnt,
-    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_read_cnt,
-    output input_port_cluster_stall_condition
+    // input is_done_mode, // clk(_bft) domain
+    // input is_done_mode_user, // clk_user domain
+    // output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_full_cnt,
+    // output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_empty_cnt,
+    // output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_read_cnt,
+    // output input_port_cluster_stall_condition
     );
 
-    wire [NUM_IN_PORTS-1:0] input_port_stall_condition;
-    assign input_port_cluster_stall_condition = |input_port_stall_condition;
+    // wire [NUM_IN_PORTS-1:0] input_port_stall_condition;
+    // assign input_port_cluster_stall_condition = |input_port_stall_condition;
     
     genvar gv_i;
     generate
@@ -84,13 +84,13 @@ module Input_Port_Cluster # (
             .src_port(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*gv_i+NUM_PORT_BITS-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*gv_i]),
             .dout2user(dout2user[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
             .vld2user(vld2user[gv_i]),
-            .ack_user2b_in(ack_user2b_in[gv_i]),
-            .is_done_mode(is_done_mode),
-            .is_done_mode_user(is_done_mode_user),
-            .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
-            .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
-            .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
-            .input_port_stall_condition(input_port_stall_condition[gv_i])
+            .ack_user2b_in(ack_user2b_in[gv_i])
+            // .is_done_mode(is_done_mode),
+            // .is_done_mode_user(is_done_mode_user),
+            // .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            // .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            // .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            // .input_port_stall_condition(input_port_stall_condition[gv_i])
         );
     end
     endgenerate

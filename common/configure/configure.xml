@@ -12,9 +12,9 @@
   <spec name = "board"                            value = "zcu102" />
   <spec name = "Xilinx_dir"                       value = "/tools/Xilinx/Vitis/2022.1/settings64.sh" />
   <spec name = "xrt_dir"                          value = "/opt/xilinx/xrt/setup.sh" /> <!-- Not necessary for embedded platform -->
-  <spec name = "place_design_NoC_directive"       value = "ExtraTimingOpt" />
+  <spec name = "place_design_NoC_directive"       value = "EarlyBlockPlacement" />
   <spec name = "route_design_NoC_directive"       value = "Explore" />
-  <spec name = "place_design_mono_directive"      value = "ExtraTimingOpt" />
+  <spec name = "place_design_mono_directive"      value = "EarlyBlockPlacement" />
   <spec name = "route_design_mono_directive"      value = "Explore" />
 
 

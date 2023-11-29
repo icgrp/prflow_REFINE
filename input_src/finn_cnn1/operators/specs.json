@@ -1,0 +1,62 @@
+{
+    "layer_0_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_0_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_1_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_1_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_2_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_2_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_3_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_3_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_4_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_4_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_5_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_5_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "layer_last_2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

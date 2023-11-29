@@ -5,15 +5,13 @@ void outer_product(
     hls::stream<ap_uint<32>> &Input_1,
     hls::stream<ap_uint<32>> &Input_2,
     hls::stream<ap_uint<32>> &Input_3,
-    hls::stream<ap_uint<96>> &Output_1,
-    hls::stream<ap_uint<96>> &Output_2
+    hls::stream<ap_uint<128>> &Output_1
     )
 {
 #pragma HLS interface axis register port=Input_1
 #pragma HLS interface axis register port=Input_2
 #pragma HLS interface axis register port=Input_3
 #pragma HLS interface axis register port=Output_1
-#pragma HLS interface axis register port=Output_2
   OUTER_OUTER: for(int r=0; r<MAX_HEIGHT; r++)
   {
     OUTER_INNER: for(int c=0; c<MAX_WIDTH; c++)
@@ -40,16 +38,15 @@ void outer_product(
       out.val[4] = (x*z);
       out.val[5] = (y*z);
 
-      ap_uint<96> out_tmp;
-      out_tmp(31,0) = out.val[0].range(31,0);
-      out_tmp(63,32) = out.val[1].range(31,0);
-      out_tmp(95,64) = out.val[2].range(31,0);
-      Output_1.write(out_tmp);
-
-      out_tmp(31,0) = out.val[3].range(31,0);
-      out_tmp(63,32) = out.val[4].range(31,0);
-      out_tmp(95,64) = out.val[5].range(31,0);
-      Output_2.write(out_tmp);
+      ap_uint<128> out_tmp;
+      out_tmp(15,0) = out.val[0].range(15,0);
+      out_tmp(31,16) = out.val[1].range(15,0);
+      out_tmp(47,32) = out.val[2].range(15,0);
+      out_tmp(63,48) = out.val[3].range(15,0);
+      out_tmp(79,64) = out.val[4].range(15,0);
+      out_tmp(95,80) = out.val[5].range(15,0);
+      out_tmp(127,96) = 0;
+      Output_1.write(out_tmp(127,0));
 
     }
   }

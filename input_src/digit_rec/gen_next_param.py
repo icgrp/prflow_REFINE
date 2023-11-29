@@ -12,7 +12,6 @@ from code_gen_util import return_operator_io_argument_dict_local, return_operato
 ## Benchmark-specific ##
 ########################
 
-
 def gen_update_knn_i1_func():
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
@@ -115,7 +114,7 @@ def gen_update_knn_i1_func():
     func_str_list.append('')
     func_str_list.append('')
     func_str_list.append('#define NUM1 1')
-    func_str_list.append('void update_knn_i1(hls::stream<ap_uint<512> > & Input_1,')
+    func_str_list.append('void update_knn_i1(hls::stream<ap_uint<256> > & Input_1,')
     func_str_list.append('                   hls::stream<ap_uint<32> > & Output_1)')
     func_str_list.append('{')
     func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
@@ -131,7 +130,7 @@ def gen_update_knn_i1_func():
     func_str_list.append('static int knn_set[K_CONST*OP_SIZE];')
     func_str_list.append('#pragma HLS array_partition variable=knn_set complete dim=0')
     func_str_list.append('')
-    func_str_list.append('static bit512 in_tmp;')
+    func_str_list.append('static ap_uint<256> in_tmp;')
     func_str_list.append('')
     func_str_list.append('WholeDigitType data_temp;')
     func_str_list.append('static int index = 0;')
@@ -151,14 +150,16 @@ def gen_update_knn_i1_func():
     func_str_list.append('      training_set[2*i  ](95,   64) =in_tmp(191, 160);')
     func_str_list.append('      training_set[2*i  ](63,   32) =in_tmp(223, 192);')
     func_str_list.append('      training_set[2*i  ](31,    0) =in_tmp(255, 224);')
-    func_str_list.append('      training_set[2*i+1](255, 224) =in_tmp(287, 256);')
-    func_str_list.append('      training_set[2*i+1](223, 192) =in_tmp(319, 288);')
-    func_str_list.append('      training_set[2*i+1](191, 160) =in_tmp(351, 320);')
-    func_str_list.append('      training_set[2*i+1](159, 128) =in_tmp(383, 352);')
-    func_str_list.append('      training_set[2*i+1](127,  96) =in_tmp(415, 384);')
-    func_str_list.append('      training_set[2*i+1](95,   64) =in_tmp(447, 416);')
-    func_str_list.append('      training_set[2*i+1](63,   32) =in_tmp(479, 448);')
-    func_str_list.append('      training_set[2*i+1](31,    0) =in_tmp(511, 480);')
+    func_str_list.append('')
+    func_str_list.append('      in_tmp = Input_1.read();')
+    func_str_list.append('      training_set[2*i+1](255, 224) =in_tmp(31,    0);')
+    func_str_list.append('      training_set[2*i+1](223, 192) =in_tmp(63,   32);')
+    func_str_list.append('      training_set[2*i+1](191, 160) =in_tmp(95,   64);')
+    func_str_list.append('      training_set[2*i+1](159, 128) =in_tmp(127,  96);')
+    func_str_list.append('      training_set[2*i+1](127,  96) =in_tmp(159, 128);')
+    func_str_list.append('      training_set[2*i+1](95,   64) =in_tmp(191, 160);')
+    func_str_list.append('      training_set[2*i+1](63,   32) =in_tmp(223, 192);')
+    func_str_list.append('      training_set[2*i+1](31,    0) =in_tmp(255, 224);')
     func_str_list.append('    }')
     func_str_list.append('')
     func_str_list.append('    //Transit the training sets for other pages')
@@ -174,71 +175,45 @@ def gen_update_knn_i1_func():
     func_str_list.append('      tmp(31, 0) = in_tmp(191, 160); Output_1.write(tmp);')
     func_str_list.append('      tmp(31, 0) = in_tmp(223, 192); Output_1.write(tmp);')
     func_str_list.append('      tmp(31, 0) = in_tmp(255, 224); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(287, 256); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(319, 288); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(351, 320); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(383, 352); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(415, 384); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(447, 416); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(479, 448); Output_1.write(tmp);')
-    func_str_list.append('      tmp(31, 0) = in_tmp(511, 480); Output_1.write(tmp);')
+    func_str_list.append('')
+    func_str_list.append('      in_tmp = Input_1.read();')
+    func_str_list.append('      tmp(31, 0) = in_tmp(31,    0); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(63,   32); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(95,   64); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(127,  96); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(159, 128); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(191, 160); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(223, 192); Output_1.write(tmp);')
+    func_str_list.append('      tmp(31, 0) = in_tmp(255, 224); Output_1.write(tmp);')
     func_str_list.append('    }')
-    func_str_list.append('     index = 1;')
+    func_str_list.append('    index = 1;')
     func_str_list.append('  }')
     func_str_list.append('')
-    func_str_list.append('  if(index%2 == 1){')
-    func_str_list.append('    in_tmp = Input_1.read();')
-    func_str_list.append('    test_instance(255, 224) = in_tmp(31,    0);')
-    func_str_list.append('    test_instance(223, 192) = in_tmp(63,   32);')
-    func_str_list.append('    test_instance(191, 160) = in_tmp(95,   64);')
-    func_str_list.append('    test_instance(159, 128) = in_tmp(127,  96);')
-    func_str_list.append('    test_instance(127,  96) = in_tmp(159, 128);')
-    func_str_list.append('    test_instance(95,   64) = in_tmp(191, 160);')
-    func_str_list.append('    test_instance(63,   32) = in_tmp(223, 192);')
-    func_str_list.append('    test_instance(31,    0) = in_tmp(255, 224);')
-    func_str_list.append('    tmp(31,0) = test_instance(255, 224);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(223, 192);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(191, 160);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(159, 128);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(127,  96);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(95,   64);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(63,   32);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(31,    0);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('  }')
-    func_str_list.append('  else{')
-    func_str_list.append('    test_instance(255, 224) = in_tmp(287,  256);')
-    func_str_list.append('    test_instance(223, 192) = in_tmp(319,  288);')
-    func_str_list.append('    test_instance(191, 160) = in_tmp(351,  320);')
-    func_str_list.append('    test_instance(159, 128) = in_tmp(383, 352);')
-    func_str_list.append('    test_instance(127,  96) = in_tmp(415, 384);')
-    func_str_list.append('    test_instance(95,   64) = in_tmp(447, 416);')
-    func_str_list.append('    test_instance(63,   32) = in_tmp(479, 448);')
-    func_str_list.append('    test_instance(31,    0) = in_tmp(511, 480);')
-    func_str_list.append('    tmp(31,0) = test_instance(255, 224);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(223, 192);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(191, 160);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(159, 128);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(127,  96);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(95,   64);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(63,   32);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('    tmp(31,0) = test_instance(31,    0);')
-    func_str_list.append('    Output_1.write(tmp);')
-    func_str_list.append('  }')
+    func_str_list.append('  in_tmp = Input_1.read();')
+    func_str_list.append('  test_instance(255, 224) = in_tmp(31,    0);')
+    func_str_list.append('  test_instance(223, 192) = in_tmp(63,   32);')
+    func_str_list.append('  test_instance(191, 160) = in_tmp(95,   64);')
+    func_str_list.append('  test_instance(159, 128) = in_tmp(127,  96);')
+    func_str_list.append('  test_instance(127,  96) = in_tmp(159, 128);')
+    func_str_list.append('  test_instance(95,   64) = in_tmp(191, 160);')
+    func_str_list.append('  test_instance(63,   32) = in_tmp(223, 192 );')
+    func_str_list.append('  test_instance(31,    0) = in_tmp(255, 224);')
+    func_str_list.append('  tmp(31,0) = test_instance(255, 224);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(223, 192);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(191, 160);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(159, 128);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(127,  96);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(95,   64);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(63,   32);')
+    func_str_list.append('  Output_1.write(tmp);')
+    func_str_list.append('  tmp(31,0) = test_instance(31,    0);')
+    func_str_list.append('  Output_1.write(tmp);')
     func_str_list.append('  ')
     func_str_list.append('')
     func_str_list.append('  int min_distance_list[K_CONST];')
@@ -307,7 +282,7 @@ def gen_update_knn_i1_func():
 def gen_update_knn_i1_header():
     func_str_list = []
     func_str_list.append('void update_knn_i1(')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Input_1,')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
@@ -687,7 +662,7 @@ def gen_update_knn_i10_func():
     func_str_list.append('')
     func_str_list.append('')
     func_str_list.append('')
-    func_str_list.append('void update_knn_i10(hls::stream<ap_uint<32> > & Input_1, hls::stream<ap_uint<512> > & Output_1)')
+    func_str_list.append('void update_knn_i10(hls::stream<ap_uint<32> > & Input_1, hls::stream<ap_uint<256> > & Output_1)')
     func_str_list.append('{')
     func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
     func_str_list.append('#pragma HLS INTERFACE axis register port=Output_1')
@@ -778,12 +753,12 @@ def gen_update_knn_i10_func():
     func_str_list.append('')
     func_str_list.append('  LabelType result = knn_vote_final(label_list);')
     func_str_list.append('')
-    func_str_list.append('  bit512 out_tmp;')
+    func_str_list.append('  ap_uint<256> out_tmp;')
     func_str_list.append('  results_holder[index-1] = result;')
     func_str_list.append('  if(index == 2000) {')
-    func_str_list.append('    for(int i=0; i<32; i++) {')
-    func_str_list.append('      for(int j=0; j<64; j++) {')
-    func_str_list.append('        out_tmp(j*8+7, j*8) = results_holder[i*64+j];')
+    func_str_list.append('    for(int i=0; i<64; i++) {')
+    func_str_list.append('      for(int j=0; j<32; j++) { // 32 = 256/8')
+    func_str_list.append('        out_tmp(j*8+7, j*8) = results_holder[i*32+j];')
     func_str_list.append('      }')
     func_str_list.append('      Output_1.write(out_tmp);')
     func_str_list.append('    }')
@@ -798,7 +773,7 @@ def gen_update_knn_i10_header():
     func_str_list = []
     func_str_list.append('void update_knn_i10(')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Output_1')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
     return 'update_knn_i10', "\n".join(func_str_list)
@@ -867,6 +842,33 @@ if __name__ == '__main__':
     # Nothing to do for this benchmark because no new operator is generated
 
 
+    #################################################
+    ## Update application graph (top_no_merge.cpp) ##
+    #################################################
+    # Doesn't change for this benchmark
+    top_str_list = ['update_knn_i1(Input_1, knn_out1);',
+                    'update_knn_i2(knn_out1, knn_out2);',
+                    'update_knn_i3(knn_out2, knn_out3);',
+                    'update_knn_i4(knn_out3, knn_out4);',
+                    'update_knn_i5(knn_out4, knn_out5);',
+                    'update_knn_i6(knn_out5, knn_out6);',
+                    'update_knn_i7(knn_out6, knn_out7);',
+                    'update_knn_i8(knn_out7, knn_out8);',
+                    'update_knn_i9(knn_out8, knn_out9);',
+                    'update_knn_i10(knn_out9, Output_1);']
+    with open('./host/top_no_merge.cpp', 'w') as outfile:
+        outfile.write("\n".join(top_str_list))
+
+    # Check all the functions are instantiated in top_no_merge.cpp
+    top_func_name_list = []
+    with open('./host/top_no_merge.cpp', 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            func_name = line.split('(')[0]
+            top_func_name_list.append(func_name)
+    assert(top_func_name_list.sort() == func_name_list.sort())
+
+
     #####################
     ## Perform merging ##
     #####################
@@ -900,32 +902,6 @@ if __name__ == '__main__':
     with open('./host/typedefs.h', 'w') as outfile:
         outfile.write(filedata)
 
-
-    #################################################
-    ## Update application graph (top_no_merge.cpp) ##
-    #################################################
-    # Doesn't change for this benchmark
-    top_str_list = ['update_knn_i1(Input_1, knn_out1);',
-                    'update_knn_i2(knn_out1, knn_out2);',
-                    'update_knn_i3(knn_out2, knn_out3);',
-                    'update_knn_i4(knn_out3, knn_out4);',
-                    'update_knn_i5(knn_out4, knn_out5);',
-                    'update_knn_i6(knn_out5, knn_out6);',
-                    'update_knn_i7(knn_out6, knn_out7);',
-                    'update_knn_i8(knn_out7, knn_out8);',
-                    'update_knn_i9(knn_out8, knn_out9);',
-                    'update_knn_i10(knn_out9, Output_1);']
-    with open('./host/top_no_merge.cpp', 'w') as outfile:
-        outfile.write("\n".join(top_str_list))
-
-    # Check all the functions are instantiated in top_no_merge.cpp
-    top_func_name_list = []
-    with open('./host/top_no_merge.cpp', 'r') as infile:
-        lines = infile.readlines()
-        for line in lines:
-            func_name = line.split('(')[0]
-            top_func_name_list.append(func_name)
-    assert(top_func_name_list.sort() == func_name_list.sort())
 
 
     #######################################################
@@ -962,12 +938,3 @@ if __name__ == '__main__':
     with open(op_dir + '/specs.json', 'w') as outfile:
         json.dump(spec_dict, outfile, sort_keys=True, indent=4)
 
-    #################################
-    ## Remove old src files if any ##
-    #################################
-    # cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
-    # for cpp_file in cpp_file_list:
-    #     func_name = cpp_file.split('.')[0]
-    #     if func_name not in post_merging_func_name_list:
-    #         os.system('rm ./operators/' + func_name + '.cpp')
-    #         os.system('rm ./operators/' + func_name + '.h')

@@ -80,9 +80,4 @@ typedef struct
 // dataflow switch
 #define ENABLE_DATAFLOW
 
-// User parameter
-#define PAR_RAST 1
-#define PAR_ZCULLING 1
-
-
 #endif

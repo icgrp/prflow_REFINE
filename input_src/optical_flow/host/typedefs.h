@@ -41,12 +41,11 @@ const int default_depth = MAX_WIDTH;
 
 
 // User parameter
-#define PAR_FACTOR 2
-#define OUTER_WIDTH 32
-#define OUTER_WIDTH_INT 27
-#define CALC_WIDTH_INT 56
-#define CAST_FLOAT true
-#define DUMMY_LEN 774
+#define PAR_FACTOR 1
+#define OUTER_WIDTH 16
+#define OUTER_WIDTH_INT 11
+#define CALC_WIDTH_INT 24
+#define DUMMY_LEN 785
 
 
 #include "ap_fixed.h"

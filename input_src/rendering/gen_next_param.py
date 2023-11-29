@@ -243,12 +243,34 @@ def gen_prj_rast1_func(par_rast):
     func_str_list.append('}')
     func_str_list.append('')
     func_str_list.append('')
+    func_str_list.append('void data_transfer (')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
+    func_str_list.append('')
+    func_str_list.append('{')
+    func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
+    func_str_list.append('#pragma HLS INTERFACE axis register port=Output_1')
+    func_str_list.append('  static ap_uint<256> in_tmp;')
+    func_str_list.append('  ap_uint<128> out_tmp;')
+    func_str_list.append('  static ap_uint<8> counter = 0;')
+    func_str_list.append('')
+
+    for idx in range(par_rast):
+        func_str_list.append('  if (counter == 0) in_tmp = Input_1.read();')
+        func_str_list.append('  Output_1.write(in_tmp(counter*128+127, counter*128)); // match the number of reads in p_r1_module')
+        func_str_list.append('  if(counter == 1) counter = 0;')
+        func_str_list.append('  else counter++;')
+        func_str_list.append('')
+
+    func_str_list.append('')
+    func_str_list.append('}')
+    func_str_list.append('')
 
     for idx in range(par_rast):
         func_str_list += gen_projection_func(idx + 1)
         func_str_list += gen_rasterization1_func(idx + 1)
 
-    func_str_list.append('void prj_rast1 (')
+    func_str_list.append('void p_r1_module (')
     func_str_list.append('    hls::stream<ap_uint<128>> & Input_1,')
     for idx in range(par_rast):
         if idx != par_rast-1:
@@ -288,12 +310,45 @@ def gen_prj_rast1_func(par_rast):
         func_str_list.append('')
 
     func_str_list.append('}')
+    func_str_list.append('')
+
+    func_str_list.append('void prj_rast1 (')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Input_1,')
+    for idx in range(par_rast):
+        if idx != par_rast-1:
+            func_str_list.append('    hls::stream<ap_uint<32>> & Output_' + str(idx + 1) + ',')
+        else:
+            func_str_list.append('    hls::stream<ap_uint<32>> & Output_' + str(idx + 1))
+    func_str_list.append('    )')
+    func_str_list.append('{')
+    func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
+    for idx in range(par_rast):
+        func_str_list.append('#pragma HLS INTERFACE axis register port=Output_' + str(idx + 1))
+
+    func_str_list.append('')
+    func_str_list.append('    static hls::stream<ap_uint<128>> data_transfer_out("data_transfer_out_stream");')
+    func_str_list.append('')
+    func_str_list.append('#pragma HLS dataflow')
+    func_str_list.append('    data_transfer(Input_1, data_transfer_out);')
+
+    p_r1_module_inst_str = '    p_r1_module(data_transfer_out, '
+    for idx in range(par_rast):
+        if idx == par_rast-1:
+            p_r1_module_inst_str += 'Output_' + str(idx+1) + ');'
+        else:
+            p_r1_module_inst_str += 'Output_' + str(idx+1) + ', '
+
+    func_str_list.append(p_r1_module_inst_str)
+    func_str_list.append('}')
+    func_str_list.append('')
+
+
     return "prj_rast1", "\n".join(func_str_list)
 
 def gen_prj_rast1_header(par_rast):
     func_str_list = []
     func_str_list.append('void prj_rast1 (')
-    func_str_list.append('    hls::stream<ap_uint<128>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Input_1,')
     for idx in range(par_rast):
         if idx != par_rast-1:
             func_str_list.append('    hls::stream<ap_uint<32>> & Output_' + str(idx + 1) + ',')
@@ -610,7 +665,7 @@ def gen_coloring_func(par_zculling, idx_par_zculling):
     func_str_list.append('// color the frame buffer')
     func_str_list.append('void coloringFB_i' + str(idx_par_zculling + 1) + '(')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
+    func_str_list.append('    hls::stream<ap_uint<32>> & Output_1)')
     func_str_list.append('')
     func_str_list.append('{')
     func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
@@ -623,7 +678,7 @@ def gen_coloring_func(par_zculling, idx_par_zculling):
     func_str_list.append('  bit16 size_pixels;')
     func_str_list.append('  bit32 in_tmp;')
     func_str_list.append('  size_pixels=Input_1.read();')
-    func_str_list.append('  bit128 out_FB = 0;')
+    func_str_list.append('  bit32 out_FB = 0;')
     func_str_list.append('')
     func_str_list.append('  if ( counter == 0 )')
     func_str_list.append('  {')
@@ -650,9 +705,9 @@ def gen_coloring_func(par_zculling, idx_par_zculling):
     func_str_list.append('  counter++;')
     func_str_list.append('  if(counter==NUM_3D_TRI){')
     func_str_list.append('    for (i=0; i<MAX_X; i++){')
-    func_str_list.append('      for(j=0; j<MAX_Y/' + str(par_zculling) + '; j+=16){')
+    func_str_list.append('      for(j=0; j<MAX_Y/' + str(par_zculling) + '; j+=4){ // 4 = 32/8')
     func_str_list.append('#pragma HLS PIPELINE II=1')
-    func_str_list.append('        for (int k=0; k<16; k++){')
+    func_str_list.append('        for (int k=0; k<4; k++){')
     func_str_list.append('          out_FB( k*8+7,  k*8) = frame_buffer[i][j+k];')
     func_str_list.append('        }')
     func_str_list.append('        Output_1.write(out_FB);')
@@ -669,7 +724,7 @@ def gen_coloring_header(idx_par_zculling):
     func_str_list = []
     func_str_list.append('void coloringFB_i' + str(idx_par_zculling + 1) + ' (')
     func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
+    func_str_list.append('    hls::stream<ap_uint<32>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
     return 'coloringFB_i' + str(idx_par_zculling + 1), "\n".join(func_str_list)
@@ -680,8 +735,8 @@ def gen_output_data_func(par_zculling):
     func_str_list.append('')
     func_str_list.append('void output_data(')
     for idx in range(par_zculling):    
-        func_str_list.append('    hls::stream<ap_uint<128>> & Input_' + str(idx + 1) + ',')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Output_1)')
+        func_str_list.append('    hls::stream<ap_uint<32>> & Input_' + str(idx + 1) + ',')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Output_1)')
     func_str_list.append('')
     func_str_list.append('{')
     for idx in range(par_zculling):
@@ -692,16 +747,14 @@ def gen_output_data_func(par_zculling):
     func_str_list.append('')
     func_str_list.append('  for (int i=0; i<MAX_X; i++){')
     func_str_list.append('')
-    for idx in range(par_zculling-1,-1,-1):    
-        func_str_list.append('    RECV_' + str(idx + 1) + ': for(int k=0; k<MAX_Y/' + str(4*par_zculling) + '; k+=16){')
-        func_str_list.append('      bit512 out_tmp;')
-        func_str_list.append('      bit128 tmp;')
+    for idx in range(par_zculling-1,-1,-1):
+        func_str_list.append('    for(int j=0; j<MAX_Y/' + str(4*par_zculling) + '; j+=8){ // MAX_Y/4 => 4 = 32/8, 8 = 256/32')
+        func_str_list.append('      ap_uint<256> out_tmp;')
+        func_str_list.append('      ap_uint<32> tmp;')
         func_str_list.append('#pragma HLS PIPELINE II=1')
-        func_str_list.append('      for(int l = 0; l < 4; l++){')
+        func_str_list.append('      for(int l = 0; l < 8; l++){ // 8 = 256/32')
         func_str_list.append('        tmp = Input_' + str(idx + 1) + '.read();')
-        func_str_list.append('        for(int out_i = 0; out_i < 4; out_i++){')
-        func_str_list.append('          out_tmp(l*128+out_i*32+31, l*128+out_i*32) = tmp(out_i*32+31, out_i*32);')
-        func_str_list.append('        }')
+        func_str_list.append('        out_tmp(l*32+31, l*32) = tmp;')
         func_str_list.append('      }')
         func_str_list.append('      Output_1.write(out_tmp);')
         func_str_list.append('    }')
@@ -716,50 +769,50 @@ def gen_output_data_header(par_zculling):
     func_str_list = []
     func_str_list.append('void output_data (')
     for idx in range(par_zculling):    
-        func_str_list.append('    hls::stream<ap_uint<128>> & Input_' + str(idx + 1) + ',')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Output_1')
+        func_str_list.append('    hls::stream<ap_uint<32>> & Input_' + str(idx + 1) + ',')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
     return 'output_data', "\n".join(func_str_list)
 
 
-def gen_data_transfer_func():
-    func_str_list = []
-    func_str_list.append('#include "../host/typedefs.h"')
-    func_str_list.append('')
-    func_str_list.append('void data_transfer (')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
-    func_str_list.append('')
-    func_str_list.append('{')
-    func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
-    func_str_list.append('#pragma HLS INTERFACE axis register port=Output_1')
-    func_str_list.append('    bit512 in_tmp;')
-    func_str_list.append('    bit128 out_tmp;')
-    func_str_list.append('')
-    func_str_list.append('    for ( int i = 0; i < NUM_3D_TRI/4; i++) {')
-    func_str_list.append('        in_tmp = Input_1.read();')
-    func_str_list.append('')
-    func_str_list.append('        for (int j=0; j<4; j++) {')
-    func_str_list.append('#pragma HLS PIPELINE II=1')
-    func_str_list.append('            for(int jj=0; jj<4; jj++){')
-    func_str_list.append('                out_tmp(jj*32+31, jj*32) = in_tmp(j*128+jj*32+31, j*128+jj*32);')
-    func_str_list.append('            }')
-    func_str_list.append('            Output_1.write(out_tmp);')
-    func_str_list.append('        }')
-    func_str_list.append('    }')
-    func_str_list.append('}')
-    func_str_list.append('')
-    return 'data_transfer', "\n".join(func_str_list)
+# def gen_data_transfer_func():
+#     func_str_list = []
+#     func_str_list.append('#include "../host/typedefs.h"')
+#     func_str_list.append('')
+#     func_str_list.append('void data_transfer (')
+#     func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
+#     func_str_list.append('    hls::stream<ap_uint<128>> & Output_1)')
+#     func_str_list.append('')
+#     func_str_list.append('{')
+#     func_str_list.append('#pragma HLS INTERFACE axis register port=Input_1')
+#     func_str_list.append('#pragma HLS INTERFACE axis register port=Output_1')
+#     func_str_list.append('    bit512 in_tmp;')
+#     func_str_list.append('    bit128 out_tmp;')
+#     func_str_list.append('')
+#     func_str_list.append('    for ( int i = 0; i < NUM_3D_TRI/4; i++) {')
+#     func_str_list.append('        in_tmp = Input_1.read();')
+#     func_str_list.append('')
+#     func_str_list.append('        for (int j=0; j<4; j++) {')
+#     func_str_list.append('#pragma HLS PIPELINE II=1')
+#     func_str_list.append('            for(int jj=0; jj<4; jj++){')
+#     func_str_list.append('                out_tmp(jj*32+31, jj*32) = in_tmp(j*128+jj*32+31, j*128+jj*32);')
+#     func_str_list.append('            }')
+#     func_str_list.append('            Output_1.write(out_tmp);')
+#     func_str_list.append('        }')
+#     func_str_list.append('    }')
+#     func_str_list.append('}')
+#     func_str_list.append('')
+#     return 'data_transfer', "\n".join(func_str_list)
 
-def gen_data_transfer_header():
-    func_str_list = []
-    func_str_list.append('void data_transfer (')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
-    func_str_list.append('    );')
-    func_str_list.append('#pragma map_target = HW')
-    return 'data_transfer', "\n".join(func_str_list)
+# def gen_data_transfer_header():
+#     func_str_list = []
+#     func_str_list.append('void data_transfer (')
+#     func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
+#     func_str_list.append('    hls::stream<ap_uint<128>> & Output_1')
+#     func_str_list.append('    );')
+#     func_str_list.append('#pragma map_target = HW')
+#     return 'data_transfer', "\n".join(func_str_list)
 
 
 
@@ -786,8 +839,6 @@ if __name__ == '__main__':
                 par_rast = param_dict['PAR_RAST']
             if 'PAR_ZCULLING' in param_dict:
                 par_zculling = param_dict['PAR_ZCULLING']
-    # par_rast = 4
-    # par_zculling = 4
     print(par_rast)
     print(par_zculling)
 
@@ -801,12 +852,12 @@ if __name__ == '__main__':
     ops_to_compile_list = []
     filedata_dict = {}
 
-    func_name, filedata = gen_data_transfer_func()
-    func_name_list.append(func_name)
-    func_name, filedata_header = gen_data_transfer_header()
-    filedata_dict[func_name] = (filedata, filedata_header)
-    if needs_write_param(func_name, filedata):
-        ops_to_compile_list.append(func_name)
+    # func_name, filedata = gen_data_transfer_func()
+    # func_name_list.append(func_name)
+    # func_name, filedata_header = gen_data_transfer_header()
+    # filedata_dict[func_name] = (filedata, filedata_header)
+    # if needs_write_param(func_name, filedata):
+    #     ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_prj_rast1_func(par_rast)
     func_name_list.append(func_name)
@@ -858,39 +909,16 @@ if __name__ == '__main__':
             cur_param_dict[func_name] = cur_param_dict[represent_function_name]
 
 
-    #####################
-    ## Perform merging ##
-    #####################
-    operator_list = list(cur_param_dict.keys())
-    operator_list.remove("metric")
-    # operator_list = merge_op_list()
-
-    # Modify cur_param_dict, ops_to_compile_list and WRITE .cpp files
-    merged_top_str_dict = perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict)
-
-
-    # Save cur_param_dict updated by perform_merging
-    with open('./params/cur_param.json', 'w') as outfile:
-        json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
-
-    # Save ops_to_compile.json, used to record compile time
-    with open('./params/ops_to_compile.json', 'w') as outfile:
-        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
-
-
-    # Modify typedefs.h
-    # Nothing to do for Rendering
-
-
     #################################################
     ## Update application graph (top_no_merge.cpp) ##
     #################################################
-    top_str_list = ["data_transfer(Input_1, data_transfer_out);"]
+    top_str_list = []
     # print(func_name_list)
-    base_func_name_list = ["data_transfer", "prj_rast1", "rast2", "zculling", 'coloringFB', 'output_data']
+    # base_func_name_list = ["data_transfer", "prj_rast1", "rast2", "zculling", 'coloringFB', 'output_data']
+    base_func_name_list = ["prj_rast1", "rast2", "zculling", 'coloringFB', 'output_data']
     for func_name in base_func_name_list:
         if func_name.startswith('prj_rast1'):
-            prj_rast1_str = 'prj_rast1(data_transfer_out'
+            prj_rast1_str = 'prj_rast1(Input_1'
             for idx_par_rast in range(par_rast):
                 prj_rast1_str += ', prj_rast1_out_' + str(idx_par_rast + 1)
                 if idx_par_rast == par_rast-1:
@@ -925,7 +953,6 @@ if __name__ == '__main__':
             top_str_list.append(output_data_str)
     with open('./host/top_no_merge.cpp', 'w') as outfile:
         outfile.write("\n".join(top_str_list))
-
     
     # Check all the functions are instantiated in top_no_merge.cpp
     top_func_name_list = []
@@ -935,6 +962,30 @@ if __name__ == '__main__':
             func_name = line.split('(')[0]
             top_func_name_list.append(func_name)
     assert(top_func_name_list.sort() == func_name_list.sort())
+
+
+    #####################
+    ## Perform merging ##
+    #####################
+    operator_list = list(cur_param_dict.keys())
+    operator_list.remove("metric")
+    # operator_list = merge_op_list()
+
+    # Modify cur_param_dict, ops_to_compile_list and WRITE .cpp files
+    merged_top_str_dict = perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata_dict)
+
+
+    # Save cur_param_dict updated by perform_merging
+    with open('./params/cur_param.json', 'w') as outfile:
+        json.dump(cur_param_dict, outfile, sort_keys=True, indent=4)
+
+    # Save ops_to_compile.json, used to record compile time
+    with open('./params/ops_to_compile.json', 'w') as outfile:
+        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
+
+
+    # Modify typedefs.h
+    # Nothing to do for Rendering
 
 
     #######################################################
@@ -966,18 +1017,3 @@ if __name__ == '__main__':
     with open(op_dir + '/specs.json', 'w') as outfile:
         json.dump(spec_dict, outfile, sort_keys=True, indent=4)
 
-
-    #################################
-    ## Remove old src files if any ##
-    #################################
-    # cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
-    # for cpp_file in cpp_file_list:
-    #     func_name = cpp_file.split('.')[0]
-    #     if func_name not in func_name_list:
-    #         os.system('rm ./operators/' + func_name + '.cpp')
-    #         os.system('rm ./operators/' + func_name + '.h')
-    # os.system('rm ./operators/prj_rast1*')
-    # os.system('rm ./operators/rast2_*')
-    # os.system('rm ./operators/zculling*')
-    # os.system('rm ./operators/coloring*')
-    # os.system('rm ./operators/output_data*')

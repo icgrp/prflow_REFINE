@@ -4,7 +4,6 @@
 python counter_analyze.py -b BENCHMARK --NoC_timing_violate
 # If NoC ver. violated timing and DSE is over, revert back to
 # the most recent successful param and generate src codes with the line below.
-# Then, move to monolithic.
 cd ./input_src/BENCHMARK/ && python gen_next_param.py
 cd -
 

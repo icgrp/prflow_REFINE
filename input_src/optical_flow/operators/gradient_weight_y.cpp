@@ -35,10 +35,10 @@ void gradient_weight_y(
         // tmp.x = 0;
         // tmp.y = 0;
         // tmp.z = 0;
-      	temp_x = Input_1.read();
+       temp_x = Input_1.read();
         temp_y = Input_2.read();
         temp_z = Input_3.read();
-      	tmp.x(31,0) = temp_x(31,0);
+       tmp.x(31,0) = temp_x(31,0);
         tmp.y(31,0) = temp_y(31,0);
         tmp.z(31,0) = temp_z(31,0);
         buf.insert_bottom_row(tmp,c);
@@ -66,10 +66,10 @@ void gradient_weight_y(
           acc.y =  acc.y + buf.getval(i,c).y*GRAD_FILTER[i];
           acc.z =  acc.z + buf.getval(i,c).z*GRAD_FILTER[i];
         }
-    		temp_x(31,0) = acc.x.range(31,0);
+      temp_x(31,0) = acc.x.range(31,0);
         temp_y(31,0) = acc.y.range(31,0);
         temp_z(31,0) = acc.z.range(31,0);
-    		Output_1.write(temp_x);
+      Output_1.write(temp_x);
         Output_2.write(temp_y);
         Output_3.write(temp_z);
       }
@@ -85,4 +85,3 @@ void gradient_weight_y(
     }
   }
 }
-

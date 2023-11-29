@@ -1,11 +1,9 @@
 // Logic for sending full_cnt values for input queues and output queues
 
-// input_port_full_cnt from Input_Port_Cluster
-// output_port_empty_cnt from Output_Port_Cluster are in clk(_bft) domain,
-// but they are guaranteed to be static by the time they are sampled in clk_user
 `define INPUT_PORT_MAX_NUM 8
 `define OUTPUT_PORT_MIN_NUM 9
 
+// Every counter values in clk_user domain
 module send_IO_queue_cnt #(
     parameter NUM_LEAF_BITS = 6,
     parameter NUM_PORT_BITS = 4,
@@ -26,9 +24,10 @@ module send_IO_queue_cnt #(
     input input_port_cluster_stall_condition,
     input output_port_cluster_stall_condition,
     input [NUM_LEAF_BITS-1:0] self_leaf, // clk_user domain
-
+ 
+ 
     output reg is_sending_full_cnt_reg,
-    output reg [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] cnt_val,
+    output reg [PAYLOAD_BITS-1:0] cnt_val,
     output reg [NUM_LEAF_BITS-1:0] self_leaf_reg,
     output reg [NUM_PORT_BITS-1:0] self_port_reg,
     output reg [1:0] cnt_type_reg // 3: full counter, 2: empty counter, 1: read coutner, 0: stall counter
@@ -69,7 +68,7 @@ module send_IO_queue_cnt #(
         end
         else begin
             self_leaf_reg <= self_leaf; // stays static
-
+            
             if(is_done_user) begin // doesn't matter whether it's asserted for 1 cycle or 3 cycles
                 is_sending_full_cnt_reg <= 1;
             end

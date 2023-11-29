@@ -12,24 +12,24 @@ from code_gen_util import return_operator_io_argument_dict_local, return_operato
 ## Benchmark-specific ##
 ########################
 
-def gen_data_transfer_func():
+def gen_gradient_xyz_calc_func():
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
     func_str_list.append('void data_transfer(')
-    func_str_list.append('    hls::stream<ap_uint<512>>  &Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<256>>  &Input_1,')
     func_str_list.append('    hls::stream<ap_uint<64>>  &Output_1)')
     func_str_list.append('{')
     func_str_list.append('#pragma HLS interface axis register port=Input_1')
     func_str_list.append('#pragma HLS interface axis register port=Output_1')
     func_str_list.append('')
-    func_str_list.append('bit512 in_tmp;')
-    func_str_list.append('bit64  out_tmp;')
+    func_str_list.append('ap_uint<256> in_tmp;')
+    func_str_list.append('ap_uint<64>  out_tmp;')
     func_str_list.append('')
-    func_str_list.append('  for(int i=0; i<MAX_HEIGHT*MAX_WIDTH/8; i++){')
+    func_str_list.append('  for(int i=0; i<MAX_HEIGHT*MAX_WIDTH/4; i++){')
     func_str_list.append('#pragma HLS PIPELINE')
     func_str_list.append('    in_tmp = Input_1.read();')
-    func_str_list.append('    for(int j=0; j<8; j++){')
+    func_str_list.append('    for(int j=0; j<4; j++){ // 4 = 256/64')
     func_str_list.append('      out_tmp(31, 0) = in_tmp((j<<6)+31, (j<<6)+0 );')
     func_str_list.append('      out_tmp(63,32) = in_tmp((j<<6)+63, (j<<6)+32);')
     func_str_list.append('      Output_1.write(out_tmp);')
@@ -37,25 +37,8 @@ def gen_data_transfer_func():
     func_str_list.append('  }')
     func_str_list.append('')
     func_str_list.append('}')
-    func_str_list.append('  ')
-    func_str_list.append('     ')
-    return 'data_transfer', "\n".join(func_str_list)
-
-def gen_data_transfer_header():
-    func_str_list = []
-    func_str_list.append('void data_transfer(')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<64>> & Output_1')
-    func_str_list.append('    );')
-    func_str_list.append('#pragma map_target = HW')
-    return 'data_transfer', "\n".join(func_str_list)
-
-
-def gen_gradient_xyz_calc_func():
-    func_str_list = []
-    func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
-    func_str_list.append('void gradient_xyz_calc(    ')
+    func_str_list.append('void g_xyz_calc_module(    ')
     func_str_list.append('    hls::stream<ap_uint<64>> &Input_1,')
     func_str_list.append('    hls::stream<ap_uint<32>> &Output_1,')
     func_str_list.append('    hls::stream<ap_uint<32>> &Output_2,')
@@ -163,7 +146,7 @@ def gen_gradient_xyz_calc_func():
     func_str_list.append('    for (int i = 0; i < 5; i ++ )')
     func_str_list.append('    window.insert_pixel(smallbuf[i],i,4);')
     func_str_list.append('   } ')
-    func_str_list.append('            else {')
+    func_str_list.append('   else {')
     func_str_list.append('    window.shift_pixels_left();')
     func_str_list.append('    window.insert_pixel(0,0,4);')
     func_str_list.append('    window.insert_pixel(0,1,4);')
@@ -201,12 +184,31 @@ def gen_gradient_xyz_calc_func():
     func_str_list.append(' }')
     func_str_list.append('}')
     func_str_list.append('')
+    func_str_list.append('void gradient_xyz_calc(    ')
+    func_str_list.append('    hls::stream<ap_uint<256>> &Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<32>> &Output_1,')
+    func_str_list.append('    hls::stream<ap_uint<32>> &Output_2,')
+    func_str_list.append('    hls::stream<ap_uint<32>> &Output_3)')
+    func_str_list.append('{')
+    func_str_list.append('#pragma HLS interface axis register port=Input_1')
+    func_str_list.append('#pragma HLS interface axis register port=Output_1')
+    func_str_list.append('#pragma HLS interface axis register port=Output_2')
+    func_str_list.append('#pragma HLS interface axis register port=Output_3')
+    func_str_list.append('')
+    func_str_list.append('')
+    func_str_list.append('    static hls::stream<ap_uint<64>> data_transfer_out("data_transfer_out_stream");')
+    func_str_list.append('')
+    func_str_list.append('#pragma HLS dataflow')
+    func_str_list.append('    data_transfer(Input_1, data_transfer_out);')
+    func_str_list.append('    g_xyz_calc_module(data_transfer_out, Output_1, Output_2, Output_3);')
+    func_str_list.append('}')
+    func_str_list.append('')
     return 'gradient_xyz_calc', "\n".join(func_str_list)
 
 def gen_gradient_xyz_calc_header():
     func_str_list = []
     func_str_list.append('void gradient_xyz_calc(')
-    func_str_list.append('    hls::stream<ap_uint<64>> & Input_1,')
+    func_str_list.append('    hls::stream<ap_uint<256>> & Input_1,')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_1,')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_2,')
     func_str_list.append('    hls::stream<ap_uint<32>> & Output_3')
@@ -417,9 +419,30 @@ def gen_gradient_weight_y_header():
     func_str_list.append('#pragma map_target = HW')
     return 'gradient_weight_y', "\n".join(func_str_list)
 
+def nearestPowerOf2(N):
+    a = int(math.log2(N))
+    if 2**a == N:
+        return N
+    return 2**(a+1)
 
 def gen_outer_product_func(outer_width, par_factor):
-    output_width = math.ceil(6/par_factor * outer_width/32) * 32
+    num_send = 1
+    # output_width = math.ceil(6/par_factor * outer_width/32) * 32
+    output_width = nearestPowerOf2(6/par_factor * outer_width)
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if output_width > 384:
+    #     output_width = output_width // 4
+    #     num_send = 4
+    # elif output_width > 256:
+    #     output_width = output_width // 3
+    #     num_send = 3
+    # elif output_width > 128: 
+    #     output_width = output_width // 2
+    #     num_send = 2
+    if output_width > 256: 
+        output_width = output_width // 2
+        num_send = 2
+
 
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
@@ -468,16 +491,20 @@ def gen_outer_product_func(outer_width, par_factor):
     func_str_list.append('      out.val[5] = (y*z);')
     func_str_list.append('')
 
-    func_str_list.append('      ap_uint<' + str(output_width) + '> out_tmp;')
+    func_str_list.append('      ap_uint<' + str(output_width*num_send) + '> out_tmp;')
     for i in range(par_factor):
+        # Filling up out_tmp
         max_width = 0
         for j in range(6//par_factor):
             max_width += outer_width
             func_str_list.append('      out_tmp(' + str(outer_width*(j+1)-1) + ',' + str(outer_width*j) + ') = out.val[' + \
                                                     str(j + 6//par_factor *i) + '].range(' + str(outer_width-1) + ',0);')
-        if max_width != output_width: # needs to send some blank vals
-            func_str_list.append('      out_tmp(' + str(output_width-1) + ',' + str(max_width) + ') = 0;')
-        func_str_list.append('      Output_' + str(i+1) + '.write(out_tmp);')
+        if max_width != output_width*num_send: # needs to send some blank vals
+            func_str_list.append('      out_tmp(' + str(output_width*num_send-1) + ',' + str(max_width) + ') = 0;')
+
+        # Multiplex
+        for idx_send in range(num_send):
+            func_str_list.append('      Output_' + str(i+1) + '.write(out_tmp(' + str(output_width*(idx_send+1)-1) + ',' + str(output_width*idx_send) + '));')
         func_str_list.append('')
     func_str_list.append('    }')
     func_str_list.append('  }')
@@ -487,7 +514,17 @@ def gen_outer_product_func(outer_width, par_factor):
     return 'outer_product', "\n".join(func_str_list)
 
 def gen_outer_product_header(outer_width, par_factor):
-    output_width = math.ceil(6/par_factor * outer_width/32) * 32
+    # output_width = math.ceil(6/par_factor * outer_width/32) * 32
+    output_width = nearestPowerOf2(6/par_factor * outer_width)
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if output_width > 384:
+    #     output_width = output_width // 4
+    # elif output_width > 256:
+    #     output_width = output_width // 3
+    # elif output_width > 128: 
+    #     output_width = output_width // 2
+    if output_width > 256: 
+        output_width = output_width // 2
 
     func_str_list = []
     func_str_list.append('void outer_product(')
@@ -505,7 +542,23 @@ def gen_outer_product_header(outer_width, par_factor):
 
 
 def gen_tensor_weight_y_func(outer_width, par_factor, idx_par_factor):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    num_send = 1
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    #     num_send = 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    #     num_send = 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    #     num_send = 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
+        num_send = 2
 
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
@@ -534,8 +587,10 @@ def gen_tensor_weight_y_func(outer_width, par_factor, idx_par_factor):
     func_str_list.append('      buf.shift_pixels_up(c);')
     func_str_list.append('      if(r<MAX_HEIGHT)')
     func_str_list.append('      {')
-    func_str_list.append('        ap_uint<' + str(outer_product_width) + '> in_tmp;')
-    func_str_list.append('        in_tmp = Input_1.read();')
+    func_str_list.append('        ap_uint<' + str(outer_product_width*num_send) + '> in_tmp;')
+
+    for idx_send in range(num_send):
+        func_str_list.append('        in_tmp(' + str(outer_product_width*(idx_send+1)-1) + ',' + str(outer_product_width*idx_send) + ') = Input_1.read();')
     max_width = 0
     for j in range(6//par_factor):
         max_width += outer_width
@@ -575,15 +630,17 @@ def gen_tensor_weight_y_func(outer_width, par_factor, idx_par_factor):
     func_str_list.append('      }')
     func_str_list.append('      if(r >= 1)')
     func_str_list.append('      {')
-    func_str_list.append('        ap_uint<' + str(outer_product_width) + '> widetemp;')
+    func_str_list.append('        ap_uint<' + str(outer_product_width*num_send) + '> widetemp;')
     max_width = 0
     for j in range(6//par_factor):
         max_width += outer_width
         func_str_list.append('        widetemp(' + str(outer_width*(j+1)-1) + ',' + str(outer_width*j) + ')  = acc.val[' + str(j) + '](' + str(outer_width-1) + ', 0);')
 
-    if max_width != outer_product_width: # needs to send some blank vals
-        func_str_list.append('        widetemp(' + str(outer_product_width-1) + ',' + str(max_width) + ') = 0;')
-    func_str_list.append('        Output_1.write(widetemp);')
+    if max_width != outer_product_width*num_send: # needs to send some blank vals
+        func_str_list.append('        widetemp(' + str(outer_product_width*num_send-1) + ',' + str(max_width) + ') = 0;')
+
+    for idx_send in range(num_send):
+        func_str_list.append('        Output_1.write(widetemp(' + str(outer_product_width*(idx_send+1)-1) + ',' + str(outer_product_width*idx_send) + '));')
     func_str_list.append('      }')
     func_str_list.append('    }')
     func_str_list.append('  }')
@@ -592,7 +649,18 @@ def gen_tensor_weight_y_func(outer_width, par_factor, idx_par_factor):
     return 'tensor_weight_y_i' + str(idx_par_factor + 1), "\n".join(func_str_list)
 
 def gen_tensor_weight_y_header(outer_width, idx_par_factor):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
 
     func_str_list = []
     func_str_list.append('void tensor_weight_y_i' + str(idx_par_factor + 1) + '(')
@@ -604,7 +672,23 @@ def gen_tensor_weight_y_header(outer_width, idx_par_factor):
 
 
 def gen_tensor_weight_x_func(outer_width, par_factor, idx_par_factor):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    num_send = 1
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    #     num_send = 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    #     num_send = 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    #     num_send = 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
+        num_send = 2
 
     func_str_list = []
     func_str_list.append('#include "../host/typedefs.h"')
@@ -632,10 +716,13 @@ def gen_tensor_weight_x_func(outer_width, par_factor, idx_par_factor):
 
     func_str_list.append('      if(c<MAX_WIDTH)')
     func_str_list.append('      {')
-    func_str_list.append('        ap_uint<' + str(outer_product_width) + '> widetemp;')
-    func_str_list.append('        widetemp = Input_1.read();')
+
+    func_str_list.append('        ap_uint<' + str(outer_product_width*num_send) + '> widetemp;')
+    for idx_send in range(num_send):
+        func_str_list.append('        widetemp(' + str(outer_product_width*(idx_send+1)-1) + ',' + str(outer_product_width*idx_send) + ') = Input_1.read();')
     for j in range(6//par_factor):
         func_str_list.append('        tmp.val[' + str(j) + '](' + str(outer_width-1) + ',0)  = widetemp(' + str(outer_width*(j+1)-1) + ',' + str(outer_width*j) + ');')
+
     func_str_list.append('      }')
     func_str_list.append('      else')
     func_str_list.append('      {')
@@ -664,16 +751,19 @@ def gen_tensor_weight_x_func(outer_width, par_factor, idx_par_factor):
     func_str_list.append('      }')
     func_str_list.append('      if(c>=1)')
     func_str_list.append('      {')
-    func_str_list.append('        ap_uint<' + str(outer_product_width) + '> widetemp;')
+    func_str_list.append('        ap_uint<' + str(outer_product_width*num_send) + '> widetemp;')
     max_width = 0
+
     for j in range(6//par_factor):
         max_width += outer_width
         func_str_list.append('        widetemp(' + str(outer_width*(j+1)-1) + ',' + str(outer_width*j) + ')  = acc.val[' + str(j) + '](' + str(outer_width-1) + ', 0);')
 
-    if max_width != outer_product_width: # needs to send some blank vals
-        func_str_list.append('        widetemp(' + str(outer_product_width-1) + ',' + str(max_width) + ') = 0;')
+    if max_width != outer_product_width*num_send: # needs to send some blank vals
+        func_str_list.append('        widetemp(' + str(outer_product_width*num_send-1) + ',' + str(max_width) + ') = 0;')
 
-    func_str_list.append('        Output_1.write(widetemp);')
+    for idx_send in range(num_send):
+        func_str_list.append('        Output_1.write(widetemp(' + str(outer_product_width*(idx_send+1)-1) + ',' + str(outer_product_width*idx_send) + '));')
+
     func_str_list.append('      }')
     func_str_list.append('    }')
     func_str_list.append('  }')
@@ -682,7 +772,18 @@ def gen_tensor_weight_x_func(outer_width, par_factor, idx_par_factor):
     return 'tensor_weight_x_i' + str(idx_par_factor + 1), "\n".join(func_str_list)
 
 def gen_tensor_weight_x_header(outer_width, idx_par_factor):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
 
     func_str_list = []
     func_str_list.append('void tensor_weight_x_i' + str(idx_par_factor + 1) + '(')
@@ -694,12 +795,54 @@ def gen_tensor_weight_x_header(outer_width, idx_par_factor):
 
 
 def gen_flow_calc_func(outer_width, par_factor, cast_float):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    num_send = 1
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    #     num_send = 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    #     num_send = 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    #     num_send = 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
+        num_send = 2
     func_str_list = []
 
     func_str_list.append('#include "../host/typedefs.h"')
     func_str_list.append('')
-    func_str_list.append('void flow_calc(')
+    func_str_list.append('void output_data(')
+    func_str_list.append('  hls::stream<ap_uint<32>> &Input_1,')
+    func_str_list.append('  hls::stream<ap_uint<32>> &Input_2,')
+    func_str_list.append('  hls::stream<ap_uint<256>> &Output_1)')
+    func_str_list.append('{')
+    func_str_list.append('#pragma HLS interface axis register port=Input_1')
+    func_str_list.append('#pragma HLS interface axis register port=Output_1')
+    func_str_list.append('#pragma HLS interface axis register port=Input_2')
+    func_str_list.append('')
+    func_str_list.append('static ap_uint<32> counter=0;')
+    func_str_list.append('  OUT_CONVERT: for (int i = 0; i < MAX_HEIGHT*MAX_WIDTH/4; i++)')
+    func_str_list.append('  {')
+    func_str_list.append('    ap_uint<256> tmpframe;')
+    func_str_list.append('#pragma HLS pipeline II = 2')
+    func_str_list.append('    for(int j=0; j<4; j++){')
+    func_str_list.append('      tmpframe(j*64+31, j*64   ) = Input_1.read();')
+    func_str_list.append('      tmpframe(j*64+63, j*64+32) = Input_2.read();')
+    func_str_list.append('    }')
+    func_str_list.append('    if (counter < MAX_HEIGHT*MAX_WIDTH/4){')
+    func_str_list.append('      Output_1.write(tmpframe);')
+    func_str_list.append('      counter++;')
+    func_str_list.append('    }')
+    func_str_list.append('  }')
+    func_str_list.append('}')
+    func_str_list.append('')
+    func_str_list.append('')
+    func_str_list.append('void f_c_module(')
     for idx_par_factor in range(par_factor):
         func_str_list.append('    hls::stream<ap_uint<' + str(outer_product_width) + '>> &Input_' + str(idx_par_factor+1) + ',')
     func_str_list.append('    hls::stream<ap_uint<32>> &Output_1,')
@@ -721,11 +864,13 @@ def gen_flow_calc_func(outer_width, par_factor, cast_float):
     func_str_list.append('    {')
     func_str_list.append('      #pragma HLS pipeline II=1')
     func_str_list.append('      tensor_6_t tmp_tensor;')
-    func_str_list.append('      ap_uint<' + str(outer_product_width) + '> widetemp;')
+    func_str_list.append('      ap_uint<' + str(outer_product_width*num_send) + '> widetemp;')
     func_str_list.append('')
 
     for i in range(par_factor):
-        func_str_list.append('      widetemp = Input_' + str(i + 1) + '.read();')
+        for idx_send in range(num_send):
+            func_str_list.append('      widetemp(' + str(outer_product_width*(idx_send+1)-1) + ',' + str(outer_product_width*idx_send) + ') = Input_' + str(i + 1) + '.read();')
+
         for j in range(6//par_factor):
             func_str_list.append('      tmp_tensor.val[' + str(j + 6//par_factor *i) + '](' + str(outer_width-1) + ',0)  = widetemp(' + str(outer_width*(j+1)-1) + ',' + str(outer_width*j) + ');')
 
@@ -778,58 +923,56 @@ def gen_flow_calc_func(outer_width, par_factor, cast_float):
     func_str_list.append('  }')
     func_str_list.append('}')
     func_str_list.append('')
+    func_str_list.append('void flow_calc(')
+    for idx_par_factor in range(par_factor):
+        func_str_list.append('    hls::stream<ap_uint<' + str(outer_product_width) + '>> &Input_' + str(idx_par_factor+1) + ',')
+    func_str_list.append('    hls::stream<ap_uint<256>> &Output_1)')
+    func_str_list.append('{')
+    for i in range(par_factor):
+        func_str_list.append('#pragma HLS interface axis register port=Input_' + str(i + 1))
+    func_str_list.append('#pragma HLS interface axis register port=Output_1')
+    func_str_list.append('')
+    func_str_list.append('    static hls::stream<ap_uint<32>> f_c_module_out_1("f_c_module_out_1_stream");')
+    func_str_list.append('    static hls::stream<ap_uint<32>> f_c_module_out_2("f_c_module_out_2_stream");')
+    func_str_list.append('')
+    func_str_list.append('#pragma HLS dataflow')
+    func_str_list.append('')
+    input_str = ''
+    for idx_par_factor in range(par_factor):
+        if idx_par_factor == par_factor-1:
+            input_str += 'Input_' + str(idx_par_factor+1)
+        else:
+            input_str += 'Input_' + str(idx_par_factor+1) + ', '
+
+    func_str_list.append('    f_c_module(' + input_str + ', f_c_module_out_1, f_c_module_out_2);')
+    func_str_list.append('    output_data(f_c_module_out_1, f_c_module_out_2, Output_1);')
+    func_str_list.append('')
+    func_str_list.append('}')
     func_str_list.append('')
     return 'flow_calc', "\n".join(func_str_list)
 
 def gen_flow_calc_header(outer_width, par_factor):
-    outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    # outer_product_width = math.ceil(6/par_factor * outer_width/32) * 32
+    outer_product_width = nearestPowerOf2(6/par_factor * outer_width)
+
+    # When NoC's payload is 32b, the max possible datawidth is 256 = 32*8
+    # if outer_product_width > 384:
+    #     outer_product_width = outer_product_width // 4
+    # elif outer_product_width > 256:
+    #     outer_product_width = outer_product_width // 3
+    # elif outer_product_width > 128: 
+    #     outer_product_width = outer_product_width // 2
+    if outer_product_width > 256: 
+        outer_product_width = outer_product_width // 2
 
     func_str_list = []
     func_str_list.append('void flow_calc(')
     for idx_par_factor in range(par_factor):
         func_str_list.append('    hls::stream<ap_uint<' + str(outer_product_width) + '>> &Input_' + str(idx_par_factor+1) + ',')
-    func_str_list.append('    hls::stream<ap_uint<32>> &Output_1,')
-    func_str_list.append('    hls::stream<ap_uint<32>> &Output_2')
+    func_str_list.append('    hls::stream<ap_uint<256>> &Output_1')
     func_str_list.append('    );')
     func_str_list.append('#pragma map_target = HW')
     return 'flow_calc', "\n".join(func_str_list)
-
-
-def gen_output_data_func():
-    func_str_list = []
-    func_str_list.append('#include "../host/typedefs.h"')
-    func_str_list.append('')
-    func_str_list.append('void output_data(')
-    func_str_list.append(' hls::stream<ap_uint<32>> &Input_1,')
-    func_str_list.append(' hls::stream<ap_uint<32>> &Input_2,')
-    func_str_list.append(' hls::stream<ap_uint<512>> &Output_1)')
-    func_str_list.append('{')
-    func_str_list.append('#pragma HLS interface axis register port=Input_1')
-    func_str_list.append('#pragma HLS interface axis register port=Output_1')
-    func_str_list.append('#pragma HLS interface axis register port=Input_2')
-    func_str_list.append('')
-    func_str_list.append(' OUT_CONVERT: for (int i = 0; i < MAX_HEIGHT*MAX_WIDTH/8; i++)')
-    func_str_list.append(' {')
-    func_str_list.append('   bit512 tmpframe;')
-    func_str_list.append('      #pragma HLS pipeline II = 4')
-    func_str_list.append('   for(int j=0; j<8; j++){')
-    func_str_list.append('    tmpframe(j*64+31, j*64   ) = Input_1.read();')
-    func_str_list.append('    tmpframe(j*64+63, j*64+32) = Input_2.read();')
-    func_str_list.append('   }')
-    func_str_list.append('   Output_1.write(tmpframe);')
-    func_str_list.append(' }')
-    func_str_list.append('}')
-    return 'output_data', "\n".join(func_str_list)
-
-def gen_output_data_header():
-    func_str_list = []
-    func_str_list.append('void output_data(')
-    func_str_list.append('    hls::stream<ap_uint<32>> & Input_1,')
-    func_str_list.append('    hls::stream<ap_uint<32>> & Input_2,')
-    func_str_list.append('    hls::stream<ap_uint<512>> & Output_1')
-    func_str_list.append('    );')
-    func_str_list.append('#pragma map_target = HW')
-    return 'output_data', "\n".join(func_str_list)
 
 
 
@@ -872,13 +1015,6 @@ if __name__ == '__main__':
     func_name_list = []
     ops_to_compile_list = []
     filedata_dict = {}
-
-    func_name, filedata = gen_data_transfer_func()
-    func_name_list.append(func_name)
-    func_name, filedata_header = gen_data_transfer_header()
-    filedata_dict[func_name] = (filedata, filedata_header)
-    if needs_write_param(func_name, filedata):
-        ops_to_compile_list.append(func_name)
 
     func_name, filedata = gen_gradient_xyz_calc_func()
     func_name_list.append(func_name)
@@ -932,16 +1068,10 @@ if __name__ == '__main__':
     if needs_write_param(func_name, filedata):
         ops_to_compile_list.append(func_name)
 
-    func_name, filedata = gen_output_data_func()
-    func_name_list.append(func_name)
-    func_name, filedata_header = gen_output_data_header()
-    filedata_dict[func_name] = (filedata, filedata_header)
-    if needs_write_param(func_name, filedata):
-        ops_to_compile_list.append(func_name)
-
     # print(filedata_dict.keys())
     print()
 
+    tmp_cur_param_dict = cur_param_dict
     #############################################
     ## Update cur_param.json for new operators ##
     #############################################
@@ -950,7 +1080,63 @@ if __name__ == '__main__':
             base_function_name = func_name.split('_i')[0]
             represent_function_name = base_function_name + '_i1'
             # Assume that kernel_clk, num_leaf_interface, and par factor are identical
-            cur_param_dict[func_name] = cur_param_dict[represent_function_name]
+            tmp_cur_param_dict[func_name] = cur_param_dict[represent_function_name].copy()
+
+            for op in cur_param_dict.keys():
+                if op != 'metric':
+                    if 'merged_to' in cur_param_dict[op].keys():
+                        if cur_param_dict[op]['merged_to'].startswith(base_function_name):
+                            tmp_cur_param_dict[func_name]['merged_to'] = cur_param_dict[op]['merged_to']
+
+    cur_param_dict = tmp_cur_param_dict
+    print(cur_param_dict)
+
+    #################################################
+    ## Update application graph (top_no_merge.cpp) ##
+    #################################################
+    top_str_list = ['gradient_xyz_calc(Input_1, gradient_x, gradient_y, gradient_z);',
+                    'gradient_weight_y(gradient_x, gradient_y, gradient_z, y_filtered_x, y_filtered_y, y_filtered_z);',
+                    'gradient_weight_x(y_filtered_x, y_filtered_y, y_filtered_z, filtered_gradient_x, filtered_gradient_y, filtered_gradient_z);',
+                    ]
+    # print(func_name_list)
+    base_func_name_list = ["outer_product", "tensor_weight_y", "tensor_weight_x", "flow_calc"]
+    for func_name in base_func_name_list:
+        if func_name.startswith('outer_product'):
+            outer_product_str = 'outer_product(filtered_gradient_x, filtered_gradient_y, filtered_gradient_z'
+            for idx_par_factor in range(par_factor):
+                outer_product_str += ', outer_product_out_' + str(idx_par_factor + 1)
+                if idx_par_factor == par_factor-1:
+                    outer_product_str += ');'
+            top_str_list.append(outer_product_str)
+        elif func_name.startswith('tensor_weight_y'):
+            for idx_par_factor in range(par_factor):
+                tensor_weight_y_str = 'tensor_weight_y_i' + str(idx_par_factor + 1) + '(outer_product_out_' + str(idx_par_factor + 1) + ', '
+                tensor_weight_y_str += 'tensor_weight_y_out_' + str(idx_par_factor + 1) + ');'
+                top_str_list.append(tensor_weight_y_str)
+        elif func_name.startswith('tensor_weight_x'):
+            for idx_par_factor in range(par_factor):
+                tensor_weight_x_str = 'tensor_weight_x_i' + str(idx_par_factor + 1) + '(tensor_weight_y_out_' + str(idx_par_factor + 1) + ', '
+                tensor_weight_x_str += 'tensor_weight_x_out_' + str(idx_par_factor + 1) + ');'
+                top_str_list.append(tensor_weight_x_str)
+        elif func_name.startswith('flow_calc'):
+            flow_calc_str = 'flow_calc('
+            for idx_par_factor in range(par_factor):
+                flow_calc_str += 'tensor_weight_x_out_' + str(idx_par_factor + 1) + ', '
+            flow_calc_str += ' Output_1);'
+            top_str_list.append(flow_calc_str)
+
+    with open('./host/top_no_merge.cpp', 'w') as outfile:
+        outfile.write("\n".join(top_str_list))
+
+    
+    # Check all the functions are instantiated in top_no_merge.cpp
+    top_func_name_list = []
+    with open('./host/top_no_merge.cpp', 'r') as infile:
+        lines = infile.readlines()
+        for line in lines:
+            func_name = line.split('(')[0]
+            top_func_name_list.append(func_name)
+    assert(top_func_name_list.sort() == func_name_list.sort())
 
 
     #####################
@@ -970,45 +1156,19 @@ if __name__ == '__main__':
 
     # Save ops_to_compile.json, used to record compile time
     with open('./params/ops_to_compile.json', 'w') as outfile:
-        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)    
-
-
+        json.dump(ops_to_compile_list, outfile, sort_keys=True, indent=4)
 
     # outer_width_int, calc_width_int values could be also design space, but
     # We fix these vals for each outer_width val
     # TODO: dummy_len is required to flush out all the outputs in optical_flow benchmark.
-    #       This is a BUG in current decomposition of optical_flow benchmark.
+    dummy_len = 785
     if outer_width == 16:
         outer_width_int, calc_width_int = 11, 24
-        dummy_len = 775
     elif outer_width == 32:
         outer_width_int, calc_width_int = 27, 56
-        dummy_len = 774
-        if cur_param_dict['flow_calc']['kernel_clk'] == 250:
-            dummy_len = 776
-        elif cur_param_dict['flow_calc']['kernel_clk'] == 300:
-            dummy_len = 777            
-        elif cur_param_dict['flow_calc']['kernel_clk'] == 350 or cur_param_dict['flow_calc']['kernel_clk'] == 400:
-            dummy_len = 778
     elif outer_width == 48:
         outer_width_int, calc_width_int = 27, 56
-        dummy_len = 774
-        for op in cur_param_dict.keys():
-            if op != 'metric':
-                if (op.startswith('tensor_weight_x_i') and 'merged_to' in cur_param_dict[op].keys()) or\
-                   (op.startswith('tensor_weight_y_i') and 'merged_to' in cur_param_dict[op].keys()) or\
-                   (op.startswith('outer_product') and 'merged_to' in cur_param_dict[op].keys()):
-                    dummy_len = 775
-        if cur_param_dict['tensor_weight_y_i1']['kernel_clk'] == 250:
-            dummy_len = 775
-        if cur_param_dict['flow_calc']['kernel_clk'] == 250 or cur_param_dict['flow_calc']['kernel_clk'] == 300:
-            dummy_len = 777
-        elif cur_param_dict['flow_calc']['kernel_clk'] == 350:
-            dummy_len = 778
-        elif cur_param_dict['flow_calc']['kernel_clk'] == 400:
-            dummy_len = 779
-        if cur_param_dict['gradient_xyz_calc']['kernel_clk'] == 250:
-            dummy_len = 779
+
     # For monolithic ver., dummy_len = 1024 is fine
     if os.path.isfile('./__NoC_done__'):
         dummy_len = 1024
@@ -1039,55 +1199,6 @@ if __name__ == '__main__':
         outfile.write(filedata)
 
 
-    #################################################
-    ## Update application graph (top_no_merge.cpp) ##
-    #################################################
-    top_str_list = ['data_transfer(Input_1, data_transfer_out);',
-                    'gradient_xyz_calc(data_transfer_out, gradient_x, gradient_y, gradient_z);',
-                    'gradient_weight_y(gradient_x, gradient_y, gradient_z, y_filtered_x, y_filtered_y, y_filtered_z);',
-                    'gradient_weight_x(y_filtered_x, y_filtered_y, y_filtered_z, filtered_gradient_x, filtered_gradient_y, filtered_gradient_z);',
-                    ]
-    # print(func_name_list)
-    base_func_name_list = ["outer_product", "tensor_weight_y", "tensor_weight_x", "flow_calc"]
-    for func_name in base_func_name_list:
-        if func_name.startswith('outer_product'):
-            outer_product_str = 'outer_product(filtered_gradient_x, filtered_gradient_y, filtered_gradient_z'
-            for idx_par_factor in range(par_factor):
-                outer_product_str += ', outer_product_out_' + str(idx_par_factor + 1)
-                if idx_par_factor == par_factor-1:
-                    outer_product_str += ');'
-            top_str_list.append(outer_product_str)
-        elif func_name.startswith('tensor_weight_y'):
-            for idx_par_factor in range(par_factor):
-                tensor_weight_y_str = 'tensor_weight_y_i' + str(idx_par_factor + 1) + '(outer_product_out_' + str(idx_par_factor + 1) + ', '
-                tensor_weight_y_str += 'tensor_weight_y_out_' + str(idx_par_factor + 1) + ');'
-                top_str_list.append(tensor_weight_y_str)
-        elif func_name.startswith('tensor_weight_x'):
-            for idx_par_factor in range(par_factor):
-                tensor_weight_x_str = 'tensor_weight_x_i' + str(idx_par_factor + 1) + '(tensor_weight_y_out_' + str(idx_par_factor + 1) + ', '
-                tensor_weight_x_str += 'tensor_weight_x_out_' + str(idx_par_factor + 1) + ');'
-                top_str_list.append(tensor_weight_x_str)
-        elif func_name.startswith('flow_calc'):
-            flow_calc_str = 'flow_calc('
-            for idx_par_factor in range(par_factor):
-                flow_calc_str += 'tensor_weight_x_out_' + str(idx_par_factor + 1) + ', '
-            flow_calc_str += ' flow_calc_1, flow_calc_2);'
-            top_str_list.append(flow_calc_str)
-
-    output_data_str = 'output_data(flow_calc_1, flow_calc_2, Output_1);'
-    top_str_list.append(output_data_str)
-    with open('./host/top_no_merge.cpp', 'w') as outfile:
-        outfile.write("\n".join(top_str_list))
-
-    
-    # Check all the functions are instantiated in top_no_merge.cpp
-    top_func_name_list = []
-    with open('./host/top_no_merge.cpp', 'r') as infile:
-        lines = infile.readlines()
-        for line in lines:
-            func_name = line.split('(')[0]
-            top_func_name_list.append(func_name)
-    assert(top_func_name_list.sort() == func_name_list.sort())
 
 
     #######################################################
@@ -1124,13 +1235,3 @@ if __name__ == '__main__':
     with open(op_dir + '/specs.json', 'w') as outfile:
         json.dump(spec_dict, outfile, sort_keys=True, indent=4)
 
-
-    #################################
-    ## Remove old src files if any ##
-    #################################
-    # cpp_file_list = [x for x in os.listdir('./operators/') if x.endswith('.cpp')]
-    # for cpp_file in cpp_file_list:
-    #     func_name = cpp_file.split('.')[0]
-    #     if func_name not in post_merging_func_name_list:
-    #         os.system('rm ./operators/' + func_name + '.cpp')
-    #         os.system('rm ./operators/' + func_name + '.h')

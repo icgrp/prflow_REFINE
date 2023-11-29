@@ -7,7 +7,7 @@
 // in thise case, port values == 2,3,4,5,6,7,8 are BRAM_IN
 // port values == 9,10,11,12,13,14,15 are BRAM_OUT
 // STALL_CNT is set to 1 for only one leaf interface per user operator
-module leaf_interface #(
+module leaf_interface_IDX_LEAF_INTERFACE #(
     
     parameter PACKET_BITS = 49,
     parameter PAYLOAD_BITS = 32, 
@@ -19,6 +19,8 @@ module leaf_interface #(
     parameter NUM_BRAM_ADDR_BITS = 7,
     parameter FREESPACE_UPDATE_SIZE = 64,
     parameter STALL_CNT = 0,
+    parameter DATA_USER_IN_TOTAL = 32,
+    parameter DATA_USER_OUT_TOTAL = 32,    
     localparam OUT_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS+NUM_ADDR_BITS+NUM_BRAM_ADDR_BITS+3,
     localparam IN_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS,
     localparam REG_CONTROL_BITS = OUT_PORTS_REG_BITS*NUM_OUT_PORTS+IN_PORTS_REG_BITS*NUM_IN_PORTS
@@ -36,14 +38,14 @@ module leaf_interface #(
     input resend,
 
     //data to USER
-    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] dout_leaf_interface2user,
+    output [DATA_USER_IN_TOTAL-1:0] dout_leaf_interface2user,
     output [NUM_IN_PORTS-1:0] vld_interface2user,
     input [NUM_IN_PORTS-1:0] ack_user2interface,
     
     //data from USER
     output [NUM_OUT_PORTS-1:0] ack_interface2user,
     input [NUM_OUT_PORTS-1:0] vld_user2interface,
-    input [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] din_leaf_user2interface,
+    input [DATA_USER_OUT_TOTAL-1:0] din_leaf_user2interface,
     
     // interface to configure the instruction mem for riscv
     // output [23:0] riscv_addr,
@@ -63,6 +65,17 @@ module leaf_interface #(
     input output_port_cluster_stall_condition_others,
     output input_port_cluster_stall_condition_self,
     output output_port_cluster_stall_condition_self
+
+    // output is_done_mode_user,
+
+    // input [PAYLOAD_BITS*NUM_IN_PORTS-1:0] full_cnt_Input,
+    // input [PAYLOAD_BITS*NUM_IN_PORTS-1:0] empty_cnt_Input,
+    // input [PAYLOAD_BITS*NUM_IN_PORTS-1:0] read_cnt_Input,
+    // input [NUM_IN_PORTS-1:0] stall_condition_Input,
+
+    // input [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] full_cnt_Output,
+    // input [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] empty_cnt_Output,
+    // input [NUM_OUT_PORTS-1:0] stall_condition_Output
     );
    
     wire [PACKET_BITS-1:0] stream_ExCtrl2sfc;
@@ -93,7 +106,6 @@ module leaf_interface #(
     wire is_done_0;
     reg is_done_1, is_done_2; // in order to stretch is_done_0 for two more cycles
     wire is_done_user;
-
 
     Extract_Control # (
         .PACKET_BITS(PACKET_BITS),
@@ -158,7 +170,6 @@ module leaf_interface #(
     //      We need this to launch kernel multiple times because if we don't
     //      reset with the new kernel launch, freespace info in read_b_in  is
     //      not consistent with freespace info in NoC configuration pakcets, which is set to 127.
-    //      IO queue counters are also reset with ap_start.
     rise_detect #(
         .data_width(1)
     )rise_detect_ap_start_u(
@@ -223,7 +234,6 @@ module leaf_interface #(
 
     //    .src_rst()        // 1-bit input: optional; required when RST_USED = 1
     // );
-
 
 
     // CDC for is_done_0, can also be done with xpm_cdc_pulse
@@ -329,7 +339,7 @@ module leaf_interface #(
     end
 
 
-    Stream_Flow_Control#(
+    Stream_Flow_Control_IDX_LEAF_INTERFACE#(
         .PACKET_BITS(PACKET_BITS),
         .NUM_LEAF_BITS(NUM_LEAF_BITS),
         .NUM_PORT_BITS(NUM_PORT_BITS),
@@ -339,7 +349,9 @@ module leaf_interface #(
         .NUM_OUT_PORTS(NUM_OUT_PORTS),
         .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),
         .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),
-        .STALL_CNT(STALL_CNT)
+        .STALL_CNT(STALL_CNT),
+        .DATA_USER_IN_TOTAL(DATA_USER_IN_TOTAL),
+        .DATA_USER_OUT_TOTAL(DATA_USER_OUT_TOTAL)
     )sfc(
         .resend(resend_ExCtrl2sfc),
         .clk(clk),
@@ -352,6 +364,7 @@ module leaf_interface #(
         .dout_leaf_interface2user(dout_leaf_interface2user),
         .vld_interface2user(vld_interface2user),
         .ack_user2interface(ack_user2interface),
+
         .ack_interface2user(ack_interface2user),
         .vld_user2interface(vld_user2interface),
         .din_leaf_user2interface(din_leaf_user2interface),
@@ -364,8 +377,18 @@ module leaf_interface #(
         .output_port_cluster_stall_condition_others(output_port_cluster_stall_condition_others),
         .input_port_cluster_stall_condition_self(input_port_cluster_stall_condition_self),
         .output_port_cluster_stall_condition_self(output_port_cluster_stall_condition_self)
+
+        // .is_done_mode_user(is_done_mode_user),
+
+        // .full_cnt_Input(full_cnt_Input),
+        // .empty_cnt_Input(empty_cnt_Input),
+        // .read_cnt_Input(read_cnt_Input),
+        // .stall_condition_Input(stall_condition_Input),
+        // .full_cnt_Output(full_cnt_Output),
+        // .empty_cnt_Output(empty_cnt_Output),
+        // .stall_condition_Output(stall_condition_Output)
     );
-        
+
     // instr_config riscv_config(
     //     .clk(clk),
     //     .instr_wr_en_in(instr_wr_en_in),

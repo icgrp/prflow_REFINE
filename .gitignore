@@ -1,6 +1,7 @@
-# Python cache
-pr_flow/*.pyc
-pr_flow/__pycache__
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
 
 # Experiment dir
 workspace

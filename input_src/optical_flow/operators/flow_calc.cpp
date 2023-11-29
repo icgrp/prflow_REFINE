@@ -1,13 +1,37 @@
 #include "../host/typedefs.h"
 
-void flow_calc(
-    hls::stream<ap_uint<96>> &Input_1,
-    hls::stream<ap_uint<96>> &Input_2,
+void output_data(
+  hls::stream<ap_uint<32>> &Input_1,
+  hls::stream<ap_uint<32>> &Input_2,
+  hls::stream<ap_uint<256>> &Output_1)
+{
+#pragma HLS interface axis register port=Input_1
+#pragma HLS interface axis register port=Output_1
+#pragma HLS interface axis register port=Input_2
+
+static ap_uint<32> counter=0;
+  OUT_CONVERT: for (int i = 0; i < MAX_HEIGHT*MAX_WIDTH/4; i++)
+  {
+    ap_uint<256> tmpframe;
+#pragma HLS pipeline II = 2
+    for(int j=0; j<4; j++){
+      tmpframe(j*64+31, j*64   ) = Input_1.read();
+      tmpframe(j*64+63, j*64+32) = Input_2.read();
+    }
+    if (counter < MAX_HEIGHT*MAX_WIDTH/4){
+      Output_1.write(tmpframe);
+      counter++;
+    }
+  }
+}
+
+
+void f_c_module(
+    hls::stream<ap_uint<128>> &Input_1,
     hls::stream<ap_uint<32>> &Output_1,
     hls::stream<ap_uint<32>> &Output_2)
 {
 #pragma HLS interface axis register port=Input_1
-#pragma HLS interface axis register port=Input_2
 #pragma HLS interface axis register port=Output_1
 #pragma HLS interface axis register port=Output_2
 
@@ -19,16 +43,15 @@ void flow_calc(
     {
       #pragma HLS pipeline II=1
       tensor_6_t tmp_tensor;
-      ap_uint<96> widetemp;
+      ap_uint<128> widetemp;
 
-      widetemp = Input_1.read();
-      tmp_tensor.val[0](31,0)  = widetemp(31,0);
-      tmp_tensor.val[1](31,0)  = widetemp(63,32);
-      tmp_tensor.val[2](31,0)  = widetemp(95,64);
-      widetemp = Input_2.read();
-      tmp_tensor.val[3](31,0)  = widetemp(31,0);
-      tmp_tensor.val[4](31,0)  = widetemp(63,32);
-      tmp_tensor.val[5](31,0)  = widetemp(95,64);
+      widetemp(127,0) = Input_1.read();
+      tmp_tensor.val[0](15,0)  = widetemp(15,0);
+      tmp_tensor.val[1](15,0)  = widetemp(31,16);
+      tmp_tensor.val[2](15,0)  = widetemp(47,32);
+      tmp_tensor.val[3](15,0)  = widetemp(63,48);
+      tmp_tensor.val[4](15,0)  = widetemp(79,64);
+      tmp_tensor.val[5](15,0)  = widetemp(95,80);
 
       if(r>=2 && r<MAX_HEIGHT-2 && c>=2 && c<MAX_WIDTH-2)
       {
@@ -74,3 +97,19 @@ void flow_calc(
   }
 }
 
+void flow_calc(
+    hls::stream<ap_uint<128>> &Input_1,
+    hls::stream<ap_uint<256>> &Output_1)
+{
+#pragma HLS interface axis register port=Input_1
+#pragma HLS interface axis register port=Output_1
+
+    static hls::stream<ap_uint<32>> f_c_module_out_1("f_c_module_out_1_stream");
+    static hls::stream<ap_uint<32>> f_c_module_out_2("f_c_module_out_2_stream");
+
+#pragma HLS dataflow
+
+    f_c_module(Input_1, f_c_module_out_1, f_c_module_out_2);
+    output_data(f_c_module_out_1, f_c_module_out_2, Output_1);
+
+}

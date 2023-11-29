@@ -221,12 +221,283 @@ class syn(gen_basic):
   #   leaf_interface_mapping_dict['0'] += list(operator_output_width_dict.keys())
   #   return leaf_interface_mapping_dict
 
+  # leaf_interface_mapping_dict, e.g. {"0": ["Input_1","Output_1"],"1": ["Input_2"],"2": ["Input_3"],"3": []}
+  # operator_input_width_dict, e.g. {'Input_1':32, 'Input_2': 64}
+  def write_input_port_cluster(self, operator_input_width_dict, leaf_interface_mapping_dict, input_num, operator):
+    # Input_Port_Cluster per leaf interface
+    for idx_leaf_interface in range(len(leaf_interface_mapping_dict)):
+      filedata_str_list = []
+      filedata_str_list.append('`timescale 1ns / 1ps')
+      filedata_str_list.append('module Input_Port_Cluster_' + str(idx_leaf_interface) + ' # (')
+      filedata_str_list.append('    parameter PACKET_BITS = 97,')
+      filedata_str_list.append('    parameter NUM_LEAF_BITS = 6,')
+      filedata_str_list.append('    parameter NUM_PORT_BITS = 4,')
+      filedata_str_list.append('    parameter NUM_ADDR_BITS = 7,')
+      filedata_str_list.append('    parameter PAYLOAD_BITS = 64, ')
+      filedata_str_list.append('    parameter NUM_IN_PORTS = 7, ')
+      filedata_str_list.append('    parameter NUM_OUT_PORTS = 7,')
+      filedata_str_list.append('    parameter NUM_BRAM_ADDR_BITS = 7,')
+      filedata_str_list.append('    parameter FREESPACE_UPDATE_SIZE = 64,')
+      filedata_str_list.append('    parameter DATA_USER_IN_TOTAL = 32')
+      filedata_str_list.append('    )(')
+      filedata_str_list.append('    input clk,')
+      filedata_str_list.append('    input clk_user,')
+      filedata_str_list.append('    input reset,')
+      filedata_str_list.append('    input reset_user,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    // internal interface')
+      filedata_str_list.append('    output [NUM_IN_PORTS-1:0] freespace_update,')
+      filedata_str_list.append('    output [PACKET_BITS*NUM_IN_PORTS-1:0] packet_from_input_ports,')
+      filedata_str_list.append('    input [PACKET_BITS-1:0] stream_in,')
+      filedata_str_list.append('    input [(NUM_LEAF_BITS+NUM_PORT_BITS)*NUM_IN_PORTS-1:0] in_control_reg,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    // user interface')
+      filedata_str_list.append('    output [DATA_USER_IN_TOTAL-1:0] dout2user,')
+      filedata_str_list.append('    output [NUM_IN_PORTS-1:0] vld2user,')
+      filedata_str_list.append('    input [NUM_IN_PORTS-1:0] ack_user2b_in,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    input is_done_mode, // clk(_bft) domain')
+      filedata_str_list.append('    input is_done_mode_user, // clk_user domain')
+      filedata_str_list.append('    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_full_cnt,')
+      filedata_str_list.append('    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_empty_cnt,')
+      filedata_str_list.append('    output [PAYLOAD_BITS*NUM_IN_PORTS-1:0] input_port_read_cnt,')
+      filedata_str_list.append('    output input_port_cluster_stall_condition')
+      filedata_str_list.append('    );')
+      filedata_str_list.append('')
+      filedata_str_list.append('    wire [NUM_IN_PORTS-1:0] input_port_stall_condition;')
+      filedata_str_list.append('    assign input_port_cluster_stall_condition = |input_port_stall_condition;')
+      filedata_str_list.append('')
+      filedata_str_list.append('')
+      mapped_IO_ports = leaf_interface_mapping_dict[idx_leaf_interface] # io ports for this leaf interface
+      mapped_I_ports = [io_port for io_port in mapped_IO_ports if io_port.startswith('Input_')] # input port for this leaf interface
+      DATA_USER_IN_TOTAL = 0
+      for i_port in mapped_I_ports:
+        DATA_USER_IN_TOTAL += operator_input_width_dict[i_port] # input port width total for this leaf interface
+
+      count = 0
+      DATA_USER_IN_TOTAL_min32 = 0
+      for i in range(int(input_num),0,-1): # descending.. e.g. 3, 2, 1, 0
+        if 'Input_' + str(i) in mapped_I_ports:
+          idx_port = len(mapped_I_ports)-1-count
+          DATA_USER_IN = operator_input_width_dict['Input_' + str(i)]
+          if DATA_USER_IN < 32:
+            DATA_USER_IN_min32 = 32
+          else:
+            DATA_USER_IN_min32 = DATA_USER_IN
+          DATA_USER_IN_TOTAL_min32 += DATA_USER_IN_min32
+          count += 1
+
+      filedata_str_list.append('    wire [' + str(DATA_USER_IN_TOTAL_min32-1) + ':0] dout2user_tmp;')
+      filedata_str_list.append('')
+
+      count = 0
+      for i in range(int(input_num),0,-1): # descending.. e.g. 3, 2, 1, 0
+        if 'Input_' + str(i) in mapped_I_ports:
+          idx_port = len(mapped_I_ports)-1-count
+          DATA_USER_IN = operator_input_width_dict['Input_' + str(i)]
+          if DATA_USER_IN < 32:
+            DATA_USER_IN_min32 = 32
+          else:
+            DATA_USER_IN_min32 = DATA_USER_IN
+
+          filedata_str_list.append('    Input_Port #(')
+          filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
+          filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
+          filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
+          filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
+          filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
+          filedata_str_list.append('        .NUM_IN_PORTS(NUM_IN_PORTS),')
+          filedata_str_list.append('        .NUM_OUT_PORTS(NUM_OUT_PORTS),')
+          filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
+          filedata_str_list.append('        .PORT_No(' + str(idx_port) + '+2),')
+          filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
+          filedata_str_list.append('        .DATA_USER_IN(' + str(DATA_USER_IN_min32) + ') // OPERATOR SPECIFIC!')
+          filedata_str_list.append('    )IPort_' + str(idx_port) +  '(')
+          filedata_str_list.append('        .clk(clk),')
+          filedata_str_list.append('        .clk_user(clk_user),')
+          filedata_str_list.append('        .reset(reset),')
+          filedata_str_list.append('        .reset_user(reset_user),')
+          filedata_str_list.append('        .freespace_update(freespace_update[' + str(idx_port) + ']),')
+          filedata_str_list.append('        .packet_from_input_port(packet_from_input_ports[PACKET_BITS*(' + str(idx_port) + '+1)-1:PACKET_BITS*' + str(idx_port) + ']),')
+          filedata_str_list.append('        .din_leaf_bft2interface(stream_in),')
+          filedata_str_list.append('        .src_leaf(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*(' + str(idx_port) + '+1)-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS]),')
+          filedata_str_list.append('        .src_port(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + ']),')
+          filedata_str_list.append('')
+          high_addr_tmp = DATA_USER_IN_TOTAL_min32 - 1
+          low_addr_tmp = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
+          filedata_str_list.append('        .dout2user(dout2user_tmp[' + str(high_addr_tmp) + ':' + str(low_addr_tmp) + ']), // OPERATOR SPECIFIC!')
+          DATA_USER_IN_TOTAL_min32 = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
+          filedata_str_list.append('        .vld2user(vld2user[' + str(idx_port) + ']),')
+          filedata_str_list.append('        .ack_user2b_in(ack_user2b_in[' + str(idx_port) + ']),')
+          filedata_str_list.append('')
+          filedata_str_list.append('        .is_done_mode(is_done_mode),')
+          filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
+          filedata_str_list.append('        .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+          filedata_str_list.append('        .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+          filedata_str_list.append('        .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+          filedata_str_list.append('        .input_port_stall_condition(input_port_stall_condition[' + str(idx_port) + '])')
+          filedata_str_list.append('    );')
+
+          high_addr = DATA_USER_IN_TOTAL - 1
+          low_addr = DATA_USER_IN_TOTAL - DATA_USER_IN
+          DATA_USER_IN_TOTAL = DATA_USER_IN_TOTAL - DATA_USER_IN
+          filedata_str_list.append('    assign dout2user[' + str(high_addr) + ':' + str(low_addr) + '] = dout2user_tmp[' + str(low_addr_tmp + DATA_USER_IN - 1) + ':' + str(low_addr_tmp) + ']; // only low bits')
+          filedata_str_list.append('')
+          count += 1
+      filedata_str_list.append('endmodule')
+
+      filedata_str = "\n".join(filedata_str_list)
+      with open(self.syn_dir+'/'+operator+'/src/Input_Port_Cluster_' + str(idx_leaf_interface) + '.v', 'w') as outfile:
+        outfile.write(filedata_str)
+
+
+  # leaf_interface_mapping_dict, e.g. {"0": ["Input_1","Output_1"],"1": ["Input_2"],"2": ["Input_3"],"3": []}
+  # operator_output_width_dict, e.g. {'Output_1':32, 'Output_2': 64}
+  def write_output_port_cluster(self, operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator):
+    # Output_Port_Cluster per leaf interface
+    for idx_leaf_interface in range(len(leaf_interface_mapping_dict)):
+      filedata_str_list = []
+      filedata_str_list.append('`timescale 1ns / 1ps')
+      filedata_str_list.append('module Output_Port_Cluster_' + str(idx_leaf_interface) + ' #(')
+      filedata_str_list.append('    parameter PACKET_BITS = 97,')
+      filedata_str_list.append('    parameter NUM_LEAF_BITS = 6,')
+      filedata_str_list.append('    parameter NUM_PORT_BITS = 4,')
+      filedata_str_list.append('    parameter NUM_ADDR_BITS = 7,')
+      filedata_str_list.append('    parameter PAYLOAD_BITS = 64,')
+      filedata_str_list.append('    parameter NUM_IN_PORTS = 1,')
+      filedata_str_list.append('    parameter NUM_OUT_PORTS = 7,')
+      filedata_str_list.append('    parameter NUM_BRAM_ADDR_BITS = 7,')
+      filedata_str_list.append('    parameter FREESPACE_UPDATE_SIZE = 64,')
+      filedata_str_list.append('    parameter DATA_USER_OUT_TOTAL = 32,')
+      filedata_str_list.append('    localparam OUT_PORTS_REG_BITS = NUM_LEAF_BITS+NUM_PORT_BITS+NUM_ADDR_BITS+NUM_ADDR_BITS+3')
+      filedata_str_list.append('    )(')
+      filedata_str_list.append('    input clk,')
+      filedata_str_list.append('    input clk_user,')
+      filedata_str_list.append('    input reset,')
+      filedata_str_list.append('    input reset_user,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    // internal')
+      filedata_str_list.append('    input [OUT_PORTS_REG_BITS*NUM_OUT_PORTS-1:0] out_control_reg,')
+      filedata_str_list.append('    output [PACKET_BITS*NUM_OUT_PORTS-1:0] internal_out,')
+      filedata_str_list.append('    output [NUM_OUT_PORTS-1:0] empty,')
+      filedata_str_list.append('    input [NUM_OUT_PORTS-1:0] rd_en_sel,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    // user interface')
+      filedata_str_list.append('    output [NUM_OUT_PORTS-1:0] ack_b_out2user,')
+      filedata_str_list.append('    input [DATA_USER_OUT_TOTAL-1:0] din_leaf_user2interface,')
+      filedata_str_list.append('    input [NUM_OUT_PORTS-1:0] vld_user2b_out,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    input is_done_mode, // clk(_bft) domain')
+      filedata_str_list.append('    input is_done_mode_user, // clk_user domain')
+      filedata_str_list.append('    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_full_cnt,')
+      filedata_str_list.append('    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_empty_cnt,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    input is_sending_full_cnt_reg,')
+      filedata_str_list.append('    input [NUM_LEAF_BITS-1:0] self_leaf_reg,')
+      filedata_str_list.append('    input [NUM_PORT_BITS-1:0] self_port_reg,')
+      filedata_str_list.append('    input [1:0] cnt_type_reg,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    input vld_cnt,')
+      filedata_str_list.append('    input [PAYLOAD_BITS-1:0] cnt_val,')
+      filedata_str_list.append('')
+      filedata_str_list.append('    output output_port_cluster_stall_condition')
+      filedata_str_list.append('    );')
+      filedata_str_list.append('')
+      filedata_str_list.append('    wire [NUM_OUT_PORTS-1:0] output_port_stall_condition;')
+      filedata_str_list.append('    assign output_port_cluster_stall_condition = |output_port_stall_condition;')
+      filedata_str_list.append('')
+      filedata_str_list.append('')
+      mapped_IO_ports = leaf_interface_mapping_dict[idx_leaf_interface] # io ports for this leaf interface
+      mapped_O_ports = [io_port for io_port in mapped_IO_ports if io_port.startswith('Output_')] # output port for this leaf interface
+      DATA_USER_OUT_TOTAL = 0
+      for o_port in mapped_O_ports:
+        DATA_USER_OUT_TOTAL += operator_output_width_dict[o_port] # output port width total for this leaf interface
+
+      count = 0
+      for i in range(int(output_num),0,-1): # descending.. e.g. 3, 2, 1, 0
+        if 'Output_' + str(i) in mapped_O_ports:
+          idx_port = len(mapped_O_ports)-1-count
+          DATA_USER_OUT = operator_output_width_dict['Output_' + str(i)]
+          if DATA_USER_OUT < 32:
+            DATA_USER_OUT_min32 = 32
+          else:
+            DATA_USER_OUT_min32 = DATA_USER_OUT
+
+          filedata_str_list.append('    Output_Port#(')
+          filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
+          filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
+          filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
+          filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
+          filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
+          filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
+          filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
+          filedata_str_list.append('        .DATA_USER_OUT(' + str(DATA_USER_OUT_min32) + '), // OPERATOR SPECIFIC!')
+
+          if idx_port == 0: filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
+          else: filedata_str_list.append('        .OUTPUT_0(0) // only one output port')
+
+          filedata_str_list.append('    )OPort_' + str(idx_port)  + '(')
+          filedata_str_list.append('        .clk(clk),')
+          filedata_str_list.append('        .clk_user(clk_user),')
+          filedata_str_list.append('        .reset(reset),')
+          filedata_str_list.append('        .reset_user(reset_user),')
+          filedata_str_list.append('        .update_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+2]),')
+          filedata_str_list.append('        .update_fifo_addr_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+1]),')
+          filedata_str_list.append('        .add_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS]),')
+          filedata_str_list.append('        .dst_leaf(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS]),')
+          filedata_str_list.append('        .dst_port(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS]),')
+          filedata_str_list.append('        .fifo_addr(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS]),')
+          filedata_str_list.append('        .freespace(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .vld_user2b_out(vld_user2b_out[' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .rd_en_sel(rd_en_sel[' + str(idx_port)+ ']),')
+
+          high_addr = DATA_USER_OUT_TOTAL - 1
+          low_addr = DATA_USER_OUT_TOTAL - DATA_USER_OUT
+          filedata_str_list.append('        .din_leaf_user2interface(din_leaf_user2interface[' + str(high_addr) + ':' + str(low_addr) + ']), // OPERATOR SPECIFIC!, if <32, zero-padded')
+          DATA_USER_OUT_TOTAL = DATA_USER_OUT_TOTAL - DATA_USER_OUT
+
+          filedata_str_list.append('        .internal_out(internal_out[PACKET_BITS*(' + str(idx_port)+ '+1)-1:PACKET_BITS*' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .empty(empty[' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .ack_b_out2user(ack_b_out2user[' + str(idx_port)+ ']),')
+          filedata_str_list.append('')
+          filedata_str_list.append('        .is_done_mode(is_done_mode),')
+          filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
+          filedata_str_list.append('        .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
+          if idx_port == 0: 
+            filedata_str_list.append('        .is_sending_full_cnt_reg(is_sending_full_cnt_reg), // only output_port_0')
+            filedata_str_list.append('        .self_leaf_reg(self_leaf_reg), // only output_port_0')
+            filedata_str_list.append('        .self_port_reg(self_port_reg), // only output_port_0')
+            filedata_str_list.append('        .cnt_type_reg(cnt_type_reg), // only output_port_0')
+            filedata_str_list.append('')
+            filedata_str_list.append('        .vld_cnt(vld_cnt), // only output_port_0')
+            filedata_str_list.append('        .cnt_val(cnt_val), // only output_port_0')
+          else: 
+            filedata_str_list.append('        .is_sending_full_cnt_reg(), // non-output_port_0')
+            filedata_str_list.append('        .self_leaf_reg(), // non-output_port_0')
+            filedata_str_list.append('        .self_port_reg(), // non-output_port_0')
+            filedata_str_list.append('        .cnt_type_reg(), // non-output_port_0')
+            filedata_str_list.append('')
+            filedata_str_list.append('        .vld_cnt(), // non-output_port_0')
+            filedata_str_list.append('        .cnt_val(), // non-output_port_0')
+          filedata_str_list.append('')
+          filedata_str_list.append('        .output_port_stall_condition(output_port_stall_condition[' + str(idx_port) + '])')
+          filedata_str_list.append('    );')
+          filedata_str_list.append('')
+          count += 1
+
+      filedata_str_list.append('endmodule')
+
+      filedata_str = "\n".join(filedata_str_list)
+      with open(self.syn_dir+'/'+operator+'/src/Output_Port_Cluster_' + str(idx_leaf_interface) + '.v', 'w') as outfile:
+        outfile.write(filedata_str)
+
 
   def prepare_HW(self, operator, page_num, specs_dict):
     frequency = specs_dict[operator]['kernel_clk']
     num_leaf_interface = specs_dict[operator]['num_leaf_interface']
 
-    # Update syn.xdc
+    # Update syn.xdc for multiple leaf interface case
     filedata = ''
     if num_leaf_interface > 1:
       for i in range(num_leaf_interface):
@@ -238,38 +509,24 @@ class syn(gen_basic):
       with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
         outfile.write(filedata)
 
-    # # Update target clock, edit: now each kernel different kernel clk
-    # clk_period = '{:.1f}'.format(1000 / int(frequency))
-    # # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'r') as infile:
-    # #   filedata = infile.readlines()
-    # # assert(len(filedata) == 1)
-    # # filedata = filedata[0]
-    # # filedata = filedata.replace('TARGET_CLK', clk_period)
-    # filedata = "create_clock -period " + str(clk_period) + " -name clk_user [get_ports clk_user]"
-    # with open (self.syn_dir+'/'+operator+'/syn.xdc', 'w') as outfile:
-    #   outfile.write(filedata)
-
     # If the map target is Hardware, we need to prepare the HDL files and scripts to compile it.
     self.shell.mkdir(self.syn_dir+'/'+operator+'/src')
     file_list = [ 'Config_Controls.v', 'rise_detect.v',         'converge_ctrl.v',
-                  'ExtractCtrl.v',     'Input_Port_Cluster.v',  'Input_Port.v',          'leaf_interface.v',   'Output_Port_Cluster.v',
+                  'ExtractCtrl.v',                                                                           #'Input_Port_Cluster.v',  
+                  'Input_Port.v',      'leaf_interface.v',                                                   #'Output_Port_Cluster.v',
                   'Output_Port.v',     'read_b_in.v',           'ram0.v',                'single_ram.v',       'SynFIFO.v',
-                  'xram_triple.v',     'Stream_Flow_Control.v', 'write_b_in.v',          'write_b_out.v',
-                  'expand_queue.v',        'shrink_queue.v',        'send_IO_queue_cnt.v']
-    # file_list = ['expand_queue.v',        'shrink_queue.v']
+                  'xram_triple.v',     'Stream_Flow_Control.v', 'write_b_in.v',          'write_b_out.v',      'send_IO_queue_cnt.v']
+                  # 'expand_queue.v',    'shrink_queue.v',        'send_IO_queue_cnt.v',   'expand_queue_fifo.v','shrink_queue_fifo.v',
+                  # 'nth_fifo.v']
 
     # copy the necessary leaf interface verilog files for out-of-context compilation
     for name in file_list: self.shell.cp_file(self.overlay_dir+'/src/'+name, self.syn_dir+'/'+operator+'/src/'+name)
 
     # prepare the tcl files for out-of-context compilation
-
     self.shell.write_lines(self.syn_dir+'/'+operator+'/syn_page.tcl', self.tcl.return_syn_page_tcl_list(operator, 
                                                                                                           ['./leaf.v'], 
                                                                                                           rpt_name='utilization.rpt', 
                                                                                                           frequency=frequency))
-
-    # prepare the leaf verilog files.
-    # Id depends on the IO numbers and operator name
 
     # extract the stream arguments and types (in/out and width) for all the operators
     operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator)
@@ -294,9 +551,8 @@ class syn(gen_basic):
     # print(operator_width_dict)
     # print(operator_input_width_dict)
     # print(operator_output_width_dict)
-    # TODO: fix this
     leaf_interface_mapping_dict = self.gen_leaf_interface_mapping(operator_input_width_dict, operator_output_width_dict, num_leaf_interface)
-    # print(leaf_interface_mapping_dict)
+    # print(leaf_interface_mapping_dict) #{"0": ["Input_1", "Output_1"]}
     with open(self.syn_dir + '/' + operator + '/leaf_interface_mapping.json', 'w') as outfile:
       json.dump(leaf_interface_mapping_dict, outfile, sort_keys=True, indent=4)
 
@@ -328,6 +584,27 @@ class syn(gen_basic):
                                                            is_riscv=False),
                            False)
 
+    # Update Input_Port_Cluster.v and Output_Port_Cluster.v
+    self.write_output_port_cluster(operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator)
+    self.write_input_port_cluster(operator_input_width_dict, leaf_interface_mapping_dict, input_num, operator)
+
+    # Update/write leaf_interface.v and Stream_Flow_Control.v
+    for idx_leaf_interface in range(num_leaf_interface):
+      with open(self.syn_dir + '/' + operator + '/src/leaf_interface.v', 'r') as infile:
+        filedata = infile.read()
+      filedata = filedata.replace('_IDX_LEAF_INTERFACE', '_' + str(idx_leaf_interface))
+      with open(self.syn_dir + '/' + operator + '/src/leaf_interface_' + str(idx_leaf_interface) + '.v', 'w') as outfile:
+        outfile.write(filedata)
+
+      with open(self.syn_dir + '/' + operator + '/src/Stream_Flow_Control.v', 'r') as infile:
+        filedata = infile.read()
+      filedata = filedata.replace('_IDX_LEAF_INTERFACE', '_' + str(idx_leaf_interface))
+      with open(self.syn_dir + '/' + operator + '/src/Stream_Flow_Control_' + str(idx_leaf_interface) + '.v', 'w') as outfile:
+        outfile.write(filedata)
+
+    # rm old leaf_interface.v and Stream_Flow_Control.v
+    os.system('rm ' + self.syn_dir + '/' + operator + '/src/leaf_interface.v')
+    os.system('rm ' + self.syn_dir + '/' + operator + '/src/Stream_Flow_Control.v')
 
     # Prepare the shell script to run vivado
     self.shell.write_lines(self.syn_dir+'/'+operator+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 

@@ -9,12 +9,20 @@ from collections import Counter
 ##################
 
 # Helper functions stolen from runtime.py
-def return_operator_io_argument_dict_local(operator_list, benchmark):
+def return_operator_io_argument_dict_local(operator_list, benchmark, is_no_merge=False):
     # operator_list = operators.split()
     operator_arg_dict = {}
     for operator in operator_list:
-        with open('./operators/'+operator+'.h', 'r') as infile:
-            file_list = infile.readlines()
+        # with open('./operators/no_merge/'+operator+'.h', 'r') as infile:
+        #     file_list = infile.readlines()
+
+        if is_no_merge:
+            with open('./operators/no_merge/'+operator+'.h', 'r') as infile:
+                file_list = infile.readlines()
+        else:
+            with open('./operators/'+operator+'.h', 'r') as infile:
+                file_list = infile.readlines()
+
         # file_list = self.shell.file_to_list()
         arguments_list = [] 
         def_valid = False # Ture if function definition begins
@@ -73,7 +81,7 @@ def return_operator_connect_list_local(operator_arg_dict, operator_var_dict):
     for key_a in operator_var_dict:
         operator = key_a
         # src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-        with open('./operators/'+operator+'.h', 'r') as infile:
+        with open('./operators/no_merge/'+operator+'.h', 'r') as infile:
             src_list = infile.readlines()
 
         for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
@@ -309,12 +317,48 @@ def divide_ops(cur_param_dict, ops_to_compile_list):
                 independent_op_list.append([func_name])
 
     # Reflect the represent_op's kernel_clk to all children ops
-    for func_name in operator_list:
-        if 'merged_to' in cur_param_dict[func_name].keys():
-            represent_op = cur_param_dict[func_name]['merged_to']
-            cur_param_dict[func_name]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
+    # for func_name in operator_list:
+    #     if 'merged_to' in cur_param_dict[func_name].keys():
+    #         represent_op = cur_param_dict[func_name]['merged_to']
+    #         cur_param_dict[func_name]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
 
     return independent_op_list, cur_param_dict
+
+
+def merge_op_list():
+    with open('./host/top.cpp', 'r') as infile:
+        lines = infile.readlines()
+    operator_list = []
+    for line in lines:
+        op_name = line.split('(')[0]
+        operator_list.append(op_name)
+    return operator_list
+
+def is_valid_num_leaf_interface(represent_op, num_leaf_interface):
+    num_input_streams = 0
+    num_output_streams = 0
+    operator_arg_dict = return_operator_io_argument_dict_local([represent_op], None, is_no_merge=False)
+    for io_stream in operator_arg_dict[represent_op]:
+        if io_stream.startswith('Input_'):
+            num_input_streams += 1
+        elif io_stream.startswith('Output_'):
+            num_output_streams += 1
+
+    # Makes sense to have num_leaf_interface
+    if num_input_streams >= num_leaf_interface or num_output_streams >= num_leaf_interface:
+        return True
+    else:
+        return False
+
+
+def get_merged_ops(cur_param_dict, represent_op):
+    merged_op_list = []
+    for op in cur_param_dict.keys():
+        if op != 'metric':
+            if 'merged_to' in cur_param_dict[op].keys() and \
+                cur_param_dict[op]['merged_to'] == represent_op:
+                merged_op_list.append(op)
+    return merged_op_list
 
 
 # cur_param_dict, ops_to_compile_list are updated
@@ -334,9 +378,18 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             if 'merged_to' in cur_param_dict[func_name] or 'merged_to_try' in cur_param_dict[func_name]:
                 is_merged_to_exist = True
 
+
+    # /no_merge/ is necessary to generate 'sorted_forward_op_list'
+    for func_name in operator_list:
+        filedata, filedata_header = filedata_dict[func_name]
+        # new operators or io changed
+        if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata, cur_param_dict):
+            with open('./operators/no_merge/' + func_name + '.h', 'w') as outfile:
+                outfile.write(filedata_header)
+    print()
+
     # No 'merged_to' or 'merged_to_try' because NoC bottleneck does not exist
     if not is_merged_to_exist:
-        # Write operators that are not merged with other ops
         for func_name in operator_list:
             filedata, filedata_header = filedata_dict[func_name]
             if needs_write_param(func_name, filedata) or needs_write_filedata(func_name, filedata, cur_param_dict):
@@ -346,11 +399,17 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                     outfile.write(filedata_header)
                 if func_name not in ops_to_compile_list:
                     ops_to_compile_list.append(func_name)
-        return top_str_dict
 
+        return top_str_dict
     else:
-        operator_arg_dict = return_operator_io_argument_dict_local(operator_list, None)
+
+        # Below is necessary only to generate 'sorted_forward_op_list', so use /operators/no_merge/*.h
+        operator_arg_dict = return_operator_io_argument_dict_local(operator_list, None, is_no_merge=True)
         operator_var_dict = return_operator_inst_dict_local(operator_list, None)
+        # print("operator_arg_dict:")
+        # print(operator_arg_dict)
+        # print("operator_var_dict:")
+        # print(operator_var_dict)
         connection_list = return_operator_connect_list_local(operator_arg_dict, operator_var_dict)
         # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
         # print(connection_list)
@@ -358,8 +417,10 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         # print(sorted_backward_op_list)
         sorted_forward_op_list = sorted_backward_op_list[::-1]
 
+
         independent_op_list, cur_param_dict = divide_ops(cur_param_dict, ops_to_compile_list)
-        # print(independent_op_list)
+        print('independent_op_list:')
+        print(independent_op_list)
 
         independent_op_dict = {} # key is list of merged ops, item is representative op
         for merged_ops in independent_op_list:
@@ -372,7 +433,8 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                             found = True
                             independent_op_dict[tuple(merged_ops)] = represent_op
                             break
-        # print(independent_op_dict)
+        print('independent_op_dict:')
+        print(independent_op_dict)
 
         with open('./host/top_no_merge.cpp', 'r') as infile:
             lines = infile.readlines()
@@ -400,6 +462,9 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         #             outfile.write(filedata_header)
         #         # if func_name not in ops_to_compile_list:
         #         #     ops_to_compile_list.append(func_name)
+
+        print('non_merged_ops:')
+        print(non_merged_ops)
 
         # Write operators that are not merged with other ops
         for func_name in non_merged_ops:
@@ -619,14 +684,43 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
                 if op != represent_op and op in ops_to_compile_list:
                     ops_to_compile_list.remove(op)
 
+
+        # Update cur_param_dict for the merged ops
+        # 1) Use higher kernel clk
+        # 2) If higher num_leaf_interface makes sense, use higher num_leaf_interface
+        represent_op_list = []
+        for op in cur_param_dict.keys():
+            if op != 'metric':
+                if 'merged_to' in cur_param_dict[op].keys() and \
+                    cur_param_dict[op]['merged_to'] not in represent_op_list:
+                    represent_op_list.append(cur_param_dict[op]['merged_to'])
+
+        # print(represent_op_list)
+        for represent_op in represent_op_list:
+            merged_op_list = get_merged_ops(cur_param_dict, represent_op)
+            num_leaf_interface_list = []
+            kernel_clk_list = []
+            for sub_op in merged_op_list:
+                if cur_param_dict[sub_op]['num_leaf_interface'] not in num_leaf_interface_list:
+                    num_leaf_interface_list.append(cur_param_dict[sub_op]['num_leaf_interface'])
+                if cur_param_dict[sub_op]['kernel_clk'] not in kernel_clk_list:
+                    kernel_clk_list.append(cur_param_dict[sub_op]['kernel_clk'])
+
+            # If sub_op's 'num_leaf_interface' makes sense, use for the merged op
+            for i in sorted(num_leaf_interface_list, reverse=True):
+                if i > cur_param_dict[represent_op]['num_leaf_interface'] and \
+                    is_valid_num_leaf_interface(represent_op, i):
+                    cur_param_dict[represent_op]['num_leaf_interface'] = i
+
+            # Use the max kernel_clk for the merged op
+            if max(kernel_clk_list) > cur_param_dict[represent_op]['kernel_clk']:
+                cur_param_dict[represent_op]['kernel_clk'] = max(kernel_clk_list)
+
+            # Update for sub_ops too
+            for sub_op in merged_op_list:
+                cur_param_dict[sub_op]['num_leaf_interface'] = cur_param_dict[represent_op]['num_leaf_interface']
+                cur_param_dict[sub_op]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
+
+
         return top_str_dict
 
-
-def merge_op_list():
-    with open('./host/top.cpp', 'r') as infile:
-        lines = infile.readlines()
-    operator_list = []
-    for line in lines:
-        op_name = line.split('(')[0]
-        operator_list.append(op_name)
-    return operator_list

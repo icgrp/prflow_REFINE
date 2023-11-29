@@ -38,6 +38,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CONFIG_SIZE 1
 #define INPUT_SIZE ((NUM_TRAINING + NUM_TEST) * 8 / 16)
 #define NUM_IS_DONE 10
+// Please hardcode OUTPUT_SIZE
 #define OUTPUT_SIZE 32
 #define NUM_TOTAL_CNT 1
 
@@ -45,8 +46,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of utility functions included at the end of this file
 std::vector<cl::Device> get_xilinx_devices();
 char *read_binary_file(const std::string &xclbin_file_name, unsigned &nb);
-void check_results(bit512* result, const LabelType* expected, int cnt);
-
+double check_results(bit512* result, const LabelType* expected, int cnt);
 
 // ------------------------------------------------------------------------------------
 // Main program
@@ -60,9 +60,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-  // Variables for time measurement
-  struct timeval start, end;
-
+    // Variables for time measurement
+    struct timeval start, end;
 
     std::vector<cl::Device> devices;
     cl::Device device;
@@ -139,8 +138,8 @@ int main(int argc, char **argv)
     // Create the buffers and allocate memory
     cl::Buffer in1_buf(context, CL_MEM_READ_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
     cl::Buffer in2_buf(context, CL_MEM_READ_ONLY, sizeof(bit512) * INPUT_SIZE, NULL, &err);
-    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
-    cl::Buffer out2_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
+    cl::Buffer out1_buf(context, CL_MEM_READ_WRITE, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
+    cl::Buffer out2_buf(context, CL_MEM_READ_WRITE, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
 
     // Map buffers to kernel arguments, thereby assigning them to specific device memory banks
     krnl_ydma.setArg(0, in1_buf);
@@ -156,10 +155,7 @@ int main(int argc, char **argv)
 
     // Initialize the vectors used in the test
     // pack input data for better performance
-    //for ( int i = 0; i < CONFIG_SIZE; i++)
-    //{
 
-    // send BFT config size
     in1[0].range(63, 32) = 0x00000000;
     in1[0].range(31,  0) = 0x0000004d;
     in1[1].range(63, 32) = 0x00000000;
@@ -171,7 +167,7 @@ int main(int argc, char **argv)
     in1[4].range(63, 32) = 0x00000000;
     in1[4].range(31,  0) = NUM_TOTAL_CNT;
 
-      // configure packets
+    // configure packets
 
     for (int i = 0; i < NUM_TRAINING; i ++ )
     {
@@ -203,11 +199,12 @@ int main(int argc, char **argv)
       in2[i/2+NUM_TRAINING/2](offset*256+255, offset*256) = tmp_in(255, 0);
     }
 
-
     // ------------------------------------------------------------------------------------
     // Step 3: Run the kernel
     // ------------------------------------------------------------------------------------
     // Set kernel arguments
+    std::cout << "start " << std::endl;
+
     gettimeofday(&start, NULL);
 
     krnl_ydma.setArg(0, in1_buf);
@@ -223,23 +220,17 @@ int main(int argc, char **argv)
 	q.enqueueMigrateMemObjects({in1_buf, in2_buf}, 0 /* 0 means from host*/);
 	q.enqueueTask(krnl_ydma);
 	q.enqueueMigrateMemObjects({out1_buf, out2_buf}, CL_MIGRATE_MEM_OBJECT_HOST);
-
-
 	// Wait for all scheduled operations to finish
 	q.finish();
     gettimeofday(&end, NULL);
+    std::cout << "finished " << std::endl;
 
     // ------------------------------------------------------------------------------------
     // Step 4: Check Results and Release Allocated Resources
     // ------------------------------------------------------------------------------------
     bool match = true;
-    check_results(out2, expected, NUM_TEST );
-    // for(int i=0; i<CONFIG_SIZE; i++){
-    // int config_max = CONFIG_SIZE > 20 ? 20 : CONFIG_SIZE;
-    // for(int i=0; i<config_max; i++){
-    //     printf("%d: %08x_%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
-    // 	//std::cout << "out1[" << i << "]=" << out1[i] << std::endl;
-    // }
+    double accuracy = check_results(out2, expected, NUM_TEST );
+
     for(int i=0; i<NUM_TOTAL_CNT; i++){
         printf("out1[%d] = %08x%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
     }
@@ -248,6 +239,7 @@ int main(int argc, char **argv)
     // print time
     long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
     printf("elapsed time: %lld us\n", elapsed);
+    printf("accuracy: %f \n", accuracy);
 
 
     std::cout << "TEST " << (match ? "PASSED" : "FAILED") << std::endl;
@@ -305,7 +297,7 @@ char *read_binary_file(const std::string &xclbin_file_name, unsigned &nb)
 }
 
 
-void check_results(bit512* result, const LabelType* expected, int cnt)
+double check_results(bit512* result, const LabelType* expected, int cnt)
 {
   int correct_cnt = 0;
 
@@ -334,5 +326,6 @@ void check_results(bit512* result, const LabelType* expected, int cnt)
   //  std::cout << "Failed to create output file!" << std::endl;
   //}
 
-
+  double accuracy = ((double) correct_cnt) / cnt;
+  return accuracy;
 }

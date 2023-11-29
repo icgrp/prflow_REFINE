@@ -4,19 +4,20 @@
 // Counters (full_cnt_wr, empty_cnt_rd, read_cnt_rd) will be used to identify bottleneck operator
 // _wr and _rd indicate clock domain
 module stream_shell #(
-    parameter PAYLOAD_BITS = 128,
+    parameter WRITE_DATA_WIDTH = 32,
+    parameter READ_DATA_WIDTH = 32,
     parameter NUM_BRAM_ADDR_BITS = 7,
     localparam FIFO_DEPTH = (2**NUM_BRAM_ADDR_BITS)
     )(
     input wr_clk,
     input wr_rst,
-    input [PAYLOAD_BITS-1:0] din,
+    input [WRITE_DATA_WIDTH-1:0] din,
     input val_in,
     output ready_upward,
 
     input rd_clk,
     input rd_rst,
-    output reg [PAYLOAD_BITS-1:0] dout,
+    output reg [READ_DATA_WIDTH-1:0] dout,
     output reg val_out,
     input ready_downward,
 
@@ -37,8 +38,8 @@ module stream_shell #(
     // wire full;
     wire wr_en;
 
-    wire [PAYLOAD_BITS-1:0] fifo_out;
-    wire [PAYLOAD_BITS-1:0] fifo_in;
+    wire [WRITE_DATA_WIDTH-1:0] fifo_in;
+    wire [READ_DATA_WIDTH-1:0] fifo_out;
 
     assign ready_upward = ~full;
     assign wr_en = val_in;
@@ -82,14 +83,14 @@ module stream_shell #(
       .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
       .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
       .FIFO_WRITE_DEPTH          (FIFO_DEPTH),             //positive integer
-      .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
-      .WR_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
+      .WRITE_DATA_WIDTH          (WRITE_DATA_WIDTH),               //positive integer
+      .WR_DATA_COUNT_WIDTH       (),               //positive integer
       .PROG_FULL_THRESH          (10),               //positive integer
       .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
       .READ_MODE                 ("std"),            //string; "std" or "fwft";
       .FIFO_READ_LATENCY         (1),                //positive integer;
-      .READ_DATA_WIDTH           (PAYLOAD_BITS),               //positive integer
-      .RD_DATA_COUNT_WIDTH       (NUM_BRAM_ADDR_BITS),               //positive integer
+      .READ_DATA_WIDTH           (READ_DATA_WIDTH),               //positive integer
+      .RD_DATA_COUNT_WIDTH       (),               //positive integer
       .PROG_EMPTY_THRESH         (10),               //positive integer
       .DOUT_RESET_VALUE          ("0"),              //string
       .CDC_SYNC_STAGES           (2),                //positive integer

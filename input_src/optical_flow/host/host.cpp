@@ -141,8 +141,8 @@ int main(int argc, char **argv)
     // Create the buffers and allocate memory
     cl::Buffer in1_buf(context, CL_MEM_READ_ONLY, sizeof(bit64) * CONFIG_SIZE, NULL, &err);
     cl::Buffer in2_buf(context, CL_MEM_READ_ONLY, sizeof(bit512) * INPUT_SIZE, NULL, &err);
-    cl::Buffer out1_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
-    cl::Buffer out2_buf(context, CL_MEM_WRITE_ONLY, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
+    cl::Buffer out1_buf(context, CL_MEM_READ_WRITE, sizeof(bit64) * NUM_TOTAL_CNT, NULL, &err);
+    cl::Buffer out2_buf(context, CL_MEM_READ_WRITE, sizeof(bit512) * OUTPUT_SIZE, NULL, &err);
 
     // Map buffers to kernel arguments, thereby assigning them to specific device memory banks
     krnl_ydma.setArg(0, in1_buf);
@@ -262,11 +262,13 @@ int main(int argc, char **argv)
         printf("out1[%d] = %08x%08x\n", i, (unsigned int)out1[i].range(63, 32), (unsigned int) out1[i].range(31, 0));
     }
     
-    // delete[] fileBuf;
+    delete[] fileBuf;
     // print time
     long long elapsed = (end.tv_sec - start.tv_sec) * 1000000LL + end.tv_usec - start.tv_usec;   
     printf("elapsed time: %lld us\n", elapsed);
-    printf("avg error: %f \n", avg_error);
+    // printf("avg error: %f \n", avg_error);
+    printf("accuracy: %f \n", 1/avg_error);
+
 
     // std::ofstream outfile;
     // outfile.open("result.txt", std::ios_base::app);
@@ -386,7 +388,7 @@ double check_results(velocity_t output[MAX_HEIGHT*MAX_WIDTH], CFloatImage refFlo
   }
 
   double avg_error = accum_error / num_pix;
-  printf("Average error: %lf degrees\n", avg_error);
+  // printf("Average error: %lf degrees\n", avg_error);
   return avg_error;
 
 }

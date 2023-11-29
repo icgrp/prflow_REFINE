@@ -1,21 +1,5 @@
 {
-    "coloringFB_1": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "coloringFB_2": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "coloringFB_3": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "coloringFB_4": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "data_transfer": {
+    "coloringFB_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
@@ -27,35 +11,11 @@
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "rast2_1": {
+    "rast2_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "rast2_2": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "rast2_3": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "rast2_4": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "zculling_1": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "zculling_2": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "zculling_3": {
-        "kernel_clk": 200,
-        "num_leaf_interface": 1
-    },
-    "zculling_4": {
+    "zculling_i1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     }

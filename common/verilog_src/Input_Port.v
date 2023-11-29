@@ -31,6 +31,7 @@ module Input_Port#(
     parameter NUM_BRAM_ADDR_BITS = 7,
     parameter PORT_No = 2,
     parameter FREESPACE_UPDATE_SIZE = 64,
+    parameter DATA_USER_IN = 32,
     localparam BRAM_DEPTH = 2**(NUM_BRAM_ADDR_BITS-1)*(PAYLOAD_BITS+1)
     )(
     input clk,
@@ -46,7 +47,7 @@ module Input_Port#(
     input [NUM_PORT_BITS-1:0] src_port,
     
     //user interface
-    output [PAYLOAD_BITS-1:0] dout2user,
+    output [DATA_USER_IN-1:0] dout2user,
     output vld2user,
     input ack_user2b_in,
     
@@ -136,11 +137,7 @@ module Input_Port#(
         .dina(dina)
         );
 
-
-
     // bram_in
-   
-    
     /*
     bram_in b_in(
         .clka(clk_bft), 
@@ -349,7 +346,8 @@ module Input_Port#(
 
     wire input_fifo_empty;
     data_converter # (
-        .PAYLOAD_BITS(PAYLOAD_BITS) 
+        .PAYLOAD_BITS(PAYLOAD_BITS),
+        .DATA_USER_IN(DATA_USER_IN)
         ) data_converter_inst(
         .clk(clk),
         .clk_user(clk_user),
@@ -397,12 +395,14 @@ module Input_Port#(
             else input_port_read_cnt <= input_port_read_cnt;
         end
     end
+
     
 endmodule
 
 
 module data_converter # (
-    parameter PAYLOAD_BITS = 64
+    parameter PAYLOAD_BITS = 64,
+    parameter DATA_USER_IN = 32
     )(
     input clk,
     input clk_user,
@@ -412,61 +412,61 @@ module data_converter # (
     input [PAYLOAD_BITS-1:0] din_bram2fifo,
     input vld_bram2fifo,
     output ack_fifo2bram,
-    output [PAYLOAD_BITS-1:0] dout_interface2user,
+    output [DATA_USER_IN-1:0] dout_interface2user,
     output reg vld_interface2user,
     input ack_user2interface,
     output empty
     );
 
-    
     wire wr_en;
     wire [PAYLOAD_BITS-1:0] fifo_in;
     wire full;
     reg rd_en;
-    wire [PAYLOAD_BITS-1:0] fifo_out;
+    wire [DATA_USER_IN-1:0] fifo_out;
     // wire empty;
     
-    
     assign ack_fifo2bram = ~full;
+    // assign wr_en = (~full) && vld_bram2fifo && !wr_rst_busy && !rd_rst_busy;
     assign wr_en = (~full) && vld_bram2fifo;
+
     assign fifo_in = din_bram2fifo;
+
+    wire wr_rst_busy, rd_rst_busy;
     
-    
+    // Important: ensure depth of read/write is minimum 16 => FIFO_WRITE_DEPTH is set to 128
     xpm_fifo_async # (
-    
       // .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
-      .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", or "distributed";
+      .FIFO_MEMORY_TYPE          ("block"),           //string; "auto", "block", or "distributed";
       .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
       .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
-      .FIFO_WRITE_DEPTH          (16),             //positive integer
+      // .FIFO_WRITE_DEPTH          (DATA_USER_IN/PAYLOAD_BITS*16),             //positive integer
+      .FIFO_WRITE_DEPTH          (128),             //positive integer
       .WRITE_DATA_WIDTH          (PAYLOAD_BITS),               //positive integer
-      .WR_DATA_COUNT_WIDTH       (4),               //positive integer
+      .WR_DATA_COUNT_WIDTH       (),               //positive integer
       .PROG_FULL_THRESH          (10),               //positive integer
       .FULL_RESET_VALUE          (0),                //positive integer; 0 or 1
       .READ_MODE                 ("std"),            //string; "std" or "fwft";
       .FIFO_READ_LATENCY         (1),                //positive integer;
-      .READ_DATA_WIDTH           (PAYLOAD_BITS),               //positive integer
-      .RD_DATA_COUNT_WIDTH       (4),               //positive integer
+      .READ_DATA_WIDTH           (DATA_USER_IN),               //positive integer
+      .RD_DATA_COUNT_WIDTH       (),               //positive integer
       .PROG_EMPTY_THRESH         (10),               //positive integer
       .DOUT_RESET_VALUE          ("0"),              //string
       .CDC_SYNC_STAGES           (2),                //positive integer
       .WAKEUP_TIME               (0)                 //positive integer; 0 or 2;
-    
     ) xpm_fifo_async2user (
-    
       .rst              (reset),
       .wr_clk           (clk),
       .wr_en            (wr_en),
       .din              (fifo_in),
       .full             (full),
       .overflow         (), // not used
-      .wr_rst_busy      (), // not used
+      .wr_rst_busy      (wr_rst_busy),
       .rd_clk           (clk_user),
       .rd_en            (rd_en),
       .dout             (fifo_out),
       .empty            (empty),
       .underflow        (), // not used
-      .rd_rst_busy      (), // not used
+      .rd_rst_busy      (rd_rst_busy),
       .prog_full        (), // not used
       .wr_data_count    (), // not used
       .prog_empty       (), // not used
@@ -476,7 +476,6 @@ module data_converter # (
       .injectdbiterr    (1'b0),
       .sbiterr          (),
       .dbiterr          ()
-    
     );    
     
     // SynFIFO #(
@@ -493,8 +492,6 @@ module data_converter # (
 	// .rinc(rd_en)
 	// );
 	
-	
-	
     assign dout_interface2user = fifo_out;
     
     //rd_en
@@ -503,8 +500,10 @@ module data_converter # (
             rd_en = 0;
         end else begin
             if(ack_user2interface) begin
+                // rd_en = 1 && (!rd_rst_busy);
                 rd_en = 1;
             end else begin
+                // rd_en = ~vld_interface2user && (!rd_rst_busy);
                 rd_en = ~vld_interface2user;
             end
         end

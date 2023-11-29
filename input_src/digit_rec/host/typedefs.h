@@ -42,8 +42,15 @@ typedef unsigned char      LabelType;
 
 #include "hls_stream.h"
 
+
 // User parameters
 #define K_CONST 1
-#define PAR_FACTOR 20
+#define PAR_FACTOR 10
+
+
+#define IMAGE_SIZE 256
+#define IMAGE_WIDTH 256 // multiple of 32 equal or greater than IMAGE_SIZE
+#define OutputTmpWidth 32*K_CONST
+typedef ap_uint<OutputTmpWidth> OutputTmpType;
 
 #endif

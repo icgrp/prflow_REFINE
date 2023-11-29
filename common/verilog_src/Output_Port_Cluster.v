@@ -48,18 +48,18 @@ module Output_Port_Cluster #(
     input [NUM_OUT_PORTS-1:0] vld_user2b_out,
     
     input is_done_mode, // clk(_bft) domain
-    input is_done_mode_user, // clk_user domain
-    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_full_cnt,
-    output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_empty_cnt,
+    // input is_done_mode_user, // clk_user domain
+    // output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_full_cnt,
+    // output [PAYLOAD_BITS*NUM_OUT_PORTS-1:0] output_port_empty_cnt,
     input is_sending_full_cnt_reg,
     input [NUM_LEAF_BITS-1:0] self_leaf_reg,
     input [NUM_PORT_BITS-1:0] self_port_reg,
-    input [1:0] cnt_type_reg,
-    output output_port_cluster_stall_condition
+    input [1:0] cnt_type_reg
+    // output output_port_cluster_stall_condition
     );
 
-    wire [NUM_OUT_PORTS-1:0] output_port_stall_condition;
-    assign output_port_cluster_stall_condition = |output_port_stall_condition;
+    // wire [NUM_OUT_PORTS-1:0] output_port_stall_condition;
+    // assign output_port_cluster_stall_condition = |output_port_stall_condition;
     
     genvar gv_i;
     generate
@@ -92,14 +92,14 @@ module Output_Port_Cluster #(
             .ack_b_out2user(ack_b_out2user[gv_i]),
 
             .is_done_mode(is_done_mode),
-            .is_done_mode_user(is_done_mode_user),
-            .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
-            .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            // .is_done_mode_user(is_done_mode_user),
+            // .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
+            // .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(gv_i+1)-1:PAYLOAD_BITS*gv_i]),
             .is_sending_full_cnt_reg(is_sending_full_cnt_reg),
             .self_leaf_reg(self_leaf_reg),
             .self_port_reg(self_port_reg),
-            .cnt_type_reg(cnt_type_reg),
-            .output_port_stall_condition(output_port_stall_condition[gv_i])
+            .cnt_type_reg(cnt_type_reg)
+            // .output_port_stall_condition(output_port_stall_condition[gv_i])
         );
     end
     endgenerate

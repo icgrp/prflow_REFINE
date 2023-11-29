@@ -1,11 +1,9 @@
 [
-    "data_transfer",
     "flow_calc",
     "gradient_weight_x",
     "gradient_weight_y",
     "gradient_xyz_calc",
     "outer_product",
-    "output_data",
     "tensor_weight_x_i1",
-    "tensor_weight_x_i1"
+    "tensor_weight_y_i1"
 ]

@@ -30,10 +30,10 @@ void gradient_weight_x(
       databus_t temp_x, temp_y, temp_z;
       if(c<MAX_WIDTH)
       {
-    		temp_x = Input_1.read();
+      temp_x = Input_1.read();
         temp_y = Input_2.read();
         temp_z = Input_3.read();
-    		tmp.x(31,0) = temp_x.range(31,0);
+      tmp.x(31,0) = temp_x.range(31,0);
         tmp.y(31,0) = temp_y.range(31,0);
         tmp.z(31,0) = temp_z.range(31,0);
       }
@@ -76,4 +76,3 @@ void gradient_weight_x(
     }
   }
 }
-

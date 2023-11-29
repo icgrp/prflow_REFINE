@@ -29,6 +29,7 @@ def main():
                 timing_rpt = [filename for filename in os.listdir('.') if filename.startswith("timing_") and filename.endswith(".rpt")]
                 # At least it was successfully routed,
                 if len(timing_rpt) == 1:
+
                     timing_rpt = timing_rpt[0]
                     with open(timing_rpt, 'r') as infile:
                         find_summary_flag = False
@@ -43,7 +44,13 @@ def main():
                                 WNS = float(timing_list[0])
 
                     # Check timing violation
-                    if WNS < 0:
+                    if cur_param_dict['metric'] == None: # Initial config violates timing...
+                        os.system('touch __impl_failure__')
+                        print('--------------------------------')
+                        print('## operator: ' + operator)
+                        print('## result:   Implementation failed')
+                        print('--------------------------------')
+                    elif WNS < 0:
                         os.system('touch __timing_violation__')
                         print('--------------------------------')
                         print('## operator: ' + operator)

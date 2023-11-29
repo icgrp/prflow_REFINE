@@ -6,13 +6,51 @@ import re
 
 # num_cnt_read = 60
 
+# If stream width larger than payload_size OR
+# if number of output streams of sender_op > num_leaf_interface of sender_op OR
+# if number of input streams of receiver_op > num_leaf_interface of receiver_op
+def gen_can_merge_help(connection, cur_param_dict, payload_size, benchmark, operator_arg_dict):
+    sender_op = connection.split('->')[0].split('.')[0]
+    sender_op_output_stream = connection.split('->')[0].split('.')[1] # e.g. Output_1
+
+    receiver_op = connection.split('->')[1].split('.')[0]
+
+    with open('./input_src/'+benchmark+'/operators/'+sender_op+'.h', 'r') as infile:
+        file_list = infile.readlines()
+    for line in file_list:
+        if sender_op_output_stream in line:
+            ap_uint_str = re.findall(r"ap_uint\<\d+\>", line)[0]
+            stream_width = int(ap_uint_str.split('<')[1].split('>')[0])
+
+    sender_op_io_list = operator_arg_dict[sender_op]
+    sender_op_output_cnt = 0
+    for io in sender_op_io_list:
+        if io.startswith('Output_'):
+            sender_op_output_cnt += 1
+
+    receiver_op_io_list = operator_arg_dict[receiver_op]
+    receiver_op_input_cnt = 0 
+    for io in receiver_op_io_list:
+        if io.startswith('Input_'):
+            receiver_op_input_cnt += 1
+
+    return stream_width > payload_size  or \
+           sender_op_output_cnt > cur_param_dict[sender_op]["num_leaf_interface"] or \
+           receiver_op_input_cnt > cur_param_dict[receiver_op]["num_leaf_interface"]
+
+
 # Helper functions stolen from runtime.py
-def return_operator_io_argument_dict_local(operator_list, benchmark):
+def return_operator_io_argument_dict_local(operator_list, benchmark, is_no_merge=False):
     # operator_list = operators.split()
     operator_arg_dict = {}
     for operator in operator_list:
-        with open('./input_src/'+benchmark+'/operators/'+operator+'.h', 'r') as infile:
-            file_list = infile.readlines()
+        if is_no_merge:
+            with open('./input_src/'+benchmark+'/operators/no_merge/'+operator+'.h', 'r') as infile:
+                file_list = infile.readlines()
+        else:
+            with open('./input_src/'+benchmark+'/operators/'+operator+'.h', 'r') as infile:
+                file_list = infile.readlines()
+
         # file_list = self.shell.file_to_list()
         arguments_list = [] 
         def_valid = False # Ture if function definition begins
@@ -241,7 +279,7 @@ def mono_connection_from_idx(mono_counter_idx_dict, idx):
 #                                 0: {'stall': 117130}, 
 #                                 9: {'full': 16735, 'empty': 210347}}
 # ...
-def counter_mono_dict(benchmark, mono_counter_idx_dict):
+def counter_mono_dict(benchmark, mono_counter_idx_dict, cur_param_dict):
     cnt_dict = {}
     accuracy = -1
 
@@ -261,7 +299,9 @@ def counter_mono_dict(benchmark, mono_counter_idx_dict):
 
         # Parse results
         for line in lines:
+
             # Ignore first out1[0] data
+            # full/empty counters are not used... but still have them for debugging
             if line.startswith('out1[') and not line.startswith('out1[0] '):
 
                 idx = int(line.split(']')[0].split('[')[1])
@@ -297,9 +337,11 @@ def counter_mono_dict(benchmark, mono_counter_idx_dict):
                             cnt_dict[receiver_op][receiver_input_port_num] = {}
                         cnt_dict[receiver_op][receiver_input_port_num][counter_type] = counter_val
 
-                else:
+                # stall counters are sent last
+                else: 
                     op = mono_op_from_idx(mono_counter_idx_dict, idx)
-                    cnt_dict[op][0] = {'stall': counter_val} # stall counter
+                    kernel_clk = cur_param_dict[op]['kernel_clk']
+                    cnt_dict[op][0] = {'stall': counter_val / kernel_clk} # stall counter
 
             # if line.startswith('elapsed time: '):
             #     latency = int(line.split()[2])
@@ -337,7 +379,7 @@ def counter_mono_dict(benchmark, mono_counter_idx_dict):
 #                                4: {2: {'read': 10542, 'empty': 117184, 'full': 0}, 
 #                                    9: {'full': 16735, 'empty': 210347}}
 # ... 3 and 4 are page_num
-def coutner_dict(benchmark, pblock_assign_dict):
+def counter_dict(benchmark, pblock_assign_dict, cur_param_dict):
     cnt_dict = {}
     accuracy = -1
 
@@ -379,33 +421,36 @@ def coutner_dict(benchmark, pblock_assign_dict):
                     print(op_name)
                     print(counter_val)
                     print(line)
+
+                kernel_clk = cur_param_dict[op_name]['kernel_clk']
                 if op_name not in cnt_dict:
+                    
                     if self_port == 0:
                         cnt_dict[op_name] = {}
                         cnt_dict[op_name][0] = {}
-                        cnt_dict[op_name][0]['stall'] = counter_val
+                        cnt_dict[op_name][0]['stall'] = counter_val / kernel_clk
                     else:
                         cnt_dict[op_name] = {}
                         cnt_dict[op_name][self_leaf] = {}
                         cnt_dict[op_name][self_leaf][self_port] = {}
-                        cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val
+                        cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val / kernel_clk
                         # print(cnt_dict)
 
                 else:
                     if self_port == 0: # stall_cnt
                         cnt_dict[op_name][0] = {}
-                        cnt_dict[op_name][0]['stall'] = counter_val
+                        cnt_dict[op_name][0]['stall'] = counter_val / kernel_clk
                     else:
                         if self_leaf not in cnt_dict[op_name]:
                             cnt_dict[op_name][self_leaf] = {}
                             cnt_dict[op_name][self_leaf][self_port] = {}
-                            cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val
+                            cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val / kernel_clk
                         else:
                             if self_port not in cnt_dict[op_name][self_leaf]:
                                 cnt_dict[op_name][self_leaf][self_port] = {}
-                                cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val
+                                cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val / kernel_clk
                             else:
-                                cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val
+                                cnt_dict[op_name][self_leaf][self_port][counter_type] = counter_val / kernel_clk
 
             # if line.startswith('elapsed time: '):
             #     latency = int(line.split()[2])
@@ -692,7 +737,7 @@ def update_for_idetical_op(cur_param_dict, bottleneck_op, param):
             base_name = sender_op.replace(re.findall('_i\d+$',sender_op)[0],'')
             base_name = base_name + '_i'
             for op in cur_param_dict.keys():
-                if op.startswith(base_name):
+                if op.startswith(base_name) and 'merged_to' not in cur_param_dict[op].keys():
                     cur_param_dict[op][param] = receiver_op
         # 2) when identical op is receiver_op
         is_identical_op = (len(re.findall('_i\d+$',receiver_op)) != 0) # operator name ends with _i{SOME_NUM}
@@ -700,7 +745,7 @@ def update_for_idetical_op(cur_param_dict, bottleneck_op, param):
             base_name = receiver_op.replace(re.findall('_i\d+$',receiver_op)[0],'')
             base_name = base_name + '_i'
             for op in cur_param_dict.keys():
-                if op.startswith(base_name) and op != receiver_op:
+                if op.startswith(base_name) and op != receiver_op and 'merged_to' not in cur_param_dict[op].keys():
                     cur_param_dict[op][param] = receiver_op
     else:
         new_param_val = cur_param_dict[bottleneck_op][param]
@@ -716,6 +761,16 @@ def update_for_idetical_op(cur_param_dict, bottleneck_op, param):
     return cur_param_dict
 
 
+# Returns all params, including params of those that are merged to bottleneck_op
+def all_params(cur_param_dict, bottleneck_op):
+    param_list = list(cur_param_dict[bottleneck_op].keys())
+    for op in cur_param_dict.keys():
+        if op != 'metric':
+            if 'merged_to' in cur_param_dict[op].keys():
+                if cur_param_dict[op]['merged_to'] == bottleneck_op:
+                    param_list += list(cur_param_dict[op].keys())
+    return sorted(list(set(param_list)))
+
 
 def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, params_search_space_dict, params_annotate_dict):
     # For each link in the graph, full_diff = sender's full cnt - receiver's full cnt
@@ -726,7 +781,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     # operator_list = list(prev_page_assign_dict.keys())
     # # print(operator_list)
 
-    operator_arg_dict = return_operator_io_argument_dict_local(operator_list, benchmark)
+    operator_arg_dict = return_operator_io_argument_dict_local(operator_list, benchmark, is_no_merge=False)
     # operator_arg_dict, e.g. {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], 'rasterization2_m': ['Input_1', 'Output_1' .. }
 
     operator_var_dict = return_operator_inst_dict_local(operator_list, benchmark, 'top.cpp')
@@ -756,6 +811,9 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
 
             sender_output_port_num = get_port_num(sender_op, sender_output_port, cur_idx_dict)
             sender_page_num = get_page_num(sender_op, sender_output_port, cur_idx_dict)
+            # print(sender_op)
+            # print(sender_page_num)
+            # print(sender_output_port_num)
             sender_full_cnt = cnt_dict[sender_op][sender_page_num][sender_output_port_num]['full']
 
             receiver_input_port_num = get_port_num(receiver_op, receiver_input_port, cur_idx_dict)
@@ -775,7 +833,7 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
         print(str(connection) + ': ' + str(connection_diff_dict[connection]))
 
     operator_list_no_merge = no_merge_op_list(benchmark)
-    operator_arg_dict_no_merge = return_operator_io_argument_dict_local(operator_list_no_merge, benchmark)
+    operator_arg_dict_no_merge = return_operator_io_argument_dict_local(operator_list_no_merge, benchmark, is_no_merge=True)
     operator_var_dict_no_merge = return_operator_inst_dict_local(operator_list_no_merge, benchmark, 'top_no_merge.cpp')
     connection_list_no_merge = return_operator_connect_list_local(operator_arg_dict_no_merge, operator_var_dict_no_merge)
     # sorted_backward_op_list is all operators without merge
@@ -793,7 +851,8 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     for connection_list in connection_list_sorted:
         for connection in connection_list:
             full_diff, empty_diff = connection_diff_dict[connection]
-            if (full_diff > 0 or empty_diff > 0): # NoC bandwidth could be bottleneck
+            # if (full_diff > 0 or empty_diff > 0): # NoC bandwidth could be bottleneck
+            if (full_diff > 0): # NoC bandwidth could be bottleneck
                 print("> " + str(connection))
     print()
 
@@ -802,7 +861,9 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     for connection_list in connection_list_sorted:
         for connection in connection_list:
             full_diff, empty_diff = connection_diff_dict[connection]
-            if (full_diff > 0 or empty_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
+            # if (full_diff > 0 or empty_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
+            # Use only full counters
+            if (full_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
 
                 print("fix this connection: " + str(connection))
                 # Increase sender's num_leaf_interface, TODO: check_visited
@@ -859,13 +920,18 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                 print("is_reached_max:")
                 print(is_reached_max)
 
-                if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False and\
-                    not sender_op.startswith('data') and not receiver_op.startswith('output'): # TODO: this is known issue
+                can_merge_help = gen_can_merge_help(connection, cur_param_dict, 32, benchmark, operator_arg_dict)
+                print("can_merge_help:")
+                print(can_merge_help)
+
+                # if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False and can_merge_help:
+                # if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False:
+                if "merged_to" not in cur_param_dict[sender_op].keys() and is_NoC_bot_addressed == False:
+
                     cur_param_dict[sender_op]["merged_to_try"] = receiver_op
                     cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
                     is_NoC_bot_addressed = True
     return cur_param_dict, is_NoC_bot_addressed
-
 
 
 def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin, prev_idx_dict):
@@ -897,6 +963,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     bottleneck_op = None
     bottleneck_op_list = []
     print()
+    print('Normalized stalls:')
     for op_name in sorted(cnt_dict.keys()):
         stall_cnt = cnt_dict[op_name][0]['stall']
         print(op_name, str(stall_cnt))
@@ -924,8 +991,11 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     ## Check whether NoC is bottleneck or not. ## ==> update cur_param_dict
     #############################################
     if overlay_type == 'NoC':
-        cur_param_dict, is_NoC_bot_addressed = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, \
-                                                                               params_search_space_dict, params_annotate_dict)
+        if minimum_accuracy != -1 and accuracy < minimum_accuracy:
+            is_NoC_bot_addressed = False
+        else:
+            cur_param_dict, is_NoC_bot_addressed = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, \
+                                                                                   params_search_space_dict, params_annotate_dict)
     else:
         is_NoC_bot_addressed = False
     # print(cur_param_dict)
@@ -1030,7 +1100,9 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
 
             for bottleneck_op, stall_cnt in sorted(bottleneck_op_list, key=lambda x: x[1]):
                 # Prioritize non-"kernel_clk" parameters
-                for param in sorted(cur_param_dict[bottleneck_op].keys()): # sorted for deterministic refinement
+                # for param in sorted(cur_param_dict[bottleneck_op].keys()): # sorted for deterministic refinement
+                for param in all_params(cur_param_dict, bottleneck_op): # sorted for deterministic refinement
+
                     if param in param_for_lat_list:
                     # if param != "num_leaf_interface" and param != "kernel_clk":
                         param_search_space = params_search_space_dict[param] # e.g. [1,2,4]
@@ -1119,6 +1191,7 @@ def save_prev_param(benchmark, prev_param_dict, prev_idx_dict, prev_overlay_type
                  './input_src/' + benchmark + '/params/visited/summary_' + str(idx) + '.csv')
 
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-b',         '--benchmark',                       required = True)
@@ -1148,6 +1221,7 @@ if __name__ == '__main__':
     # Previous run failed
     if is_NoC_timing_violate or is_monolithic_fail:
         if is_NoC_timing_violate: 
+
             fail_type = 'NoC_timing'
             overlay_type = 'NoC'
             with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
@@ -1166,9 +1240,9 @@ if __name__ == '__main__':
         save_prev_param(benchmark, prev_param_dict, prev_idx_dict, prev_overlay_type)
 
         if prev_overlay_type == 'NoC':
-            latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict) # use reverted summary.csv
+            latency, accuracy, cnt_dict = counter_dict(benchmark, prev_idx_dict, prev_param_dict) # use reverted summary.csv
         else:
-            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict) # use reverted summary.csv
+            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict, prev_param_dict) # use reverted summary.csv
 
         no_valid_param, metric = update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accuracy, error_margin, prev_idx_dict)
 
@@ -1182,22 +1256,24 @@ if __name__ == '__main__':
             overlay_type = 'NoC'
             with open("./workspace/F003_syn_" + benchmark + "/pblock_assignment.json", "r") as infile:
                 prev_idx_dict = json.load(infile)
-            latency, accuracy, cnt_dict = coutner_dict(benchmark, prev_idx_dict)
+            latency, accuracy, cnt_dict = counter_dict(benchmark, prev_idx_dict, prev_param_dict)
         else:
             assert(is_monolithic_success == True)
             overlay_type = 'mono'
             with open("./workspace/F007_mono_" + benchmark + "/mono_counter_idx_dict.json", "r") as infile:
                 prev_idx_dict = json.load(infile)
-            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict) 
+            latency, accuracy, cnt_dict = counter_mono_dict(benchmark, prev_idx_dict, prev_param_dict) 
 
-        # print(latency, accuracy)
-        # print(cnt_dict)
-
+        print(latency, accuracy)
+        print(cnt_dict)
+        print(prev_param_dict)
 
         min_stall = sys.maxsize
         bottleneck_op = None
         bottleneck_op_list = []
+
         print()
+        print('Normalized stalls:')
         for op_name in sorted(cnt_dict.keys()):
             stall_cnt = cnt_dict[op_name][0]['stall']
             print(op_name, str(stall_cnt))

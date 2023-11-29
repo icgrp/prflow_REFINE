@@ -2,9 +2,11 @@
 
 # prj_name=rendering
 # prj_name=optical_flow
-# prj_name=digit_rec
+prj_name=digit_rec
 
-prj_name=finn_cnn_cifar10_small
+# prj_name=finn_cnn1
+# prj_name=finn_cnn2
+
 
 #############################################################################################
 
@@ -40,13 +42,11 @@ operators_runtime_target=$(ws_bit)/sd_card/app.exe
 mono_target=$(ws_mono)/ydma.xclbin
 
 
-
 # freq may need to be Makefile input
 freq?=400
 NPROC=32
 
 all: $(operators_runtime_target)
-
 
 
 mono: $(mono_target)
@@ -154,8 +154,6 @@ $(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/specs
 		# If no pblock maping available, move to monolithic (using current failed parameters) \
 		make incr_mono;\
 	fi;\
-# 	if [ ! -f $(ws_syn)/pblock_assignment.json ]; then python pr_flow.py $(prj_name) -pg -op '$(operators_impl)' -freq=$(freq); fi
-	#if [ ! -f $(ws_syn)/pblock_assignment.json ]; then make incr_mono; fi
 
 # Synthesis
 syn:$(operators_syn_targets)
@@ -192,9 +190,6 @@ report_mono:
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt_m -freq=$(freq)
 
 
-
-
-
 clear:
 	rm -rf ./workspace/*$(prj_name)
 
@@ -210,6 +205,7 @@ clear_incr:
 	rm -rf ./input_src/$(prj_name)/params/visited/*
 	rm -rf ./input_src/$(prj_name)/params/results/*
 	rm -rf ./input_src/$(prj_name)/operators/*
+	mkdir -p ./input_src/$(prj_name)/operators/no_merge
 	if [ -f ./input_src/$(prj_name)/folding_config_init.json ]; then\
 		cp ./input_src/$(prj_name)/folding_config_init.json ./input_src/$(prj_name)/folding_config.json;\
 	fi;\
@@ -224,22 +220,3 @@ clear_incr:
 clear_impl:
 	rm -rf ./workspace/F004_impl_$(prj_name)
 	rm -rf ./workspace/F005_bits_$(prj_name)
-
-
-# Incremental compile
-# prj_name=optical_flow_incr
-# incr:
-# 	python pr_flow.py $(prj_name) -incr -op '$(operators)'
-# run_on_fpga:
-# 	if [ ! -f ./input_src/$(prj_name)/operators/__test_done__ ]; then cd $(ws_bit) && ./run_on_fpga.sh; fi
-
-# test_dir=$(wildcard ./input_src/$(prj_name)/operators/test_*)
-# done_signals=$(foreach d, $(test_dir), $(d)/__done__)
-# revert_to_init:
-# 	rm -rf $(done_signals)
-# 	rm -rf ./input_src/$(prj_name)/operators/__test_done__
-# 	rm -rf ./input_src/$(prj_name)/operators/_best/
-# 	rm -f ./input_src/$(prj_name)/operators/best_result.txt
-# 	rm -rf ./input_src/$(prj_name)/operators/*.cpp ./input_src/$(prj_name)/operators/*.h ./input_src/$(prj_name)/operators/*.json
-# 	cp ./input_src/$(prj_name)/operators/_original/* ./input_src/$(prj_name)/operators/
-# 	mv ./input_src/$(prj_name)/operators/top.cpp ./input_src/$(prj_name)/host/top.cpp

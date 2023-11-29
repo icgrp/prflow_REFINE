@@ -1,6 +1,28 @@
 #include "../host/typedefs.h"
 
-void gradient_xyz_calc(    
+void data_transfer(
+    hls::stream<ap_uint<256>>  &Input_1,
+    hls::stream<ap_uint<64>>  &Output_1)
+{
+#pragma HLS interface axis register port=Input_1
+#pragma HLS interface axis register port=Output_1
+
+ap_uint<256> in_tmp;
+ap_uint<64>  out_tmp;
+
+  for(int i=0; i<MAX_HEIGHT*MAX_WIDTH/4; i++){
+#pragma HLS PIPELINE
+    in_tmp = Input_1.read();
+    for(int j=0; j<4; j++){ // 4 = 256/64
+      out_tmp(31, 0) = in_tmp((j<<6)+31, (j<<6)+0 );
+      out_tmp(63,32) = in_tmp((j<<6)+63, (j<<6)+32);
+      Output_1.write(out_tmp);
+    }
+  }
+
+}
+
+void g_xyz_calc_module(    
     hls::stream<ap_uint<64>> &Input_1,
     hls::stream<ap_uint<32>> &Output_1,
     hls::stream<ap_uint<32>> &Output_2,
@@ -12,7 +34,8 @@ void gradient_xyz_calc(
     #pragma HLS interface axis register port=Output_3
 
     // our own line buffer
-    static pixel_t buf[5][MAX_WIDTH+2];
+    // static pixel_t buf[5][MAX_WIDTH+2];
+    static pixel_t buf[5][MAX_WIDTH];
     #pragma HLS array_partition variable=buf complete dim=1
 
     // small buffer
@@ -20,19 +43,11 @@ void gradient_xyz_calc(
     #pragma HLS array_partition variable=smallbuf complete dim=0
 
     // window buffer
-#ifdef RISCV
-    hls::Window<5,5,input_t> window;
-#else
     xf::cv::Window<5,5,input_t> window;
-#endif
 
     ap_fixed<17, 9> GRAD_WEIGHTS[] =  {1,-8,0,8,-1};
-#ifdef RISCV
-    hls::stream_local<databus_t> gradient_z;
-#else
     hls::stream<databus_t> gradient_z;
     #pragma HLS STREAM variable=gradient_z depth=3*MAX_WIDTH
-#endif
 
     // compute gradient
     pixel_t x_grad = 0;
@@ -95,7 +110,7 @@ void gradient_xyz_calc(
                     + frame5_tmp*GRAD_WEIGHTS[4]))/12;
                 grad_z(31,0) = temp_z(31,0);
                 gradient_z.write(grad_z);
-			}
+   }
             else if (c < MAX_WIDTH) smallbuf[4] = 0;
 
             // update line buffer
@@ -108,48 +123,66 @@ void gradient_xyz_calc(
                 buf[4][c] = smallbuf[4];
             }
 
-			// manage window buffer
-			if(r<MAX_HEIGHT && c<MAX_WIDTH){
-				window.shift_pixels_left();
+   // manage window buffer
+   if(r<MAX_HEIGHT && c<MAX_WIDTH){
+    window.shift_pixels_left();
 
-				for (int i = 0; i < 5; i ++ )
-				window.insert_pixel(smallbuf[i],i,4);
-			} 
-            else {
-				window.shift_pixels_left();
-				window.insert_pixel(0,0,4);
-				window.insert_pixel(0,1,4);
-				window.insert_pixel(0,2,4);
-				window.insert_pixel(0,3,4);
-				window.insert_pixel(0,4,4);
-			}
+    for (int i = 0; i < 5; i ++ )
+    window.insert_pixel(smallbuf[i],i,4);
+   } 
+   else {
+    window.shift_pixels_left();
+    window.insert_pixel(0,0,4);
+    window.insert_pixel(0,1,4);
+    window.insert_pixel(0,2,4);
+    window.insert_pixel(0,3,4);
+    window.insert_pixel(0,4,4);
+   }
 
 
-			x_grad = 0;
-			y_grad = 0;
-			if(r>=4 && r<MAX_HEIGHT && c>=4 && c<MAX_WIDTH) {
-				GRAD_XY_XYGRAD: for(int i=0; i<5; i++){
-					x_grad = x_grad + window.getval(2,i)*GRAD_WEIGHTS[i];
-					y_grad = y_grad + window.getval(i,2)*GRAD_WEIGHTS[i];
-				}
-				x_grad = x_grad/12;
-				temp1(31,0) = x_grad(31,0);
-				Output_1.write(temp1);
+   x_grad = 0;
+   y_grad = 0;
+   if(r>=4 && r<MAX_HEIGHT && c>=4 && c<MAX_WIDTH) {
+    GRAD_XY_XYGRAD: for(int i=0; i<5; i++){
+     x_grad = x_grad + window.getval(2,i)*GRAD_WEIGHTS[i];
+     y_grad = y_grad + window.getval(i,2)*GRAD_WEIGHTS[i];
+    }
+    x_grad = x_grad/12;
+    temp1(31,0) = x_grad(31,0);
+    Output_1.write(temp1);
 
-				y_grad = y_grad/12;
-				temp2(31,0) = y_grad(31,0);
-				Output_2.write(temp2);
+    y_grad = y_grad/12;
+    temp2(31,0) = y_grad(31,0);
+    Output_2.write(temp2);
 
-				temp3 = gradient_z.read();
-				Output_3.write(temp3);
-			} 
+    temp3 = gradient_z.read();
+    Output_3.write(temp3);
+   } 
             else if(r>=2 && c>=2) {
-				Output_1.write(0);
-				Output_2.write(0);
-				temp3 = gradient_z.read();
-				Output_3.write(temp3);
-			}
-		}
-	}
+    Output_1.write(0);
+    Output_2.write(0);
+    temp3 = gradient_z.read();
+    Output_3.write(temp3);
+   }
+  }
+ }
 }
 
+void gradient_xyz_calc(    
+    hls::stream<ap_uint<256>> &Input_1,
+    hls::stream<ap_uint<32>> &Output_1,
+    hls::stream<ap_uint<32>> &Output_2,
+    hls::stream<ap_uint<32>> &Output_3)
+{
+#pragma HLS interface axis register port=Input_1
+#pragma HLS interface axis register port=Output_1
+#pragma HLS interface axis register port=Output_2
+#pragma HLS interface axis register port=Output_3
+
+
+    static hls::stream<ap_uint<64>> data_transfer_out("data_transfer_out_stream");
+
+#pragma HLS dataflow
+    data_transfer(Input_1, data_transfer_out);
+    g_xyz_calc_module(data_transfer_out, Output_1, Output_2, Output_3);
+}

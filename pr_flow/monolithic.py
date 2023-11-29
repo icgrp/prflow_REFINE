@@ -115,15 +115,15 @@ class monolithic(gen_basic):
       for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
         if var_value_a == 'Input_1': 
           tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
-          tmp_tup = (tmp_str, 512)
+          tmp_tup = (tmp_str, 256)
           connection_list.append(tmp_tup)
         if var_value_a == 'Input_2': 
           tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
-          tmp_tup = (tmp_str, 512)
+          tmp_tup = (tmp_str, 256)
           connection_list.append(tmp_tup)
         if var_value_a == 'Output_1': 
           tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
-          tmp_tup = (tmp_str, 512)
+          tmp_tup = (tmp_str, 256)
           connection_list.append(tmp_tup)
 
         for key_b in operator_var_dict:
@@ -412,7 +412,8 @@ class monolithic(gen_basic):
     out_list.append('')
     out_list.append('  // Stream shell to send cnt to host')
     out_list.append('  stream_shell #(')
-    out_list.append('   .PAYLOAD_BITS(64),')
+    out_list.append('   .WRITE_DATA_WIDTH(64),')
+    out_list.append('   .READ_DATA_WIDTH(64),')
     out_list.append('   .NUM_BRAM_ADDR_BITS(9)')
     out_list.append('   )stream_shell_cnt(')
     out_list.append('   .wr_clk(clk_300),')
@@ -619,9 +620,15 @@ class monolithic(gen_basic):
       stream_shell_idx_dict[link_str.split('->')[0].replace('.','_')] = idx
       stream_shell_idx_dict[link_str.split('->')[1].replace('.','_')] = idx
 
-      width = connect_tup[1]
+      if op_sender == 'DMA': write_width = 512
+      else: write_width = connect_tup[1]
+
+      if op_receiver == 'DMA': read_width = 512
+      else: read_width = connect_tup[1]
+
       out_list.append('  stream_shell #(')
-      out_list.append('    .PAYLOAD_BITS(' + str(width) + '),')
+      out_list.append('    .WRITE_DATA_WIDTH(' + str(write_width) + '),')
+      out_list.append('    .READ_DATA_WIDTH(' + str(read_width) + '),')
       out_list.append('    .NUM_BRAM_ADDR_BITS(7)')
       out_list.append('    )stream_shell_' + str(idx) + '(')
       out_list.append('    .wr_clk(clk_' + str(wr_freq) + '),')

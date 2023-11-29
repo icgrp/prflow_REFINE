@@ -218,12 +218,12 @@ class page_assign(gen_basic):
     # elif(pblock_size == 4): RAM_DSP_MARGIN = BRAM_MARGIN_quad_dict[frequency][pblock_name]
     # else: raise Exception("Invalid pblock size")
 
-    resource_condition = ((op_resource_dict['LUT'] < pblock_resource_dict['LUT']) * HARD_CONSTRAINT and \
-                           op_resource_dict['LUT_mem'] < pblock_resource_dict['LUT_mem'] * 1 and \
-                           op_resource_dict['FF'] < pblock_resource_dict['FF'] * 1 and \
-                           op_resource_dict['RAMB36'] < pblock_resource_dict['RAMB36'] * HARD_CONSTRAINT and \
-                           op_resource_dict['RAMB18'] < pblock_resource_dict['RAMB18'] * HARD_CONSTRAINT and \
-                           op_resource_dict['DSP48E2'] < pblock_resource_dict['DSP48E2'] * HARD_CONSTRAINT)
+    resource_condition = (op_resource_dict['LUT'] < pblock_resource_dict['LUT'] * HARD_CONSTRAINT and \
+                          op_resource_dict['LUT_mem'] < pblock_resource_dict['LUT_mem'] * 1 and \
+                          op_resource_dict['FF'] < pblock_resource_dict['FF'] * 1 and \
+                          op_resource_dict['RAMB36'] < pblock_resource_dict['RAMB36'] * HARD_CONSTRAINT and \
+                          op_resource_dict['RAMB18'] < pblock_resource_dict['RAMB18'] * HARD_CONSTRAINT and \
+                          op_resource_dict['DSP48E2'] < pblock_resource_dict['DSP48E2'] * HARD_CONSTRAINT)
     return resource_condition
 
 
