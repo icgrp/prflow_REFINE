@@ -772,7 +772,7 @@ def all_params(cur_param_dict, bottleneck_op):
     return sorted(list(set(param_list)))
 
 
-def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, params_search_space_dict, params_annotate_dict):
+def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, params_search_space_dict, params_annotate_dict, error_margin):
     # For each link in the graph, full_diff = sender's full cnt - receiver's full cnt
     #     => if the link's full_diff is large, NoC could be bottleneck
     # For each link in the graph, empty_diff = receiver's empty_cnt - sender's empty_cnt
@@ -819,7 +819,11 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
             receiver_input_port_num = get_port_num(receiver_op, receiver_input_port, cur_idx_dict)
             receiver_page_num = get_page_num(receiver_op, receiver_input_port, cur_idx_dict)
             receiver_full_cnt = cnt_dict[receiver_op][receiver_page_num][receiver_input_port_num]['full']
-            full_diff = sender_full_cnt - receiver_full_cnt
+            # IMPORTANT: relax full difference
+            if (sender_full_cnt*(1-error_margin) > receiver_full_cnt) and (sender_full_cnt - receiver_full_cnt) > 5: # difference is large enough
+                full_diff = sender_full_cnt - receiver_full_cnt
+            else: # difference is negligible
+                full_diff = 0
 
             sender_empty_cnt = cnt_dict[sender_op][sender_page_num][sender_output_port_num]['empty']
             receiver_empty_cnt = cnt_dict[receiver_op][receiver_page_num][receiver_input_port_num]['empty']
@@ -995,7 +999,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
             is_NoC_bot_addressed = False
         else:
             cur_param_dict, is_NoC_bot_addressed = update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cnt_dict, cur_idx_dict, \
-                                                                                   params_search_space_dict, params_annotate_dict)
+                                                                                   params_search_space_dict, params_annotate_dict, error_margin)
     else:
         is_NoC_bot_addressed = False
     # print(cur_param_dict)

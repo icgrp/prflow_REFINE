@@ -287,63 +287,104 @@ class syn(gen_basic):
           DATA_USER_IN_TOTAL_min32 += DATA_USER_IN_min32
           count += 1
 
-      filedata_str_list.append('    wire [' + str(DATA_USER_IN_TOTAL_min32-1) + ':0] dout2user_tmp;')
-      filedata_str_list.append('')
+      if len(mapped_I_ports) == 0: # dummy input port
+        filedata_str_list.append('    wire [31:0] dout2user_tmp;')
+        filedata_str_list.append('')
 
-      count = 0
-      for i in range(int(input_num),0,-1): # descending.. e.g. 3, 2, 1, 0
-        if 'Input_' + str(i) in mapped_I_ports:
-          idx_port = len(mapped_I_ports)-1-count
-          DATA_USER_IN = operator_input_width_dict['Input_' + str(i)]
-          if DATA_USER_IN < 32:
-            DATA_USER_IN_min32 = 32
-          else:
-            DATA_USER_IN_min32 = DATA_USER_IN
+        filedata_str_list.append('    Input_Port #(')
+        filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
+        filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
+        filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
+        filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
+        filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
+        filedata_str_list.append('        .NUM_IN_PORTS(NUM_IN_PORTS),')
+        filedata_str_list.append('        .NUM_OUT_PORTS(NUM_OUT_PORTS),')
+        filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
+        filedata_str_list.append('        .PORT_No(0+2),')
+        filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
+        filedata_str_list.append('        .DATA_USER_IN(32) // OPERATOR SPECIFIC!')
+        filedata_str_list.append('    )IPort_0(')
+        filedata_str_list.append('        .clk(clk),')
+        filedata_str_list.append('        .clk_user(clk_user),')
+        filedata_str_list.append('        .reset(reset),')
+        filedata_str_list.append('        .reset_user(reset_user),')
+        filedata_str_list.append('        .freespace_update(freespace_update[0]),')
+        filedata_str_list.append('        .packet_from_input_port(packet_from_input_ports[PACKET_BITS*(0+1)-1:PACKET_BITS*0]),')
+        filedata_str_list.append('        .din_leaf_bft2interface(stream_in),')
+        filedata_str_list.append('        .src_leaf(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*(0+1)-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*0+NUM_PORT_BITS]),')
+        filedata_str_list.append('        .src_port(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*0+NUM_PORT_BITS-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*0]),')
+        filedata_str_list.append('')
+        filedata_str_list.append('        .dout2user(dout2user_tmp[31:0]), // OPERATOR SPECIFIC!')
+        filedata_str_list.append('        .vld2user(vld2user[0]),')
+        filedata_str_list.append('        .ack_user2b_in(ack_user2b_in[0]),')
+        filedata_str_list.append('')
+        filedata_str_list.append('        .is_done_mode(is_done_mode),')
+        filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
+        filedata_str_list.append('        .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(0+1)-1:PAYLOAD_BITS*0]),')
+        filedata_str_list.append('        .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(0+1)-1:PAYLOAD_BITS*0]),')
+        filedata_str_list.append('        .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(0+1)-1:PAYLOAD_BITS*0]),')
+        filedata_str_list.append('        .input_port_stall_condition(input_port_stall_condition[0])')
+        filedata_str_list.append('    );')
+        filedata_str_list.append('    assign dout2user = dout2user_tmp; // only low bits')
+        filedata_str_list.append('')
+      else:
+        filedata_str_list.append('    wire [' + str(DATA_USER_IN_TOTAL_min32-1) + ':0] dout2user_tmp;')
+        filedata_str_list.append('')
+        count = 0
+        for i in range(int(input_num),0,-1): # descending.. e.g. 3, 2, 1, 0
+          if 'Input_' + str(i) in mapped_I_ports:
+            idx_port = len(mapped_I_ports)-1-count
+            DATA_USER_IN = operator_input_width_dict['Input_' + str(i)]
+            if DATA_USER_IN < 32:
+              DATA_USER_IN_min32 = 32
+            else:
+              DATA_USER_IN_min32 = DATA_USER_IN
 
-          filedata_str_list.append('    Input_Port #(')
-          filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
-          filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
-          filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
-          filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
-          filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
-          filedata_str_list.append('        .NUM_IN_PORTS(NUM_IN_PORTS),')
-          filedata_str_list.append('        .NUM_OUT_PORTS(NUM_OUT_PORTS),')
-          filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
-          filedata_str_list.append('        .PORT_No(' + str(idx_port) + '+2),')
-          filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
-          filedata_str_list.append('        .DATA_USER_IN(' + str(DATA_USER_IN_min32) + ') // OPERATOR SPECIFIC!')
-          filedata_str_list.append('    )IPort_' + str(idx_port) +  '(')
-          filedata_str_list.append('        .clk(clk),')
-          filedata_str_list.append('        .clk_user(clk_user),')
-          filedata_str_list.append('        .reset(reset),')
-          filedata_str_list.append('        .reset_user(reset_user),')
-          filedata_str_list.append('        .freespace_update(freespace_update[' + str(idx_port) + ']),')
-          filedata_str_list.append('        .packet_from_input_port(packet_from_input_ports[PACKET_BITS*(' + str(idx_port) + '+1)-1:PACKET_BITS*' + str(idx_port) + ']),')
-          filedata_str_list.append('        .din_leaf_bft2interface(stream_in),')
-          filedata_str_list.append('        .src_leaf(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*(' + str(idx_port) + '+1)-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS]),')
-          filedata_str_list.append('        .src_port(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + ']),')
-          filedata_str_list.append('')
-          high_addr_tmp = DATA_USER_IN_TOTAL_min32 - 1
-          low_addr_tmp = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
-          filedata_str_list.append('        .dout2user(dout2user_tmp[' + str(high_addr_tmp) + ':' + str(low_addr_tmp) + ']), // OPERATOR SPECIFIC!')
-          DATA_USER_IN_TOTAL_min32 = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
-          filedata_str_list.append('        .vld2user(vld2user[' + str(idx_port) + ']),')
-          filedata_str_list.append('        .ack_user2b_in(ack_user2b_in[' + str(idx_port) + ']),')
-          filedata_str_list.append('')
-          filedata_str_list.append('        .is_done_mode(is_done_mode),')
-          filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
-          filedata_str_list.append('        .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
-          filedata_str_list.append('        .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
-          filedata_str_list.append('        .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
-          filedata_str_list.append('        .input_port_stall_condition(input_port_stall_condition[' + str(idx_port) + '])')
-          filedata_str_list.append('    );')
+            filedata_str_list.append('    Input_Port #(')
+            filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
+            filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
+            filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
+            filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
+            filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
+            filedata_str_list.append('        .NUM_IN_PORTS(NUM_IN_PORTS),')
+            filedata_str_list.append('        .NUM_OUT_PORTS(NUM_OUT_PORTS),')
+            filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
+            filedata_str_list.append('        .PORT_No(' + str(idx_port) + '+2),')
+            filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
+            filedata_str_list.append('        .DATA_USER_IN(' + str(DATA_USER_IN_min32) + ') // OPERATOR SPECIFIC!')
+            filedata_str_list.append('    )IPort_' + str(idx_port) +  '(')
+            filedata_str_list.append('        .clk(clk),')
+            filedata_str_list.append('        .clk_user(clk_user),')
+            filedata_str_list.append('        .reset(reset),')
+            filedata_str_list.append('        .reset_user(reset_user),')
+            filedata_str_list.append('        .freespace_update(freespace_update[' + str(idx_port) + ']),')
+            filedata_str_list.append('        .packet_from_input_port(packet_from_input_ports[PACKET_BITS*(' + str(idx_port) + '+1)-1:PACKET_BITS*' + str(idx_port) + ']),')
+            filedata_str_list.append('        .din_leaf_bft2interface(stream_in),')
+            filedata_str_list.append('        .src_leaf(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*(' + str(idx_port) + '+1)-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS]),')
+            filedata_str_list.append('        .src_port(in_control_reg[(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + '+NUM_PORT_BITS-1:(NUM_LEAF_BITS+NUM_PORT_BITS)*' + str(idx_port) + ']),')
+            filedata_str_list.append('')
+            high_addr_tmp = DATA_USER_IN_TOTAL_min32 - 1
+            low_addr_tmp = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
+            filedata_str_list.append('        .dout2user(dout2user_tmp[' + str(high_addr_tmp) + ':' + str(low_addr_tmp) + ']), // OPERATOR SPECIFIC!')
+            DATA_USER_IN_TOTAL_min32 = DATA_USER_IN_TOTAL_min32 - DATA_USER_IN_min32
+            filedata_str_list.append('        .vld2user(vld2user[' + str(idx_port) + ']),')
+            filedata_str_list.append('        .ack_user2b_in(ack_user2b_in[' + str(idx_port) + ']),')
+            filedata_str_list.append('')
+            filedata_str_list.append('        .is_done_mode(is_done_mode),')
+            filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
+            filedata_str_list.append('        .input_port_full_cnt(input_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+            filedata_str_list.append('        .input_port_empty_cnt(input_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+            filedata_str_list.append('        .input_port_read_cnt(input_port_read_cnt[PAYLOAD_BITS*(' + str(idx_port) + '+1)-1:PAYLOAD_BITS*' + str(idx_port) + ']),')
+            filedata_str_list.append('        .input_port_stall_condition(input_port_stall_condition[' + str(idx_port) + '])')
+            filedata_str_list.append('    );')
 
-          high_addr = DATA_USER_IN_TOTAL - 1
-          low_addr = DATA_USER_IN_TOTAL - DATA_USER_IN
-          DATA_USER_IN_TOTAL = DATA_USER_IN_TOTAL - DATA_USER_IN
-          filedata_str_list.append('    assign dout2user[' + str(high_addr) + ':' + str(low_addr) + '] = dout2user_tmp[' + str(low_addr_tmp + DATA_USER_IN - 1) + ':' + str(low_addr_tmp) + ']; // only low bits')
-          filedata_str_list.append('')
-          count += 1
+            high_addr = DATA_USER_IN_TOTAL - 1
+            low_addr = DATA_USER_IN_TOTAL - DATA_USER_IN
+            DATA_USER_IN_TOTAL = DATA_USER_IN_TOTAL - DATA_USER_IN
+            filedata_str_list.append('    assign dout2user[' + str(high_addr) + ':' + str(low_addr) + '] = dout2user_tmp[' + str(low_addr_tmp + DATA_USER_IN - 1) + ':' + str(low_addr_tmp) + ']; // only low bits')
+            filedata_str_list.append('')
+            count += 1
+
       filedata_str_list.append('endmodule')
 
       filedata_str = "\n".join(filedata_str_list)
@@ -413,16 +454,7 @@ class syn(gen_basic):
       for o_port in mapped_O_ports:
         DATA_USER_OUT_TOTAL += operator_output_width_dict[o_port] # output port width total for this leaf interface
 
-      count = 0
-      for i in range(int(output_num),0,-1): # descending.. e.g. 3, 2, 1, 0
-        if 'Output_' + str(i) in mapped_O_ports:
-          idx_port = len(mapped_O_ports)-1-count
-          DATA_USER_OUT = operator_output_width_dict['Output_' + str(i)]
-          if DATA_USER_OUT < 32:
-            DATA_USER_OUT_min32 = 32
-          else:
-            DATA_USER_OUT_min32 = DATA_USER_OUT
-
+      if len(mapped_O_ports) == 0: # dummy output_port, still needs to output counters
           filedata_str_list.append('    Output_Port#(')
           filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
           filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
@@ -431,39 +463,31 @@ class syn(gen_basic):
           filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
           filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
           filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
-          filedata_str_list.append('        .DATA_USER_OUT(' + str(DATA_USER_OUT_min32) + '), // OPERATOR SPECIFIC!')
-
-          if idx_port == 0: filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
-          else: filedata_str_list.append('        .OUTPUT_0(0) // only one output port')
-
-          filedata_str_list.append('    )OPort_' + str(idx_port)  + '(')
+          filedata_str_list.append('        .DATA_USER_OUT(32), // OPERATOR SPECIFIC!')
+          filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
+          filedata_str_list.append('    )OPort_0(')
           filedata_str_list.append('        .clk(clk),')
           filedata_str_list.append('        .clk_user(clk_user),')
           filedata_str_list.append('        .reset(reset),')
           filedata_str_list.append('        .reset_user(reset_user),')
-          filedata_str_list.append('        .update_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+2]),')
-          filedata_str_list.append('        .update_fifo_addr_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+1]),')
-          filedata_str_list.append('        .add_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS]),')
-          filedata_str_list.append('        .dst_leaf(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS]),')
-          filedata_str_list.append('        .dst_port(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS]),')
-          filedata_str_list.append('        .fifo_addr(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS]),')
-          filedata_str_list.append('        .freespace(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ ']),')
-          filedata_str_list.append('        .vld_user2b_out(vld_user2b_out[' + str(idx_port)+ ']),')
-          filedata_str_list.append('        .rd_en_sel(rd_en_sel[' + str(idx_port)+ ']),')
-
-          high_addr = DATA_USER_OUT_TOTAL - 1
-          low_addr = DATA_USER_OUT_TOTAL - DATA_USER_OUT
-          filedata_str_list.append('        .din_leaf_user2interface(din_leaf_user2interface[' + str(high_addr) + ':' + str(low_addr) + ']), // OPERATOR SPECIFIC!, if <32, zero-padded')
-          DATA_USER_OUT_TOTAL = DATA_USER_OUT_TOTAL - DATA_USER_OUT
-
-          filedata_str_list.append('        .internal_out(internal_out[PACKET_BITS*(' + str(idx_port)+ '+1)-1:PACKET_BITS*' + str(idx_port)+ ']),')
-          filedata_str_list.append('        .empty(empty[' + str(idx_port)+ ']),')
-          filedata_str_list.append('        .ack_b_out2user(ack_b_out2user[' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .update_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+2]),')
+          filedata_str_list.append('        .update_fifo_addr_en(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+1]),')
+          filedata_str_list.append('        .add_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS]),')
+          filedata_str_list.append('        .dst_leaf(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS-1:OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS]),')
+          filedata_str_list.append('        .dst_port(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS-1:OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS]),')
+          filedata_str_list.append('        .fifo_addr(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS]),')
+          filedata_str_list.append('        .freespace(out_control_reg[OUT_PORTS_REG_BITS*0+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*0]),')
+          filedata_str_list.append('        .vld_user2b_out(vld_user2b_out[0]),')
+          filedata_str_list.append('        .rd_en_sel(rd_en_sel[0]),')
+          filedata_str_list.append('        .din_leaf_user2interface(din_leaf_user2interface[31:0]), // OPERATOR SPECIFIC!, if <32, zero-padded')
+          filedata_str_list.append('        .internal_out(internal_out[PACKET_BITS*(0+1)-1:PACKET_BITS*0]),')
+          filedata_str_list.append('        .empty(empty[0]),')
+          filedata_str_list.append('        .ack_b_out2user(ack_b_out2user[0]),')
           filedata_str_list.append('')
           filedata_str_list.append('        .is_done_mode(is_done_mode),')
           filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
-          filedata_str_list.append('        .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
-          filedata_str_list.append('        .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
+          filedata_str_list.append('        .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(0+1)-1:PAYLOAD_BITS*0]),')
+          filedata_str_list.append('        .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(0+1)-1:PAYLOAD_BITS*0]),')
           if idx_port == 0: 
             filedata_str_list.append('        .is_sending_full_cnt_reg(is_sending_full_cnt_reg), // only output_port_0')
             filedata_str_list.append('        .self_leaf_reg(self_leaf_reg), // only output_port_0')
@@ -481,10 +505,82 @@ class syn(gen_basic):
             filedata_str_list.append('        .vld_cnt(), // non-output_port_0')
             filedata_str_list.append('        .cnt_val(), // non-output_port_0')
           filedata_str_list.append('')
-          filedata_str_list.append('        .output_port_stall_condition(output_port_stall_condition[' + str(idx_port) + '])')
+          filedata_str_list.append('        .output_port_stall_condition(output_port_stall_condition[0])')
           filedata_str_list.append('    );')
           filedata_str_list.append('')
-          count += 1
+      else:
+        count = 0
+        for i in range(int(output_num),0,-1): # descending.. e.g. 3, 2, 1, 0
+          if 'Output_' + str(i) in mapped_O_ports:
+            idx_port = len(mapped_O_ports)-1-count
+            DATA_USER_OUT = operator_output_width_dict['Output_' + str(i)]
+            if DATA_USER_OUT < 32:
+              DATA_USER_OUT_min32 = 32
+            else:
+              DATA_USER_OUT_min32 = DATA_USER_OUT
+
+            filedata_str_list.append('    Output_Port#(')
+            filedata_str_list.append('        .PACKET_BITS(PACKET_BITS),')
+            filedata_str_list.append('        .NUM_LEAF_BITS(NUM_LEAF_BITS),')
+            filedata_str_list.append('        .NUM_PORT_BITS(NUM_PORT_BITS),')
+            filedata_str_list.append('        .NUM_ADDR_BITS(NUM_ADDR_BITS),')
+            filedata_str_list.append('        .PAYLOAD_BITS(PAYLOAD_BITS),')
+            filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
+            filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
+            filedata_str_list.append('        .DATA_USER_OUT(' + str(DATA_USER_OUT_min32) + '), // OPERATOR SPECIFIC!')
+
+            if idx_port == 0: filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
+            else: filedata_str_list.append('        .OUTPUT_0(0) // only one output port')
+
+            filedata_str_list.append('    )OPort_' + str(idx_port)  + '(')
+            filedata_str_list.append('        .clk(clk),')
+            filedata_str_list.append('        .clk_user(clk_user),')
+            filedata_str_list.append('        .reset(reset),')
+            filedata_str_list.append('        .reset_user(reset_user),')
+            filedata_str_list.append('        .update_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+2]),')
+            filedata_str_list.append('        .update_fifo_addr_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS+1]),')
+            filedata_str_list.append('        .add_freespace_en(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS]),')
+            filedata_str_list.append('        .dst_leaf(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS+NUM_LEAF_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS]),')
+            filedata_str_list.append('        .dst_port(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS+NUM_PORT_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS]),')
+            filedata_str_list.append('        .fifo_addr(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS]),')
+            filedata_str_list.append('        .freespace(out_control_reg[OUT_PORTS_REG_BITS*' + str(idx_port)+ '+NUM_ADDR_BITS-1:OUT_PORTS_REG_BITS*' + str(idx_port)+ ']),')
+            filedata_str_list.append('        .vld_user2b_out(vld_user2b_out[' + str(idx_port)+ ']),')
+            filedata_str_list.append('        .rd_en_sel(rd_en_sel[' + str(idx_port)+ ']),')
+
+            high_addr = DATA_USER_OUT_TOTAL - 1
+            low_addr = DATA_USER_OUT_TOTAL - DATA_USER_OUT
+            filedata_str_list.append('        .din_leaf_user2interface(din_leaf_user2interface[' + str(high_addr) + ':' + str(low_addr) + ']), // OPERATOR SPECIFIC!, if <32, zero-padded')
+            DATA_USER_OUT_TOTAL = DATA_USER_OUT_TOTAL - DATA_USER_OUT
+
+            filedata_str_list.append('        .internal_out(internal_out[PACKET_BITS*(' + str(idx_port)+ '+1)-1:PACKET_BITS*' + str(idx_port)+ ']),')
+            filedata_str_list.append('        .empty(empty[' + str(idx_port)+ ']),')
+            filedata_str_list.append('        .ack_b_out2user(ack_b_out2user[' + str(idx_port)+ ']),')
+            filedata_str_list.append('')
+            filedata_str_list.append('        .is_done_mode(is_done_mode),')
+            filedata_str_list.append('        .is_done_mode_user(is_done_mode_user),')
+            filedata_str_list.append('        .output_port_full_cnt(output_port_full_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
+            filedata_str_list.append('        .output_port_empty_cnt(output_port_empty_cnt[PAYLOAD_BITS*(' + str(idx_port)+ '+1)-1:PAYLOAD_BITS*' + str(idx_port)+ ']),')
+            if idx_port == 0: 
+              filedata_str_list.append('        .is_sending_full_cnt_reg(is_sending_full_cnt_reg), // only output_port_0')
+              filedata_str_list.append('        .self_leaf_reg(self_leaf_reg), // only output_port_0')
+              filedata_str_list.append('        .self_port_reg(self_port_reg), // only output_port_0')
+              filedata_str_list.append('        .cnt_type_reg(cnt_type_reg), // only output_port_0')
+              filedata_str_list.append('')
+              filedata_str_list.append('        .vld_cnt(vld_cnt), // only output_port_0')
+              filedata_str_list.append('        .cnt_val(cnt_val), // only output_port_0')
+            else: 
+              filedata_str_list.append('        .is_sending_full_cnt_reg(), // non-output_port_0')
+              filedata_str_list.append('        .self_leaf_reg(), // non-output_port_0')
+              filedata_str_list.append('        .self_port_reg(), // non-output_port_0')
+              filedata_str_list.append('        .cnt_type_reg(), // non-output_port_0')
+              filedata_str_list.append('')
+              filedata_str_list.append('        .vld_cnt(), // non-output_port_0')
+              filedata_str_list.append('        .cnt_val(), // non-output_port_0')
+            filedata_str_list.append('')
+            filedata_str_list.append('        .output_port_stall_condition(output_port_stall_condition[' + str(idx_port) + '])')
+            filedata_str_list.append('    );')
+            filedata_str_list.append('')
+            count += 1
 
       filedata_str_list.append('endmodule')
 

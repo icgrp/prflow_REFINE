@@ -790,8 +790,15 @@ class _verilog:
         lines_list.append('        .STALL_CNT(1),')
       else:
         lines_list.append('        .STALL_CNT(0), // no stall counter')
-      lines_list.append('        .DATA_USER_IN_TOTAL(' + str(DATA_USER_IN_TOTAL_dict[j]) + '),')
-      lines_list.append('        .DATA_USER_OUT_TOTAL(' + str(DATA_USER_OUT_TOTAL_dict[j]) + ')')
+
+      if DATA_USER_IN_TOTAL_dict[j] == 0:
+        lines_list.append('        .DATA_USER_IN_TOTAL(32),')
+      else:
+        lines_list.append('        .DATA_USER_IN_TOTAL(' + str(DATA_USER_IN_TOTAL_dict[j]) + '),')
+      if DATA_USER_OUT_TOTAL_dict[j] == 0:
+        lines_list.append('        .DATA_USER_OUT_TOTAL(32)')
+      else:
+        lines_list.append('        .DATA_USER_OUT_TOTAL(' + str(DATA_USER_OUT_TOTAL_dict[j]) + ')')
       lines_list.append('    )leaf_interface_' + str(j) + '_inst(')
       lines_list.append('        .clk(clk_400_0), // use first port') # clk_bft is fixed to max freq, which is 400MHz
       lines_list.append('        .clk_user(clk_user), // common')
