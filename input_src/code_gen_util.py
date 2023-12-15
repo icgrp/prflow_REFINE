@@ -688,6 +688,7 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
         # Update cur_param_dict for the merged ops
         # 1) Use higher kernel clk
         # 2) If higher num_leaf_interface makes sense, use higher num_leaf_interface
+        # 3) Include sub op's param to the merged op
         represent_op_list = []
         for op in cur_param_dict.keys():
             if op != 'metric':
@@ -700,11 +701,16 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             merged_op_list = get_merged_ops(cur_param_dict, represent_op)
             num_leaf_interface_list = []
             kernel_clk_list = []
+
             for sub_op in merged_op_list:
                 if cur_param_dict[sub_op]['num_leaf_interface'] not in num_leaf_interface_list:
                     num_leaf_interface_list.append(cur_param_dict[sub_op]['num_leaf_interface'])
                 if cur_param_dict[sub_op]['kernel_clk'] not in kernel_clk_list:
                     kernel_clk_list.append(cur_param_dict[sub_op]['kernel_clk'])
+                for param in cur_param_dict[sub_op].keys():
+                    if param != "merged_to" and param not in cur_param_dict[represent_op].keys():
+                        cur_param_dict[represent_op][param] = cur_param_dict[sub_op][param] # new param from sub_op is added to merged op
+
 
             # If sub_op's 'num_leaf_interface' makes sense, use for the merged op
             for i in sorted(num_leaf_interface_list, reverse=True):
@@ -716,10 +722,12 @@ def perform_merging(operator_list, cur_param_dict, ops_to_compile_list, filedata
             if max(kernel_clk_list) > cur_param_dict[represent_op]['kernel_clk']:
                 cur_param_dict[represent_op]['kernel_clk'] = max(kernel_clk_list)
 
-            # Update for sub_ops too
+            # Update for other sub_ops too
             for sub_op in merged_op_list:
                 cur_param_dict[sub_op]['num_leaf_interface'] = cur_param_dict[represent_op]['num_leaf_interface']
                 cur_param_dict[sub_op]['kernel_clk'] = cur_param_dict[represent_op]['kernel_clk']
+
+
 
 
         return top_str_dict

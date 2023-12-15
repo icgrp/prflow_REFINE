@@ -112,6 +112,27 @@ class record_time(gen_basic):
       resource_report_dict['mono']['RAMB18'] = num_ram18
       resource_report_dict['mono']['DSP48E2'] = num_dsp
 
+      if os.path.isfile(self.mono_dir + '/' + self.prflow_params['board'] + '/mono_impl/mono_util.rpt'):
+        file_name = self.mono_dir + '/' + self.prflow_params['board'] + '/mono_impl/mono_util.rpt'
+        file_list = self.shell.file_to_list(file_name)
+        for idx, line in enumerate(file_list):
+          if ' ydma_mono_0 ' in line:
+            resource_list =  file_list[idx].replace(' ', '').split('|')
+            num_LUT = int(resource_list[3])
+            num_LUT_mem = int(resource_list[5])
+            num_FF = int(resource_list[7])
+            num_ram18 = int(resource_list[8])*2+int(resource_list[9])
+            num_dsp = int(resource_list[11])
+
+      resource_report_dict['mono_design'] = {}
+      resource_report_dict['mono_design']['pblock'] = None
+      resource_report_dict['mono_design']['LUT'] = num_LUT
+      resource_report_dict['mono_design']['LUT_mem'] = num_LUT_mem
+      resource_report_dict['mono_design']['FF'] = num_FF
+      resource_report_dict['mono_design']['RAMB18'] = num_ram18
+      resource_report_dict['mono_design']['DSP48E2'] = num_dsp
+
+
     return resource_report_dict
 
 

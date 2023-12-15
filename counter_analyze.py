@@ -6,6 +6,7 @@ import re
 
 # num_cnt_read = 60
 
+# Update: not used anymore
 # If stream width larger than payload_size OR
 # if number of output streams of sender_op > num_leaf_interface of sender_op OR
 # if number of input streams of receiver_op > num_leaf_interface of receiver_op
@@ -233,11 +234,14 @@ def check_visited(overlay_type, operator, param_to_tune, new_param_val):
     for param_file in param_file_list:
         with open("./input_src/" + benchmark + "/params/visited/" + param_file, "r") as infile:
             param_dict = json.load(infile)
-        if param_to_tune == 'kernel_clk':
+        if param_to_tune == 'kernel_clk' or param_to_tune == 'num_leaf_interface' or param_to_tune == 'merged_to':
             if operator in param_dict.keys():
-                # if param_dict[operator]['kernel_clk'] == new_param_val:
-                if param_dict[operator]['kernel_clk'] == new_param_val: 
-                    return True
+                if param_to_tune in param_dict[operator].keys():
+                    if param_dict[operator][param_to_tune] == new_param_val: 
+                        # print(">>>> " + operator)
+                        # print(">>>> " + str(param_to_tune))
+                        # print(">>>> " + str(new_param_val))
+                        return True
         else:
             for operator in param_dict.keys():
                 if operator != 'metric':
@@ -824,12 +828,13 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                 full_diff = sender_full_cnt - receiver_full_cnt
             else: # difference is negligible
                 full_diff = 0
+            full_diff_original = sender_full_cnt - receiver_full_cnt # debugging purpose
 
             sender_empty_cnt = cnt_dict[sender_op][sender_page_num][sender_output_port_num]['empty']
             receiver_empty_cnt = cnt_dict[receiver_op][receiver_page_num][receiver_input_port_num]['empty']
             empty_diff = receiver_empty_cnt - sender_empty_cnt
 
-            connection_diff_dict[connection] = (full_diff, empty_diff)
+            connection_diff_dict[connection] = (full_diff_original, full_diff, empty_diff)
 
     print()
     print("connection_diff_dict: ")
@@ -854,49 +859,54 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
     print("potential erroneous connections with NoC bottleneck:")
     for connection_list in connection_list_sorted:
         for connection in connection_list:
-            full_diff, empty_diff = connection_diff_dict[connection]
+            full_diff_original, full_diff, empty_diff = connection_diff_dict[connection]
             # if (full_diff > 0 or empty_diff > 0): # NoC bandwidth could be bottleneck
-            if (full_diff > 0): # NoC bandwidth could be bottleneck
-                print("> " + str(connection))
+            if (full_diff_original > 0): # NoC bandwidth could be bottleneck
+                print("> " + str(connection) + ": " + str((full_diff_original, full_diff, empty_diff)))
     print()
 
     is_NoC_bot_addressed = False
     # If NoC is bottleneck, perform only one change at a time
     for connection_list in connection_list_sorted:
         for connection in connection_list:
-            full_diff, empty_diff = connection_diff_dict[connection]
+            full_diff_original, full_diff, empty_diff = connection_diff_dict[connection]
             # if (full_diff > 0 or empty_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
             # Use only full counters
             if (full_diff > 0) and is_NoC_bot_addressed == False: # One step at a time when resolving NoC bottleneck
 
                 print("fix this connection: " + str(connection))
-                # Increase sender's num_leaf_interface, TODO: check_visited
+                # Increase sender's num_leaf_interface
                 sender_op = connection.split('->')[0].split('.')[0]
                 num_sender_output = len([port for port in operator_arg_dict[sender_op] if port.startswith('Output_')])
                 cur_sender_num_leaf_interface = cur_param_dict[sender_op]["num_leaf_interface"]
-                if cur_sender_num_leaf_interface < 4 and num_sender_output > 2:
-                    cur_param_dict[sender_op]["num_leaf_interface"] = 4 
-                    cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
-                    is_NoC_bot_addressed = True
-                if cur_sender_num_leaf_interface < 2 and num_sender_output > 1:
-                    cur_param_dict[sender_op]["num_leaf_interface"] = 2 
-                    cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
-                    is_NoC_bot_addressed = True
 
-                # Increase receiver's num_leaf_interface, TODO: check_visited
+
+                if cur_sender_num_leaf_interface < 4 and num_sender_output > 2:
+                    if not check_visited("NoC", sender_op, "num_leaf_interface", 4):
+                        cur_param_dict[sender_op]["num_leaf_interface"] = 4 
+                        cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
+                        is_NoC_bot_addressed = True
+                if cur_sender_num_leaf_interface < 2 and num_sender_output > 1:
+                    if not check_visited("NoC", sender_op, "num_leaf_interface", 2):
+                        cur_param_dict[sender_op]["num_leaf_interface"] = 2 
+                        cur_param_dict = update_for_idetical_op(cur_param_dict, sender_op, "num_leaf_interface")
+                        is_NoC_bot_addressed = True
+
+                # Increase receiver's num_leaf_interface
                 receiver_op = connection.split('->')[1].split('.')[0]
                 num_receiver_input = len([port for port in operator_arg_dict[receiver_op] if port.startswith('Input_')])
                 cur_receiver_num_leaf_interface = cur_param_dict[receiver_op]["num_leaf_interface"]
                 if cur_receiver_num_leaf_interface < 4 and num_receiver_input > 2:
-                    cur_param_dict[receiver_op]["num_leaf_interface"] = 4 
-                    cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
-                    is_NoC_bot_addressed = True
+                    if not check_visited("NoC", receiver_op, "num_leaf_interface", 4):
+                        cur_param_dict[receiver_op]["num_leaf_interface"] = 4 
+                        cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
+                        is_NoC_bot_addressed = True
                 if cur_receiver_num_leaf_interface < 2 and num_receiver_input > 1:
-                    cur_param_dict[receiver_op]["num_leaf_interface"] = 2 
-                    cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
-                    is_NoC_bot_addressed = True
+                    if not check_visited("NoC", receiver_op, "num_leaf_interface", 2):
+                        cur_param_dict[receiver_op]["num_leaf_interface"] = 2 
+                        cur_param_dict = update_for_idetical_op(cur_param_dict, receiver_op, "num_leaf_interface")
+                        is_NoC_bot_addressed = True
 
-                # TODO: check_visited
                 # NoC bottleneck exists, and 
                 #   1) can't resolve it by increasing num_leaf_interface and
                 #   2) the sender_op has not been merged to other ops yet
@@ -924,17 +934,17 @@ def update_cur_param_NoC_bottleneck(benchmark, cur_param_dict, operator_list, cn
                 print("is_reached_max:")
                 print(is_reached_max)
 
-                can_merge_help = gen_can_merge_help(connection, cur_param_dict, 32, benchmark, operator_arg_dict)
-                print("can_merge_help:")
-                print(can_merge_help)
+                # can_merge_help = gen_can_merge_help(connection, cur_param_dict, 32, benchmark, operator_arg_dict)
+                # print("can_merge_help:")
+                # print(can_merge_help)
 
                 # if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False and can_merge_help:
                 # if "merged_to" not in cur_param_dict[sender_op].keys() and is_reached_max and is_NoC_bot_addressed == False:
                 if "merged_to" not in cur_param_dict[sender_op].keys() and is_NoC_bot_addressed == False:
-
-                    cur_param_dict[sender_op]["merged_to_try"] = receiver_op
-                    cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
-                    is_NoC_bot_addressed = True
+                    if not check_visited("NoC", sender_op, "merged_to", receiver_op):
+                        cur_param_dict[sender_op]["merged_to_try"] = receiver_op
+                        cur_param_dict = update_for_idetical_op(cur_param_dict, (sender_op, receiver_op), "merged_to_try")
+                        is_NoC_bot_addressed = True
     return cur_param_dict, is_NoC_bot_addressed
 
 
