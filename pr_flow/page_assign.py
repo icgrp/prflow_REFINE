@@ -189,9 +189,9 @@ class page_assign(gen_basic):
       columns=['LUT ratio', 'FF ratio', 'BRAM ratio', 'DSP ratio', 'Rent', 'average fanout', 'total instances'])
 
     dir_name = str(RECALL_THRESHOLD).split('.')[1]
-    best_model = pickle.load(open('./classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '.pickle', "rb"))
+    best_model = pickle.load(open('./isFit/rpt_dir/classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '.pickle', "rb"))
     if best_model.__class__.__name__ != 'RandomForestClassifier':
-        standard_scaler = pickle.load(open('./classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '_sc.pickle', "rb"))
+        standard_scaler = pickle.load(open('./isFit/rpt_dir/classifier/' + str(frequency) + 'MHz/' + dir_name + '/' + pblock_name + '_sc.pickle', "rb"))
         test_feature = pd.DataFrame(standard_scaler.transform(test_feature), index=test_feature.index, columns=test_feature.columns)
 
     y_test_pred = best_model.predict(test_feature)

@@ -1,0 +1,3 @@
+[submodule "isFit"]
+	path = isFit
+	url = https://github.com/dj-park/isFit

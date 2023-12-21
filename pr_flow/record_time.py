@@ -116,7 +116,7 @@ class record_time(gen_basic):
         file_name = self.mono_dir + '/' + self.prflow_params['board'] + '/mono_impl/mono_util.rpt'
         file_list = self.shell.file_to_list(file_name)
         for idx, line in enumerate(file_list):
-          if ' ydma_mono_0 ' in line:
+          if ' mono_inst ' in line:
             resource_list =  file_list[idx].replace(' ', '').split('|')
             num_LUT = int(resource_list[3])
             num_LUT_mem = int(resource_list[5])
