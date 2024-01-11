@@ -165,8 +165,8 @@ class overlay(gen_basic):
     with open(makefile, "r") as file:
       filedata = file.read()
     filedata = filedata.replace("checkpoint", "overlay_p"+str(bft_n))
-    filedata = filedata.replace("_p31", "_p"+str(bft_n))
-    filedata = filedata.replace('sub.xdc', 'sub_p'+str(bft_n)+'.xdc')
+    # filedata = filedata.replace("_p31", "_p"+str(bft_n))
+    # filedata = filedata.replace('sub.xdc', 'sub_p'+str(bft_n)+'.xdc')
 
     with open(makefile, "w") as file:
       file.write(filedata)
@@ -258,6 +258,8 @@ class overlay(gen_basic):
       # self.shell.cp_dir('./common/script_src/parse_ovly_util.py', self.overlay_dir)
 
       # modifications for single-overlay-version to multiple-overlays-version
+      self.update_makefile_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
+                                    +'/'+self.prflow_params['board']+'_dfx_manual'+'/',bft_n)
       self.update_py_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
                                     +'/'+self.prflow_params['board']+'_dfx_manual'+'/python/',bft_n)
       self.update_sh_overlay(self.overlay_dir+'/ydma/'+self.prflow_params['board']+'/'+overlay_freq+'MHz'\
