@@ -47,7 +47,7 @@ and adjust the configurations in [./common/configure/zcu102/configure.xml](./com
 ```
 
 ## Pre-generated overlay
-[Generate Overlay](gen_overlay)
+[Generate Overlay](#gen_overlay)
 test
 
 test
@@ -56,6 +56,6 @@ test
 
 test
 
-
-## <a name="gen_overlay"></a>Generated overlay
+<a name="gen_overlay"></a>
+## Generated overlay
 blah
