@@ -1,8 +1,9 @@
 ############################################################################################
 
-# prj_name=rendering
+prj_name=rendering
 # prj_name=optical_flow
-prj_name=digit_rec
+# prj_name=optical_flow_8
+# prj_name=digit_rec
 
 # prj_name=finn_cnn1
 # prj_name=finn_cnn2
@@ -158,7 +159,7 @@ $(ws_syn)/pblock_assignment.json:$(operators_syn_targets) $(operators_dir)/specs
 # Synthesis
 syn:$(operators_syn_targets)
 # Out-of-Context Synthesis from Verilog to post-synthesis DCP
-$(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/run_log_%.log $(ws_overlay)/__overlay_is_ready__ ./pr_flow/syn.py
+$(operators_syn_targets):$(ws_syn)/%/page_netlist.dcp:$(ws_hls)/run_log_%.log $(ws_overlay)/__overlay_is_ready__
 	python pr_flow.py $(prj_name) -syn -op $(subst run_log_,,$(basename $(notdir $<)))
 	cd $(ws_syn)/$(subst run_log_,,$(basename $(notdir $<))) && ./main.sh $(operators)
 
@@ -172,8 +173,8 @@ $(operators_hls_targets):$(ws_hls)/run_log_%.log:$(operators_dir)/%.cpp $(operat
 
 overlay: $(ws_overlay)/__overlay_is_ready__
 $(ws_overlay)/__overlay_is_ready__:
-# 	python pr_flow.py $(prj_name) -g 'psnoc' -op '$(basename $(notdir $(operators)))'
-# 	cd ./workspace/F001_overlay && ./main.sh
+	python pr_flow.py $(prj_name) -g 'psnoc' -op '$(basename $(notdir $(operators)))'
+	cd ./workspace/F001_overlay && ./main.sh
 
 overlay_mono: $(ws_mono_overlay)/__overlay_mono_is_ready__
 $(ws_mono_overlay)/__overlay_mono_is_ready__:
