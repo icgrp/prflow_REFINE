@@ -108,7 +108,7 @@ Note that you need to select the appropriate application with `prj_name` variabl
 ## Appendix 1: Generate NoC overlay
 Please take a look at [this repo](https://github.com/icgrp/prflow_nested_dfx) for the overview.
 
-In your `/<PROJECT_DIR>/`, to generate `/<PROJECT_DIR>/workspace/F001_overlay` directory, run the command below.
+In your `/<PROJECT_DIR>/`, to generate `/<PROJECT_DIR>/workspace/F001_overlay` directory, run the command below. You can select any benchmark in Makefile.
 Note that this process can take >4 hours depending on the system CPU/RAM because of the sequentialized charateristic of
 Xilinx Nested DFX technology.
 
@@ -162,7 +162,8 @@ to generate the boot image.
 
 <a name="gen_mono_overlay"></a>
 ## Appendix 2: Generate monolithic overlay
-The command below will generate `/<PROJECT_DIR>/workspace/F007_overlay_mono/` directory.
+The command below will generate `/<PROJECT_DIR>/workspace/F007_overlay_mono/` directory. You can select any benchmark in Makefile.
+This process will take less than an hour.
 ```
 make overlay_mono -j$(nproc)
 ```
