@@ -103,6 +103,7 @@ Note that you need to select the appropriate application with `prj_name` variabl
    source sample_run.sh
    ```
 
+
 <a name="gen_noc_overlay"></a>
 ## Appendix 1: Generate NoC overlay
 Please take a look at [this repo](https://github.com/icgrp/prflow_nested_dfx) for the overview.
@@ -165,3 +166,32 @@ The command below will generate `/<PROJECT_DIR>/workspace/F007_overlay_mono/` di
 ```
 make overlay_mono -j$(nproc)
 ```
+
+<a name="known_issues"></a>
+## Appendix 3: Known issues
+
+#### Digit Recognition place_design error
+If we run the incremental refinement for Digit Recognition with the defined design space, 
+one of the parallel Vivado run will fail when `PAR_FACTOR` is about 60~100.
+When it fails, if we exit the current incremental script and then re-run the compilation for the exact same configuration,
+all the operators will be successfully compiled.
+We haven't figured out the cause of the bug.
+
+#### Implementation directives
+You can change the directives for place_design and route_design by modifying
+[./common/configure/zcu102/configure.xml](./common/configure/zcu102/configure.xml) file.
+```xml
+  <spec name = "place_design_NoC_directive"       value = "EarlyBlockPlacement" />
+  <spec name = "place_design_mono_directive"      value = "EarlyBlockPlacement" />
+  <spec name = "route_design_NoC_directive"       value = "Explore" />
+  <spec name = "route_design_mono_directive"      value = "Explore" />
+```
+We have seen that 
+1) sometimes the final design point of the NoC flow doesn't meet the timing in the monolithic flow OR
+2) sometimes NoC flow fails earlier than the monolithic-only flow OR
+3) sometime monolithic-only flow fails earlier than the NoC flow.
+
+In experiments, we use the diretives above for all benchmarks except for CNN-1.
+For CNN-1, `ExtraTimingOpt` is used for both `place_design_NoC_directive` and `place_design_mono_directive`.
+We will explore these directives in the future work.
+
