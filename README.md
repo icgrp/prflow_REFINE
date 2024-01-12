@@ -212,7 +212,7 @@ Please refer to https://github.com/dj-park/finn_v22.1 repo to get the FINN frame
 We modified the source codes a little so that FINN generates HLS source codes and then stops.
 You first need to git clone this modified FINN framework to your local.
 Then, you need to adjust variables like `PRJ_DIR`,`FINN_HOST_BUILD_DIR`, `FINN_V22_DIR`, etc in 
-[./input/finn_cnn1/build_dataflow.sh](./input/finn_cnn1/build_dataflow.sh).
+[./input_src/finn_cnn1/build_dataflow.sh](./input_src/finn_cnn1/build_dataflow.sh).
 
 
 <a name="known_issues"></a>
