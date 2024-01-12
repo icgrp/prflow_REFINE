@@ -74,21 +74,42 @@ Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this
 
 
 <a name="create_img"></a>
-## Prepare the boot image
+## Prepare the boot image and Run on the device
 
 1. Use .img file either you downloaded or you generated to create boot image.
-   In Ubuntu, run Startup Disk Creator, select .img file, select your SD card and click ``Make Startup Disk''.
+   In Ubuntu, run Startup Disk Creator, select .img file, select your SD card and click "Make Startup Disk".
 
 2. Safely unplug the SD card from the workstation and slide it into the ZCU102. Power on the device.
 
-3. You can refer to [this post](https://dj-park.github.io/posts/2022/1/scp-emb/) set up the ip addresses for the workstation and the ZCU102.
+3. You can refer to [this post](https://dj-park.github.io/posts/2022/1/scp-emb/) set up the ip addresses for the workstation and the ZCU102. Note that the initital password of the system is "root".
 
-4. Note that for the optical flow benchmark, you need to scp [current](./input_src/current) directory to the SD card.
-   `-i ~/.ssh/id_rsa_zcu102` is the key to ssh to the board.
+4. scp BOOT.BIN and .xclbin files for the NoC overlay. 10.10.7.1 is the ip address you assigned for the ZCU102.
+   ```
+   scp ./workspace/F001_overlay/ydma/zcu102/400MHz/zcu102_dfx_manual/overlay_p23/package/sd_card/* root@10.10.7.1:/run/media/mmcblk0p1/
+   ```
+   Then, reboot the ZCU102.
+
+5. Select a benchmark in Makefile and compile. I selected "rendering" for the demonstration.
+   ```
+   make all -j$(nproc)
+   ```
+   scp the generated bitstreams and host executable to the ZCU102.
+   ```
+   scp -r ./workspace/F005_bits_rendering/sd_card/* root@10.10.7.1:/run/media/mmcblk0p1/
+   ```
+
+6. ssh to ZCU102, cd to /run/media/mmcblk0p1/, and run the application.
+   ```
+   cd /run/media/mmcblk0p1
+   ./run_app.sh
+   ```
+
+Note: For the optical flow benchmark, you need to scp [current](./input_src/current) directory to the SD card. 
    ```
    scp -r ./input_src/current root@10.10.7.1:/run/media/mmcblk0p1/
    ```
 
+ 
 
 ## Pre-generated monolithic overlay
 If you want to generate a new monolithic overlay from scratch, please refer to [Appendix 2: Generate monolithic overlay](#gen_mono_overlay).
@@ -97,12 +118,15 @@ Extract the downloaded .zip file. You will have `F007_overlay_mono` folder. Copy
 
 
 ## Run incremental refinement
-`sample_run.sh` is an example script to run the both monolithic-only incremental refinement and NoC->monolithic incremental refinement.
+`sample_run.sh` is an example script to run the both monolithic-only incremental refinement and NoC&rarr;monolithic incremental refinement.
 Note that you need to select the appropriate application with `prj_name` variable in Makefile.
    ```
    source sample_run.sh
    ```
 
+<br />
+<br />
+<br />
 
 <a name="gen_noc_overlay"></a>
 ## Appendix 1: Generate NoC overlay
