@@ -23,6 +23,13 @@
   <spec name = "route_design_NoC_directive"       value = "Explore" />
   <spec name = "route_design_mono_directive"      value = "Explore" />
 
+
+  <spec name = "ip_zcu102"          value = "10.10.7.1" />
+  <spec name = "ip_host"            value = "10.10.7.2" />
+  <spec name = "project_dir"        value = "/home/dopark/workspace/zcu102_tuning/prflow_DSE_bi_22.1" />
+  <spec name = "username"           value = "dopark" />
+
+
   <spec name = "email"              value = "you_email@seas.upenn.edu" />
   <spec name = "bft_regen"          value = "1" />
   <spec name = "static_regen"       value = "1" />
