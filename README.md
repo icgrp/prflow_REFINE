@@ -103,13 +103,21 @@ Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this
    cd /run/media/mmcblk0p1
    ./run_app.sh
    ```
+   You will see a projected image of a bunny follwed by some data. These are the counter data retrieved from the hardware execution that we will use to identify the bottleneck.
+   For the kernel execution time, we will use the value in `summary.csv`.
+<p align="center"> <img src="images/rendering_results.png"> </p>
 
-Note: For the optical flow benchmark, you need to scp [current](./input_src/current) directory to the SD card. 
+
+
+Note-1: `__static_loaded__` indicates the state that the level-1 DFX region is loaded. If you reboot the ZCU102, please remove `__static_loaded__` before running `run_app.sh`. 
+If you take a look at `run_app.sh`, we load the level-1 DFX region (`dynamic_region.xclbin`) only when it's not loaded yet.
+If you try to load the level-1 DFX region when it's already loaded, the system gets stuck in the unknown state.
+If you try load the non-level-1 DFX xclbins when `dynamic_region.xclbin` is not loaded, the system gets stuck in the unknown state.
+
+Note-2: For the "optical flow" benchmark, you need to scp [current](./input_src/current) directory to the SD card. 
    ```
    scp -r ./input_src/current root@10.10.7.1:/run/media/mmcblk0p1/
    ```
-
- 
 
 ## Pre-generated monolithic overlay
 If you want to generate a new monolithic overlay from scratch, please refer to [Appendix 2: Generate monolithic overlay](#gen_mono_overlay).
@@ -119,10 +127,19 @@ Extract the downloaded .zip file. You will have `F007_overlay_mono` folder. Copy
 
 ## Run incremental refinement
 `sample_run.sh` is an example script to run the both monolithic-only incremental refinement and NoC&rarr;monolithic incremental refinement.
-Note that you need to select the appropriate application with `prj_name` variable in Makefile.
+Note that you need to select the appropriate application with `prj_name` variable in Makefile. It assumes that you assigned 10.10.7.1 to the ZCU102 and 10.10.7.2 to the host.
    ```
    source sample_run.sh
    ```
+Make sure you adjust the project directorty and the username of your host machine.
+[./common/configure/zcu102/configure.xml](./common/configure/zcu102/configure.xml).
+```xml
+  <spec name = "ip_zcu102"          value = "10.10.7.1" />
+  <spec name = "ip_host"            value = "10.10.7.2" />
+  <spec name = "project_dir"        value = "YOUR_PROJECT_DIR" />
+  <spec name = "username"           value = "YOUR_USERNAME" />
+```
+
 
 <br />
 <br />
