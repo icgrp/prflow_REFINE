@@ -105,7 +105,7 @@ Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this
    ```
    You will see a projected image of a bunny follwed by some data. These are the counter data retrieved from the hardware execution that we will use to identify the bottleneck.
    For the kernel execution time, we will use the value in `summary.csv`.
-<p align="center"> <img src="images/rendering_results.png"> </p>
+<p align="center"> <img src="images/rendering_results.png" width="300"> </p>
 
 
 
