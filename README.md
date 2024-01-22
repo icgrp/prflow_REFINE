@@ -227,7 +227,7 @@ We haven't figured out the cause of the bug.
 
 #### Implementation directives
 You can change the directives for place_design and route_design by modifying
-[./common/configure/zcu102/configure.xml](./common/configure/zcu102/configure.xml) file.
+[./common/configure/zcu102/configure.xml](./common/configure/configure.xml) file.
 ```xml
   <spec name = "place_design_NoC_directive"       value = "EarlyBlockPlacement" />
   <spec name = "place_design_mono_directive"      value = "EarlyBlockPlacement" />
