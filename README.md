@@ -2,7 +2,7 @@
 
 The starting code is forked from [this repo](https://github.com/icgrp/prflow_nested_dfx)
 [[PARK/FPT2022](https://ic.ese.upenn.edu/abstracts/nested_dfx_fpt2022.html)].
-
+For details, please refer to [our FPGA2024 paper](https://ic.ese.upenn.edu/abstracts/refine_fpga2024.html).
 
 ## Setup
 The framework is developed with Ubuntu 20.04 with kernel 5.4.0, Vitis 2022.1 
@@ -69,6 +69,16 @@ First, in your `/<PROJECT_DIR>/`, create `/<PROJECT_DIR>/workspace` directory.
 Then, you can download the pre-generated NoC overlay from [here](https://drive.google.com/drive/folders/16sRIMmyqjawautBHWOcVuaYvhOsECIMo?usp=drive_link).
 You will have one .img file and .zip file. 
 Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this folder under `/<PROJECT_DIR>/workspace/` so that you have `/<PROJECT_DIR>/workspace/F001_overlay`.
+
+<p align="center"> 
+  <img src="images/floorplan.png" width="300"> 
+  <img src="images/floorplan_highlight.png" width="300"> 
+</p>
+
+Screenshots above show the NoC overlay used in the experiments. The selected pblock contains "all non-PR page stuff" like AXI interconnect, peripherals and NoC.
+The NoC is highlighted in ${\textsf{\color{orange}yellowish orange}}$ , and pipeline registers between the NoC and the PR pages are highlighted in ${\textsf{\color{cyan}cyan}}$.
+Note that these registers are deliberately placed near the related PR pages so that the user operators don't have problems meeting timiing.
+
 
 
 <a name="create_img"></a>
