@@ -1,5 +1,3 @@
-STILL WIP
-
 # REFINE: Runtime Execution Feedback for INcremental Evolution on FPGA Designs
 
 The starting code is forked from [this repo](https://github.com/icgrp/prflow_nested_dfx)
@@ -105,7 +103,7 @@ Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this
    ```
    You will see a projected image of a bunny follwed by some data. These are the counter data retrieved from the hardware execution that we will use to identify the bottleneck.
    For the kernel execution time, we will use the value in `summary.csv`.
-<p align="center"> <img src="images/rendering_results.png"> </p>
+<p align="center"> <img src="images/rendering_results.png" width="300"> </p>
 
 
 
@@ -209,8 +207,16 @@ This process will take less than an hour.
 make overlay_mono -j$(nproc)
 ```
 
+## Appendix 3: CNN benchmarks
+Please refer to https://github.com/dj-park/finn_v22.1 repo to get the FINN framework used in the experiments.
+We modified the source codes a little so that FINN generates HLS source codes and then stops.
+You first need to git clone this modified FINN framework to your local.
+Then, you need to adjust variables like `PRJ_DIR`,`FINN_HOST_BUILD_DIR`, `FINN_V22_DIR`, etc in 
+[./input_src/finn_cnn1/build_dataflow.sh](./input_src/finn_cnn1/build_dataflow.sh).
+
+
 <a name="known_issues"></a>
-## Appendix 3: Known issues
+## Appendix 4: Known issues
 
 #### Digit Recognition place_design error
 If we run the incremental refinement for Digit Recognition with the defined design space, 
@@ -221,7 +227,7 @@ We haven't figured out the cause of the bug.
 
 #### Implementation directives
 You can change the directives for place_design and route_design by modifying
-[./common/configure/zcu102/configure.xml](./common/configure/zcu102/configure.xml) file.
+[./common/configure/zcu102/configure.xml](./common/configure/configure.xml) file.
 ```xml
   <spec name = "place_design_NoC_directive"       value = "EarlyBlockPlacement" />
   <spec name = "place_design_mono_directive"      value = "EarlyBlockPlacement" />
