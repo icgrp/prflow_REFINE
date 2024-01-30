@@ -76,7 +76,7 @@ Extract the downloaded .zip file. You will have `F001_overlay` folder. Copy this
 </p>
 
 Screenshots above show the NoC overlay used in the experiments. The selected pblock on the left contains "all non-PR page stuff" like AXI interconnect, peripherals and NoC.
-It has CONTAIN_ROUTING set to TRUE to prevent the static&harr;statuc routing. Please refer to the paper for more details.
+It has CONTAIN_ROUTING set to TRUE to prevent the static&harr;statuc routing from the PR pages. Please refer to the paper for more details.
 
 On the right, the NoC is highlighted in ${\textsf{\color{orange}yellowish orange}}$ , and pipeline registers between the NoC and the PR pages are highlighted in ${\textsf{\color{cyan}cyan}}$.
 Note that these registers are deliberately placed near the related PR pages so that the user operators don't have problems meeting timiing.
