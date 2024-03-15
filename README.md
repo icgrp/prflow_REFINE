@@ -12,9 +12,16 @@ in [./common/configure/configure.xml](./common/configure/configure.xml) as below
    ```
    make syn -j$(nproc)
    ```
+This will run HLS and synthesis for each operator in parallel.
+
+#### Report
+   ```
+   make syn -j$(nproc)
+   ```
+This will print out post-synthesis resource estimates or design analysis estimates for each operator.
 
 #### Parameterize
-You can tweak some param values in typedefs.h file to generate a range of different sizes of operators.
+You can tweak some param values in `typedefs.h` file to generate a range of different sizes of operators.
 For example, in [./input_src/digit_rec_BRAM/host/typedefs.h](./input_src/digit_rec_BRAM/host/typedefs.h),
 try different values of `K_CONST`, `IMAGE_SIZE`, or `IMAGE_WIDTH`.
 Also, you can easily add new operator by yourself. 
