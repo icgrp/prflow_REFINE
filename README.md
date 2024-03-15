@@ -17,3 +17,7 @@ in [./common/configure/configure.xml](./common/configure/configure.xml) as below
 You can tweak some param values in typedefs.h file to generate a range of different sizes of operators.
 For example, in [./input_src/digit_rec_BRAM/host/typedefs.h](./input_src/digit_rec_BRAM/host/typedefs.h),
 try different values of `K_CONST`, `IMAGE_SIZE`, or `IMAGE_WIDTH`.
+Also, you can easily add new operator by yourself. 
+For examlpe, there are currently only 5 operators for digit_rec_BRAM benchmark.
+But you can you can add a new operator like `update_knn_15.cpp` that has `#define PAR_FACTOR 150`.
+Make sure that you add the new operator to `specs.json` file as well.
