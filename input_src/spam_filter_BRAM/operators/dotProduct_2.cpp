@@ -1,9 +1,9 @@
 #include "../host/typedefs.h"
 
-#define NUM_OPS 8 // should divide PAR_FACTOR defined in typedefs.h
+#define NUM_OPS 2 // should divide PAR_FACTOR defined in typedefs.h
 #define PAR_FACTOR_DEC (PAR_FACTOR/NUM_OPS)
 
-void dotProduct_8(
+void dotProduct_2(
 	hls::stream<ap_uint<64> > & Input_1, // from data_in_redir
 	hls::stream<ap_uint<32> > & Input_2, // from sigmoid
 	hls::stream<ap_uint<32> > & Output_1, // to sigmoid
@@ -24,9 +24,9 @@ void dotProduct_8(
   FeatureType scale;
   FeatureType prob;
 
-	#pragma HLS bind_storage variable=param type=RAM_1P impl=LUTRAM
-	#pragma HLS bind_storage variable=feature type=RAM_1P impl=LUTRAM
-	#pragma HLS bind_storage variable=grad type=RAM_1P impl=LUTRAM
+	#pragma HLS bind_storage variable=param type=RAM_1P impl=BRAM
+	#pragma HLS bind_storage variable=feature type=RAM_1P impl=BRAM
+	#pragma HLS bind_storage variable=grad type=RAM_1P impl=BRAM
 
   #pragma HLS array_partition variable=param cyclic factor=unroll_factor
   #pragma HLS array_partition variable=feature cyclic factor=unroll_factor

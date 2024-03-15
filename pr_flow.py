@@ -15,6 +15,7 @@ import pr_flow.monolithic         as monolithic
 import pr_flow.ip_repo            as ip_repo
 import pr_flow.report             as report
 import pr_flow.report_monolithic  as report_mono
+import pr_flow.report_syn         as report_syn
 import pr_flow.incr               as incr
 import pr_flow.page_assign        as page_assign
 import pr_flow.check_impl_result  as check_impl_result
@@ -40,6 +41,7 @@ if __name__ == '__main__':
   parser.add_argument('-ip',        '--gen_ip_repo',       help="default: don't generate ip_repo",                  action='store_true')
   parser.add_argument('-rpt',       '--gen_report',        help="default: don't generate the report",               action='store_true')
   parser.add_argument('-rpt_m',     '--gen_report_mono',   help="default: don't generate the report for monolithic",action='store_true')
+  parser.add_argument('-rpt_s',     '--gen_report_syn',    help="default: don't generate the report, syn_gen" ,     action='store_true')
   parser.add_argument('-op',        '--operator',          help="choose which function to be regenrated", type=str, default="no_func")
   parser.add_argument('-incr',      '--gen_incremental',   help="default: don't do incremental compile",            action='store_true')
   parser.add_argument('-s_dcp',     '--syn_dcp',           help="default: syn_dcp=None",                            default=None)
@@ -67,6 +69,7 @@ if __name__ == '__main__':
   prflow_params['gen_ip_repo']     = args.gen_ip_repo
   prflow_params['gen_report']      = args.gen_report
   prflow_params['gen_report_mono'] = args.gen_report_mono
+  prflow_params['gen_report_syn'] = args.gen_report_syn
   prflow_params['input_file_name'] = input_file_name
   prflow_params['workspace']       = './workspace'
   operator = args.operator
@@ -126,6 +129,10 @@ if __name__ == '__main__':
   if prflow_params['gen_report_mono'] == True:
     rpt_inst = report_mono.report_mono(prflow_params)
     rpt_inst.run(operator,frequency = freq)
+
+  if prflow_params['gen_report_syn'] == True:
+    rpt_inst = report_syn.report_syn(prflow_params)
+    rpt_inst.run(operator)
 
   if prflow_params['gen_incremental'] == True:
     incr_inst = incr.incr(prflow_params)

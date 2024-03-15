@@ -1,12 +1,12 @@
 ############################################################################################
 
-prj_name=rendering
-# prj_name=digit_rec_BRAM_sample
-# prj_name=digit_rec_LUTRAM_sample
+# prj_name=digit_rec_BRAM
+# prj_name=digit_rec_LUTRAM
 # prj_name=optical_flow_DSP
+# prj_name=rendering
 # prj_name=spam_filter_BRAM
 # prj_name=spam_filter_DSP
-# prj_name=spam_filter_LUTRAM
+prj_name=spam_filter_LUTRAM
 
 #############################################################################################
 
@@ -186,9 +186,8 @@ $(ws_mono_overlay)/__overlay_mono_is_ready__:
 report: 
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt
 
-# TODO
 report_syn: 
-	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt
+	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_netlist.dcp,,$(operators_syn_targets))) ' -rpt_s
 
 report_mono: 
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt_m -freq=$(freq)

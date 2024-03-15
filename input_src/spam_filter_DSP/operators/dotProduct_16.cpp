@@ -1,9 +1,9 @@
 #include "../host/typedefs.h"
 
-#define NUM_OPS 5
+#define NUM_OPS 16
 #define PAR_FACTOR_DEC (PAR_FACTOR/NUM_OPS)
 
-void dotProduct_5(
+void dotProduct_16(
 	hls::stream<ap_uint<64> > & Input_1, // from data_in_redir
 	hls::stream<ap_uint<32> > & Input_2, // from sigmoid
 	hls::stream<ap_uint<32> > & Output_1, // to sigmoid
@@ -24,10 +24,6 @@ void dotProduct_5(
   FeatureType scale;
   FeatureType prob;
 
-	#pragma HLS bind_storage variable=param type=RAM_1P impl=LUTRAM
-	#pragma HLS bind_storage variable=feature type=RAM_1P impl=LUTRAM
-	#pragma HLS bind_storage variable=grad type=RAM_1P impl=LUTRAM
-
   #pragma HLS array_partition variable=param cyclic factor=unroll_factor
   #pragma HLS array_partition variable=feature cyclic factor=unroll_factor
   #pragma HLS array_partition variable=grad cyclic factor=unroll_factor
@@ -47,7 +43,7 @@ void dotProduct_5(
 	  READ_TRAINING_DATA: for (int i = 0; i < NUM_FEATURES / D_VECTOR_SIZE / NUM_OPS; i ++ )
 	  //                                      2400           1
 	  {
-#pragma HLS PIPELINE off
+#pragma HLS PIPELINE II=1
 		VectorFeatureType tmp_data;
 		tmp_data = Input_1.read();
 		READ_TRAINING_DATA_INNER: for (int j = 0; j < D_VECTOR_SIZE; j ++ )
@@ -61,7 +57,7 @@ void dotProduct_5(
 	  FeatureType result = 0;
 	  DOT: for (int i = 0; i < NUM_FEATURES / PAR_FACTOR_DEC / NUM_OPS; i++)
 	  {
-		#pragma HLS PIPELINE off
+		#pragma HLS PIPELINE II=1
 		DOT_INNER: for(int j = 0; j < PAR_FACTOR_DEC; j++)
 		{
 		  FeatureType term = param[i*PAR_FACTOR_DEC+j] * ((FeatureType)feature[i*PAR_FACTOR_DEC+j]);
@@ -81,7 +77,7 @@ void dotProduct_5(
 
 	  GRAD: for (int i = 0; i < NUM_FEATURES / PAR_FACTOR_DEC / NUM_OPS; i++)
 	  {
-		#pragma HLS PIPELINE off
+		#pragma HLS PIPELINE II=1
 		GRAD_INNER: for (int j = 0; j < PAR_FACTOR_DEC; j++)
 		  grad[i*PAR_FACTOR_DEC+j] = (scale * ((FeatureType) feature[i*PAR_FACTOR_DEC+j]));
 	  }
@@ -89,7 +85,7 @@ void dotProduct_5(
 	  FeatureType step = STEP_SIZE;
 	  UPDATE: for (int i = 0; i < NUM_FEATURES / PAR_FACTOR_DEC / NUM_OPS; i++)
 	  {
-		#pragma HLS PIPELINE off
+		#pragma HLS PIPELINE II=1
 		UPDATE_INNER: for (int j = 0; j < PAR_FACTOR_DEC; j++){
 			FeatureType tmp;
 			tmp = (-step) * grad[i*PAR_FACTOR_DEC+j];
@@ -105,7 +101,7 @@ void dotProduct_5(
 	  if(epoch==5){
 		  STREAM_OUT: for (int i = 0; i < NUM_FEATURES / F_VECTOR_SIZE / NUM_OPS; i ++ )
 		  {
-			#pragma HLS pipeline off
+			#pragma HLS pipeline II=1
 			bit32 tmp_data1;
 			bit32 tmp_data2;
 			tmp_data1(31,0) = param[i * F_VECTOR_SIZE + 0](FTYPE_TWIDTH-1, 0);

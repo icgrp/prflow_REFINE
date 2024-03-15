@@ -1,6 +1,6 @@
 #include "../host/typedefs.h"
 
-#define NUM_OPS 4
+#define NUM_OPS 4 // should divide PAR_FACTOR defined in typedefs.h
 #define PAR_FACTOR_DEC (PAR_FACTOR/NUM_OPS)
 
 void dotProduct_4(

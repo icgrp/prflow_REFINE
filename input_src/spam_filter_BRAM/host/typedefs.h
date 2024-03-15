@@ -12,8 +12,7 @@
 #define SDSOC
 
 // User parameters - play around with PAR_FACTOR and NUM_FEATURES to create different sizes of operators
-#define PAR_FACTOR 120
-
+#define PAR_FACTOR 32
 // dataset information
 const int NUM_FEATURES  = 1024;
 

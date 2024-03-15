@@ -19,7 +19,7 @@ const int MAX_WIDTH = 1024;
 // #include "/tools/Xilinx/Vivado/2021.1/include/multimediaIps/xf_video_mem.hpp"
 
 #ifndef RISCV
-  #include "/scratch/unsafe/Xilinx/Vivado/2022.1/include/multimediaIps/xf_video_mem.hpp"
+  #include "/tools/Xilinx/Vivado/2022.1/include/multimediaIps/xf_video_mem.hpp"
 #endif
 typedef ap_uint<32> databus_t;
 typedef ap_uint<128> bit128;
@@ -30,68 +30,74 @@ typedef ap_uint<160> bit160;
 typedef ap_uint<96> bit96;
 
 
-typedef ap_uint<288> widebus_t;
-// define these constants so they can be used in pragma
-const int max_width = MAX_WIDTH;
-const int default_depth = MAX_WIDTH;
+#define PAR_FACTOR 2
 
-#define SDSOC
+// User parameters - you can play around with OUTER_WIDTH, OUTER_WIDTH_INT, CALC_WIDTH_INT. 
+//                   But I wouldn't... because you may need to change widths of input and output functions 
+#define OUTER_WIDTH 48
+#define OUTER_WIDTH_INT 27
+#define CALC_WIDTH_INT 56
+#define DUMMY_LEN 1024
 
-// basic typedefs
-#ifdef SDSOC
-	//#include "/home/ylxiao/Xilinx/Vivado/2018.3/include/gmp.h"
-#ifdef RISCV
-    #include "./gmp.h"
-#endif
-	#include "ap_fixed.h"
-	typedef ap_fixed<17,9> input_t;
-	typedef ap_fixed<32,13> pixel_t;
+#include "ap_fixed.h"
 
-    // User parameters - play around with params like outer_pixel_t and calc_pixel_t to create different sizes of operators
-    typedef ap_fixed<32,27> outer_pixel_t;
-    typedef ap_fixed<64,56> calc_pixel_t;
+typedef ap_fixed<OUTER_WIDTH, OUTER_WIDTH_INT> outer_pixel_t;
+typedef ap_fixed<OUTER_WIDTH*2, CALC_WIDTH_INT> calc_pixel_t;
 
-	typedef ap_fixed<32,13> vel_pixel_t;
-	
-#endif
+typedef ap_fixed<32,13> vel_pixel_t;
+typedef ap_fixed<17,9> input_t;
+typedef ap_fixed<32,13> pixel_t;
+// typedef ap_fixed<48,27> outer_pixel_t;
+// typedef ap_fixed<96,56> calc_pixel_t;
+
+
 #ifdef OCL
-	#include "ap_fixed.h"
-	typedef ap_fixed<48,40> pixel_t;
+    #include "ap_fixed.h"
+    typedef ap_fixed<48,40> pixel_t;
 #endif
 #ifdef SW
-	typedef float pixel_t;
+    typedef float pixel_t;
 #endif
+
 typedef struct{
-	pixel_t x;
-	pixel_t y;
-	pixel_t z;
+    pixel_t x;
+    pixel_t y;
+    pixel_t z;
 }gradient_t;
 
 typedef struct{
     outer_pixel_t val[6];
-}outer_t; 
+}outer_6_t; 
 
 typedef struct{
     outer_pixel_t val[3];
-}outer_half_t;
+}outer_3_t;
+
+typedef struct{
+    outer_pixel_t val[2];
+}outer_2_t;
 
 typedef struct{
     outer_pixel_t val[6];
-}tensor_t;
+}tensor_6_t;
 
 typedef struct{
     outer_pixel_t val[3];
-}tensor_half_t;
+}tensor_3_t;
+
+typedef struct{
+    outer_pixel_t val[2];
+}tensor_2_t;
 
 typedef struct{
     vel_pixel_t x;
     vel_pixel_t y;
 }velocity_t;
 
-  #include "ap_int.h"
-  // for data packing
-  typedef ap_uint<64> frames_t;
-  typedef ap_uint<32> stdio_t;
+#include "ap_int.h"
+// for data packing
+typedef ap_uint<64> frames_t;
+typedef ap_uint<32> stdio_t;
 
 
 #endif
