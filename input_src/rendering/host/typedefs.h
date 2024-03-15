@@ -11,6 +11,7 @@
 
 #define SDSOC
 
+// User parameters - play around with params like MAX_X and MAX_Y to create different sizes of operators
 // resolution 256x256
 const int MAX_X = 256;
 const int MAX_Y = 256;

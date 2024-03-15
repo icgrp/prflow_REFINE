@@ -1,21 +1,37 @@
 {
-    "coloringFB_i1": {
+    "coloringFB_1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "output_data": {
+    "coloringFB_2": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "prj_rast1": {
+    "coloringFB_4": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "rast2_i1": {
+    "prj_rast_1": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
-    "zculling_i1": {
+    "prj_rast_2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "prj_rast_4": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "zculling_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "zculling_2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "zculling_4": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
     }

@@ -1,0 +1,14 @@
+{
+    "dotProduct_4": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dotProduct_5": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dotProduct_8": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

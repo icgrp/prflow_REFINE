@@ -1,0 +1,22 @@
+{
+    "flow_calc_0": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "flow_calc_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "flow_calc_2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "flow_calc_3": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "flow_calc_5": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

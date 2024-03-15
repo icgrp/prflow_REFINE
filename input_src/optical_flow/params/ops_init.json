@@ -1,9 +1,0 @@
-[
-    "flow_calc",
-    "gradient_weight_x",
-    "gradient_weight_y",
-    "gradient_xyz_calc",
-    "outer_product",
-    "tensor_weight_x_i1",
-    "tensor_weight_y_i1"
-]

@@ -1,13 +1,12 @@
 ############################################################################################
 
 prj_name=rendering
-# prj_name=optical_flow
-# prj_name=optical_flow_8
-# prj_name=digit_rec
-
-# prj_name=finn_cnn1
-# prj_name=finn_cnn2
-
+# prj_name=digit_rec_BRAM_sample
+# prj_name=digit_rec_LUTRAM_sample
+# prj_name=optical_flow_DSP
+# prj_name=spam_filter_BRAM
+# prj_name=spam_filter_DSP
+# prj_name=spam_filter_LUTRAM
 
 #############################################################################################
 
@@ -185,6 +184,10 @@ $(ws_mono_overlay)/__overlay_mono_is_ready__:
 
 .PHONY: report 
 report: 
+	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt
+
+# TODO
+report_syn: 
 	 python ./pr_flow.py $(prj_name) -op '$(notdir $(subst /page_routed.dcp,,$(operators_bit_targets))) ' -rpt
 
 report_mono: 

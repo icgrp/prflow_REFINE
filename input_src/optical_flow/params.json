@@ -1,6 +1,0 @@
-{
-  "kernel_clk": [200, 250, 300, 350, 400],
-  "PAR_FACTOR": [1,2],
-  "OUTER_WIDTH": [16,32,48],
-  "MIN_ACCURACY": 0.01
-}
