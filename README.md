@@ -9,6 +9,7 @@ in [./common/configure/configure.xml](./common/configure/configure.xml) as below
 ```
 
 #### Run
+Select the benchmark in the first line of the `Makefile`. Then,
    ```
    make syn -j$(nproc)
    ```
@@ -16,7 +17,7 @@ This will run HLS and synthesis for each operator in parallel.
 
 #### Report
    ```
-   make syn -j$(nproc)
+   make report_syn
    ```
 This will print out post-synthesis resource estimates or design analysis estimates for each operator.
 
