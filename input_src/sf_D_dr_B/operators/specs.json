@@ -1,0 +1,18 @@
+{
+    "dp8_uk2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dp8_uk4": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dp16_uk2": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dp16_uk4": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

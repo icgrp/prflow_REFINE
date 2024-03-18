@@ -6,7 +6,8 @@
 # prj_name=rendering
 # prj_name=spam_filter_BRAM
 # prj_name=spam_filter_DSP
-prj_name=spam_filter_LUTRAM
+# prj_name=spam_filter_LUTRAM
+prj_name=sf_D_dr_B
 
 #############################################################################################
 
