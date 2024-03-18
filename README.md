@@ -29,3 +29,8 @@ Also, you can easily add new operator by yourself.
 For examlpe, there are currently only 5 operators for digit_rec_BRAM benchmark ([./input_src/digit_rec_BRAM/operators/](./input_src/digit_rec_BRAM/operators/)).
 But you can you can add a new operator like `update_knn_15.cpp` that has `#define PAR_FACTOR 150`.
 Make sure that you add the new operator to [./input_src/digit_rec_BRAM/operators/specs.json](./input_src/digit_rec_BRAM/operators/specs.json) file as well.
+
+#### Integrated functions
+To have more diverse benchmarks, we create integrated top function that includes multiple benchmarks.
+For example, [./input_src/sf_D_dr_B/](./input_src/sf_D_dr_B/) contains one operator from spam_filter_DSP and one operator from digit_recognition_BRAM.
+If spam_filter_DSP has N design points and digit_recognition_BRAM has M design points, this integrated benchmark has N*M design points.
