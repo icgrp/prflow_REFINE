@@ -994,7 +994,7 @@ def update_cur_param(benchmark, overlay_type, prev_param_dict, cnt_dict, accurac
     for op_name in cnt_dict:
         stall_cnt = cnt_dict[op_name][0]['stall']
 
-        if stall_cnt*(1-error_margin) < min_stall:
+        if stall_cnt*(1-error_margin) <= min_stall:
             bottleneck_op_list.append((op_name,stall_cnt))
     print()
     print("bottleneck_op_list: ")
@@ -1304,7 +1304,7 @@ if __name__ == '__main__':
         for op_name in cnt_dict:
             stall_cnt = cnt_dict[op_name][0]['stall']
 
-            if stall_cnt*(1-error_margin) < min_stall:
+            if stall_cnt*(1-error_margin) <= min_stall:
                 bottleneck_op_list.append((op_name,stall_cnt))
         print()
         print("bottleneck_op_list: ")

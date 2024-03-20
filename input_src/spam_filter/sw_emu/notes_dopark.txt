@@ -1,0 +1,7 @@
+source sourceMe
+make all
+
+./package/launch_sw_emu.sh
+
+cd /run/media/mmcblk0p1/
+./run_app.sh

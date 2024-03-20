@@ -1,0 +1,22 @@
+{
+    "data_2_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 2
+    },
+    "data_in_redir": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    },
+    "dotProduct_1": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 2
+    },
+    "dotProduct_5": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 2
+    },
+    "Sigmoid_axi": {
+        "kernel_clk": 200,
+        "num_leaf_interface": 1
+    }
+}

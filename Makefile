@@ -1,13 +1,13 @@
 ############################################################################################
 
-prj_name=rendering
+# prj_name=rendering
 # prj_name=optical_flow
 # prj_name=optical_flow_8
 # prj_name=digit_rec
 
 # prj_name=finn_cnn1
 # prj_name=finn_cnn2
-
+prj_name=spam_filter
 
 #############################################################################################
 

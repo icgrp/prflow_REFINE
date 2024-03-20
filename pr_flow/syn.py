@@ -211,6 +211,29 @@ class syn(gen_basic):
     return out
  
 
+  def calculate_small_fifo_depth(self, leaf_interface_mapping_dict):
+    num_i_ports_include_dummy = 0 # includes dummy ports for this operator
+    num_o_ports_include_dummy = 0 # includes dummy ports for this operator
+    for idx_leaf_interface in range(len(leaf_interface_mapping_dict)):
+      mapped_IO_ports = leaf_interface_mapping_dict[idx_leaf_interface] # io ports for this leaf interface
+      mapped_I_ports = [io_port for io_port in mapped_IO_ports if io_port.startswith('Input_')] # input port for this leaf interface
+      mapped_O_ports = [io_port for io_port in mapped_IO_ports if io_port.startswith('Output_')] # output port for this leaf interface
+      i_port_cnt = len(mapped_I_ports)
+      o_port_cnt = len(mapped_O_ports)
+      if i_port_cnt == 0:
+        num_i_ports_include_dummy += 1
+      else:
+        num_i_ports_include_dummy += i_port_cnt
+      if o_port_cnt == 0:
+        num_o_ports_include_dummy += 1
+      else:
+        num_o_ports_include_dummy += o_port_cnt
+    num_total_counter = 3*num_i_ports_include_dummy + 2*num_o_ports_include_dummy + 1
+    if(num_total_counter>32): return 64
+    elif(num_total_counter>16): return 32
+    else: return 16
+
+
   # Placeholder
   # def gen_leaf_interface_mapping(self, operator_input_width_dict, operator_output_width_dict, num_leaf_interface):
   #   leaf_interface_mapping_dict = {}
@@ -394,7 +417,7 @@ class syn(gen_basic):
 
   # leaf_interface_mapping_dict, e.g. {"0": ["Input_1","Output_1"],"1": ["Input_2"],"2": ["Input_3"],"3": []}
   # operator_output_width_dict, e.g. {'Output_1':32, 'Output_2': 64}
-  def write_output_port_cluster(self, operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator):
+  def write_output_port_cluster(self, operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator, fifo_depth_counter):
     # Output_Port_Cluster per leaf interface
     for idx_leaf_interface in range(len(leaf_interface_mapping_dict)):
       filedata_str_list = []
@@ -464,7 +487,7 @@ class syn(gen_basic):
           filedata_str_list.append('        .NUM_BRAM_ADDR_BITS(NUM_BRAM_ADDR_BITS),')
           filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
           filedata_str_list.append('        .DATA_USER_OUT(32), // OPERATOR SPECIFIC!')
-          filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
+          filedata_str_list.append('        .OUTPUT_0(' + str(fifo_depth_counter) + ') // only one output port')
           filedata_str_list.append('    )OPort_0(')
           filedata_str_list.append('        .clk(clk),')
           filedata_str_list.append('        .clk_user(clk_user),')
@@ -529,7 +552,7 @@ class syn(gen_basic):
             filedata_str_list.append('        .FREESPACE_UPDATE_SIZE(FREESPACE_UPDATE_SIZE),')
             filedata_str_list.append('        .DATA_USER_OUT(' + str(DATA_USER_OUT_min32) + '), // OPERATOR SPECIFIC!')
 
-            if idx_port == 0: filedata_str_list.append('        .OUTPUT_0(1) // only one output port')
+            if idx_port == 0: filedata_str_list.append('        .OUTPUT_0(' + str(fifo_depth_counter) + ') // only one output port')
             else: filedata_str_list.append('        .OUTPUT_0(0) // only one output port')
 
             filedata_str_list.append('    )OPort_' + str(idx_port)  + '(')
@@ -681,7 +704,8 @@ class syn(gen_basic):
                            False)
 
     # Update Input_Port_Cluster.v and Output_Port_Cluster.v
-    self.write_output_port_cluster(operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator)
+    fifo_depth_counter = self.calculate_small_fifo_depth(leaf_interface_mapping_dict)
+    self.write_output_port_cluster(operator_output_width_dict, leaf_interface_mapping_dict, output_num, operator, fifo_depth_counter)
     self.write_input_port_cluster(operator_input_width_dict, leaf_interface_mapping_dict, input_num, operator)
 
     # Update/write leaf_interface.v and Stream_Flow_Control.v

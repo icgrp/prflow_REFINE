@@ -290,12 +290,12 @@ module Output_Port#(
         .din(cnt_val_in));
 
     generate
-        if (OUTPUT_0 == 1) begin
+        if (OUTPUT_0 != 0) begin
             xpm_fifo_async # (
               .FIFO_MEMORY_TYPE          ("auto"),           //string; "auto", "block", or "distributed";
               .ECC_MODE                  ("no_ecc"),         //string; "no_ecc" or "en_ecc";
               .RELATED_CLOCKS            (0),                // 250MHz and 350MHz are related clock?
-              .FIFO_WRITE_DEPTH          (16),             //positive integer
+              .FIFO_WRITE_DEPTH          (OUTPUT_0),       // This number is determined by the number of IO ports, 16 or 32   // positive integer
               .WRITE_DATA_WIDTH          (1 + NUM_LEAF_BITS + NUM_PORT_BITS + 2 + PAYLOAD_BITS),               //positive integer
               .WR_DATA_COUNT_WIDTH       (),               //positive integer
               .PROG_FULL_THRESH          (10),               //positive integer
