@@ -169,7 +169,7 @@ class monolithic(gen_basic):
                 '',
                 '  input         ap_start);']
     out_list.append('')
-    out_list.append('  localparam WAIT_CNT = 20;')
+    out_list.append('  localparam WAIT_CNT = 20;') # enough?
     out_list.append('')
     out_list.append('  wire [511:0] DMA_Input_1_TDATA;')
     out_list.append('  wire         DMA_Input_1_TVALID;')
@@ -823,9 +823,11 @@ class monolithic(gen_basic):
       lines = infile.readlines()
     filedata = ''
     for line in lines:
+      if line.startswith('#define CONFIG_SIZE'):
+        line = '#define CONFIG_SIZE 1\n'  # CONFIG_SIZE must be set to 1 for monolithic case
       if line.startswith('#define NUM_TOTAL_CNT'):
-        # 3 is for full_cnt, empty_cnt, read_cnt, + stall cnt for each operator
-        line = '#define NUM_TOTAL_CNT CONFIG_SIZE + ' + str(3 * len(connection_list) + len(operator_arg_dict.keys())) + '\n' 
+        # 1 is for dummy, 3 is for full_cnt, empty_cnt, read_cnt, + stall cnt for each operator
+        line = '#define NUM_TOTAL_CNT ' + str(1 + 3 * len(connection_list) + len(operator_arg_dict.keys())) + '\n' 
       filedata += line
 
       if line.startswith('#define OUTPUT_SIZE'):

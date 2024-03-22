@@ -30,7 +30,7 @@ const int DATA_SET_SIZE = NUM_FEATURES * NUM_SAMPLES;
 #endif
 
 #define PAR_FACTOR 32
-#define NUM_OPS 2
+#define NUM_OPS 4
 #define PAR_FACTOR_DEC (PAR_FACTOR/NUM_OPS)
 // #define PAR_FACTOR_DEC 4
 // datatypes for accelerator

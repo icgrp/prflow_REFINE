@@ -455,6 +455,8 @@ class record_time(gen_basic):
         ops_only_pnr.append(op)
 
 
+    os.system('mkdir -p ./input_src/' + self.prflow_params['benchmark_name'] + '/params/results/')
+    
     # Monolithic ver.
     if is_record_time_mono:
       is_mono = True

@@ -4,21 +4,26 @@
         "num_leaf_interface": 1
     },
     "dotProduct_i1": {
+        "PAR_FACTOR": 32,
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
     "dotProduct_i3": {
+        "PAR_FACTOR": 32,
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
     "dotProduct_i5": {
+        "PAR_FACTOR": 32,
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
     "dotProduct_i7": {
+        "PAR_FACTOR": 32,
         "kernel_clk": 200,
         "num_leaf_interface": 1
     },
+    "metric": null,
     "output_collect": {
         "kernel_clk": 200,
         "num_leaf_interface": 1
