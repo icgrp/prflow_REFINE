@@ -7,6 +7,7 @@ import re
 import json
 from pr_flow.p23_pblock import pblock_page_dict, LUT_MARGIN_single_dict, LUT_MARGIN_double_dict, LUT_MARGIN_quad_dict, \
                                BRAM_MARGIN_single_dict, BRAM_MARGIN_double_dict, BRAM_MARGIN_quad_dict
+from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
@@ -456,10 +457,52 @@ class page_assign(gen_basic):
         '17': None, '18': None, '19': None, '20': None, '21': None, '22': None, '23': None}
     pblock_assign_dict = {}
 
+
+      # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
+      #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
+
+    sorted_util_dict = OrderedDict()
+    sorted_util_dict_4 = OrderedDict()
+    sorted_util_dict_2 = OrderedDict()
+    sorted_util_dict_1 = OrderedDict()
+
+    # sort the number of leaf interfaces first, then sort by criteria(resource)
+    for op in util_dict_selected:
+      if specs_dict[op]["num_leaf_interface"] == 4:
+        sorted_util_dict_4[op] = util_dict_selected[op]
+    for op, op_resource_dict in sorted(sorted_util_dict_4.items(), key=lambda x:x[1]['criteria'], reverse=True): # sorted by criteria
+      sorted_util_dict[op] = op_resource_dict
+    # print()
+    # print("# of leaf interfaces: 4, sorted_util_dict = ")
+    # for op in sorted_util_dict:
+    #   print(op, sorted_util_dict[op])
+    # print()
+
+    for op in util_dict_selected:
+      if specs_dict[op]["num_leaf_interface"] == 2:
+        sorted_util_dict_2[op] = util_dict_selected[op]
+    for op, op_resource_dict in sorted(sorted_util_dict_2.items(), key=lambda x:x[1]['criteria'], reverse=True): # sorted by criteria
+      sorted_util_dict[op] = op_resource_dict
+    # print("# of leaf interfaces: 2, sorted_util_dict = ")
+    # for op in sorted_util_dict:
+    #   print(op, sorted_util_dict[op])
+    # print()
+
+    for op in util_dict_selected:
+      if specs_dict[op]["num_leaf_interface"] == 1:
+        sorted_util_dict_1[op] = util_dict_selected[op]
+    for op, op_resource_dict in sorted(sorted_util_dict_1.items(), key=lambda x:x[1]['criteria'], reverse=True): # sorted by criteria
+      sorted_util_dict[op] = op_resource_dict
+    # print("# of leaf interfaces: 1, sorted_util_dict = ")
+    # for op in sorted_util_dict:
+    #   print(op, sorted_util_dict[op])
+    # print()
+
     # iterate through util_dict_selected's op in descending order of resource usage
     # iterate through overlay_util_dict's page_num in ascending order, x[1] is op's resource dict
-    for op, op_resource_dict in sorted(util_dict_selected.items(), key=lambda x:x[1]['criteria'], reverse=True): # sorted by criteria
+    # for op, op_resource_dict in sorted(util_dict_selected.items(), key=lambda x:x[1]['criteria'], reverse=True): # sorted by criteria
 
+    for op, op_resource_dict in sorted_util_dict.items():
       # op_resource_tuple = value[0]
       # print(op, op_resource_tuple)
 
@@ -468,6 +511,7 @@ class page_assign(gen_basic):
 
     operators_list = list(util_dict_selected.keys())
     # print(operators_list)
+    # print(pblock_assign_dict)
     if(not self.is_assigned_all(pblock_assign_dict, operators_list)):
       raise Exception("Operators do not fit in any of the pre-generated NoC overlay")
     # print("## pblock_assign_dict with greedy algorithm")
