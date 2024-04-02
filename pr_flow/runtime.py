@@ -33,118 +33,6 @@ class runtime(gen_basic):
     self.freespace_offset   = self.payload_bits - self.port_bits - self.addr_bits - self.port_bits - self.bram_addr_bits - self.bram_addr_bits
 
 
-  # # find all the operators arguments order
-  # # in case the user define the input and output arguments out of order 
-  # def return_operator_io_argument_dict_local(self, operators):
-  #   operator_list = operators.split()
-  #   operator_arg_dict = {}
-  #   for operator in operator_list:
-  #     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-  #     arguments_list = [] 
-  #     def_valid = False # Ture if function definition begins
-  #     def_str = ''
-  #     for line in file_list:
-  #       if '(' in line: def_valid = True
-  #       if def_valid: 
-  #         line_str=re.sub('\s+', '', line)
-  #         line_str=re.sub('\t+', '', line_str)
-  #         def_str=def_str+line_str
-  #       if ')' in line: def_valid = False
-
-  #     # a list for the stream arguments functions
-  #     arg_str_list = def_str.split(',')
-  #     for arg_str in arg_str_list:
-  #       input_str_list = re.findall(r"Input_\d+", arg_str)
-  #       output_str_list = re.findall(r"Output_\d+", arg_str)
-  #       input_str_list.extend(output_str_list)
-  #       io_str = input_str_list
-  #       arguments_list.append(io_str[0])
-       
-  #     operator_arg_dict[operator] = arguments_list
-  #   return operator_arg_dict 
-
-
-  # # find all the operators instantiation in the top function
-  # def return_operator_inst_dict_local(self, operators):
-  #   operator_list = operators.split()
-  #   operator_var_dict = {}
-  #   file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
-  #   for operator in operator_list:
-  #     arguments_list = [] 
-      
-  #     # 1 when detect the start of operation instantiation
-  #     # 2 when detect the end of operation instantiation
-  #     inst_cnt = 0 
-  #     inst_str = ''
-  #     for line in file_list:
-  #       if('(' in line and operator in line):
-  #         inst_cnt = inst_cnt + 1
-  #       if inst_cnt == 1: 
-  #         line_str = re.sub('\s+', '', line)
-  #         line_str = re.sub('\t+', '', line_str)
-  #         line_str = re.sub('//.*', '', line_str)
-  #         inst_str = inst_str+line_str
-  #       if (')' in line) and inst_cnt == 1: 
-  #         inst_cnt = 2
-  #     inst_str = inst_str.replace(operator,'')
-  #     inst_str = inst_str.replace('(','')
-  #     inst_str = inst_str.replace(')','')
-  #     inst_str = inst_str.replace(';','')
-  #     var_str_list = inst_str.split(',')
-  #     operator_var_dict[operator] = var_str_list
-  #   return operator_var_dict 
-
-
-  def return_io_num(self, io_pattern, file_list):
-    max_num = 0
-    for line in file_list:
-      num_list = re.findall(r""+io_pattern+"\d*", line)
-      if(len(num_list)>0 and int(num_list[0].replace(io_pattern,''))): max_num = int(num_list[0].replace(io_pattern,''))
-    return max_num
- 
-
-  # def return_operator_connect_list_local(self, operator_arg_dict, operator_var_dict):
-  #   connection_list = []
-  #   for key_a in operator_var_dict:
-  #     operator = key_a
-  #     src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-  #     debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'debug_port')
-  #     map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'map_target')
-  #     if debug_exist:
-  #       src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-  #       output_num = self.return_io_num('Output_', src_list)
-  #       tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port) 
-  #       connection_list.append(tmp_str)
-  #     for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
-  #       if var_value_a == 'Input_1': 
-  #         tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
-  #         connection_list.append(tmp_str)
-  #       if var_value_a == 'Input_2': 
-  #         tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
-  #         connection_list.append(tmp_str)
-  #       if var_value_a == 'Output_1': 
-  #         tmp_str=key_a+'.'+operator_arg_dict[key_a][i_a] + '->'+'DMA.Input_1' # not necessarily Output_1
-  #         # tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
-  #         connection_list.append(tmp_str)
-  #       for key_b in operator_var_dict:
-  #         for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
-  #           if var_value_a==var_value_b and key_a!=key_b:
-  #             if 'Input' in operator_arg_dict[key_a][i_a]:
-  #               tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
-  #             else:
-  #               tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]
-  #             connection_list.append(tmp_str)
-
-  #   #connection_list = []
-  #   #connection_list.append('DEBUG.Output_1->add1.Input_1')
-  #   #connection_list.append('add1.Output_1->DEBUG.Input_1')
-  #   #connection_list.append('add1.Output_2->DEBUG.Input_3')
-  #   #connection_list.append('add1.Output_3->DEBUG.Input_3')
-  #   #connection_list.append('add1.Output_5->DEBUG.Input_5')
-  #   connection_list = set(connection_list)
-  #   return connection_list
-
-
   # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
   # port_page_assign_dict, (page num, port number in the leaf interface)
   # , e.g. {'DMA.Input_1': (1, 2), 
@@ -235,7 +123,6 @@ class runtime(gen_basic):
           packet_list.append("    in1["+str(packet_num)+"].range(31,  0) = " + str(hex(value_low)).replace('L', '') + ";")
           packet_num += 1
 
-
     # operator_list = operators.split()
     bft_addr_shift = int(self.prflow_params['pks']) - int(self.prflow_params['payload_bits']) - 1 - int(self.prflow_params['addr_bits'])
     include_str = '#include \"typedefs.h\"\n'
@@ -291,6 +178,7 @@ class runtime(gen_basic):
 
     return packet_list, packet_num, num_is_done_config
 
+
   def return_run_sdk_sh_list_local(self, vivado_dir, tcl_file):
     return ([
       '#!/bin/bash -e',
@@ -298,11 +186,13 @@ class runtime(gen_basic):
       'xsdk -batch -source ' + tcl_file,
       ''])
 
+
   def return_sh_list_local(self, command):
     return ([
       '#!/bin/bash -e',
       command,
       ''])
+
 
   def get_recombined_pblock_xclbin_list(self, pblock_operators_list):
     with open(self.syn_dir+'/pblock_assignment.json', 'r') as infile:
@@ -316,8 +206,10 @@ class runtime(gen_basic):
     print(recombined_pblock_xclbin_list)
     return recombined_pblock_xclbin_list
 
+
   def get_dfx_lvl(self, re_xclbin):
     return re_xclbin.count('_') + 1
+
 
   def get_num_op(self, operator):
       return len(operator.split())
@@ -340,6 +232,7 @@ class runtime(gen_basic):
             operators_impl_list.append(pblock_op)            
     # print(operators_impl_list)
     return operators_impl_list
+
 
   # prepare the run_app.sh for embedded system
   def gen_sd_run_app_sh(self, operators, overlay_freq):
@@ -441,7 +334,6 @@ class runtime(gen_basic):
     os.system('chmod +x '+ self.bit_dir+'/'+self.prflow_params['benchmark_name']+'/host/gen_runtime.sh')
 
 
-
   def add_bft_config_to_host_cpp(self, operator_list, port_page_assign_dict, pblock_assign_dict, num_total_counter):
 
     # page_assign_dict, overlay_n = self.return_page_assign_dict_local(self.syn_dir, operators)
@@ -481,12 +373,10 @@ class runtime(gen_basic):
     self.shell.add_lines(self.bit_dir+'/'+self.prflow_params['benchmark_name']+'/host/host.cpp', '// configure packets', packet_list)
 
 
- 
   def run(self, operators):
     # mk work directory
     if self.prflow_params['gen_runtime']==True:
       self.shell.mkdir(self.bit_dir)
-
 
     overlay_freq = self.prflow_params['overlay_freq']
     # prepare the host driver source for vitis runtime
@@ -540,7 +430,6 @@ class runtime(gen_basic):
     # empty, full cnt for output port
     # len(pblock_assign_dict) == num of stall counters == num of operators
     num_total_counter = 3*num_i_ports_include_dummy + 2*num_o_ports_include_dummy + len(pblock_assign_dict)
-
 
     # page_assign_dict['DMA'] = '1'
     # page_assign_dict['ARM'] = '0'

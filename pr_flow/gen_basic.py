@@ -1081,27 +1081,31 @@ class _dataflow:
     operator_var_dict = {}
     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
     for operator in operator_list:
-      arguments_list = [] 
-      
-      # 1 when detect the start of operation instantiation
-      # 2 when detect the end of operation instantiation
-      inst_cnt = 0 
-      inst_str = ''
-      for line in file_list:
-        if('(' in line and operator in line):
-          inst_cnt = inst_cnt + 1
-        if inst_cnt == 1: 
-          line_str = re.sub('\s+', '', line)
-          line_str = re.sub('\t+', '', line_str)
-          line_str = re.sub('//.*', '', line_str)
-          inst_str = inst_str+line_str
-        if (')' in line) and inst_cnt == 1: 
-          inst_cnt = 2
-      inst_str = inst_str.split('(')[1] # remove function name and '('
-      inst_str = inst_str.replace(')','')
-      inst_str = inst_str.replace(';','')
-      var_str_list = inst_str.split(',')
-      operator_var_dict[operator] = var_str_list
+      if(operator != 'DMA'):
+        arguments_list = [] 
+        
+        # 1 when detect the start of operation instantiation
+        # 2 when detect the end of operation instantiation
+        inst_cnt = 0 
+        inst_str = ''
+        for line in file_list:
+          if('(' in line and operator in line):
+            inst_cnt = inst_cnt + 1
+          if inst_cnt == 1: 
+            line_str = re.sub('\s+', '', line)
+            line_str = re.sub('\t+', '', line_str)
+            line_str = re.sub('//.*', '', line_str)
+            inst_str = inst_str+line_str
+          if (')' in line) and inst_cnt == 1: 
+            inst_cnt = 2
+        print(operator)
+        print(inst_str)
+        print(inst_str.split('('))
+        inst_str = inst_str.split('(')[1] # remove function name and '('
+        inst_str = inst_str.replace(')','')
+        inst_str = inst_str.replace(';','')
+        var_str_list = inst_str.split(',')
+        operator_var_dict[operator] = var_str_list
     return operator_var_dict 
 
 
