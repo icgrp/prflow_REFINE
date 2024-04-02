@@ -1037,42 +1037,47 @@ class _dataflow:
     return input_width_list, output_width_list 
 
   # find all the operators arguments order
-  # in case the user define the input and output arguments out of order 
-  def return_operator_io_argument_dict(self, operators):
-    operator_list = operators.split()
+  # in case the user define the input and output arguments out of order
+  # e.g. operator_arg_dict: {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], ...}
+  # e.g. operator_width_dict: {'zculling_bot': ['ap_uint<32>', 'ap_uint<32>', 'ap_uint<32>'], ...}
+  def return_operator_io_argument_dict(self, operator_list):
+    # operator_list = operators.split()
     operator_arg_dict = {}
     operator_width_dict = {}
     for operator in operator_list:
-      file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      arguments_list = [] 
-      width_list = [] 
-      def_valid = False # Ture if function definition begins
-      def_str = ''
-      for line in file_list:
-        if ('(' in line): def_valid = True
-        if def_valid: 
-          line_str=re.sub('\s+', '', line)
-          line_str=re.sub('\t+', '', line_str)
-          def_str=def_str+line_str
-        if (')' in line): def_valid = False
+      if operator != 'DMA':
+        file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
+        arguments_list = [] 
+        width_list = [] 
+        def_valid = False # Ture if function definition begins
+        def_str = ''
+        for line in file_list:
+          if ('(' in line): def_valid = True
+          if def_valid: 
+            line_str=re.sub('\s+', '', line)
+            line_str=re.sub('\t+', '', line_str)
+            def_str=def_str+line_str
+          if (')' in line): def_valid = False
 
-      # a list for the stream arguments functions
-      arg_str_list = def_str.split(',')
-      for arg_str in arg_str_list:
-        input_str_list  = re.findall(r"Input_\d+", arg_str)
-        output_str_list = re.findall(r"Output_\d+", arg_str)
-        str_width_list = re.findall(r"ap_uint\<\d+\>", arg_str)
-        input_str_list.extend(output_str_list)
-        io_str = input_str_list
-        width_list.append(str_width_list[0]) 
-        arguments_list.append(io_str[0])
-      operator_arg_dict[operator] = arguments_list
-      operator_width_dict[operator] = width_list
+        # a list for the stream arguments functions
+        arg_str_list = def_str.split(',')
+        for arg_str in arg_str_list:
+          input_str_list  = re.findall(r"Input_\d+", arg_str)
+          output_str_list = re.findall(r"Output_\d+", arg_str)
+          str_width_list = re.findall(r"ap_uint\<\d+\>", arg_str)
+          input_str_list.extend(output_str_list)
+          io_str = input_str_list
+          width_list.append(str_width_list[0]) 
+          arguments_list.append(io_str[0])
+        operator_arg_dict[operator] = arguments_list
+        operator_width_dict[operator] = width_list
     return operator_arg_dict, operator_width_dict 
 
+
   # find all the operators instantiation in the top function
-  def return_operator_inst_dict(self, operators):
-    operator_list = operators.split()
+  # e.g. operator_var_dict: {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
+  def return_operator_inst_dict(self, operator_list):
+    # operator_list = operators.split()
     operator_var_dict = {}
     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
     for operator in operator_list:
@@ -1083,67 +1088,102 @@ class _dataflow:
       inst_cnt = 0 
       inst_str = ''
       for line in file_list:
-        if (operator+'(' in line): inst_cnt = inst_cnt + 1
+        if('(' in line and operator in line):
+          inst_cnt = inst_cnt + 1
         if inst_cnt == 1: 
-          line_str=re.sub('\s+', '', line)
-          line_str=re.sub('\t+', '', line_str)
-          line_str=re.sub('//.*', '', line_str)
-          inst_str=inst_str+line_str
-        if (')' in line) and inst_cnt == 1: inst_cnt = 2
-      inst_str = inst_str.replace(operator+'(','')
-      inst_str = inst_str.replace(');','')
+          line_str = re.sub('\s+', '', line)
+          line_str = re.sub('\t+', '', line_str)
+          line_str = re.sub('//.*', '', line_str)
+          inst_str = inst_str+line_str
+        if (')' in line) and inst_cnt == 1: 
+          inst_cnt = 2
+      inst_str = inst_str.split('(')[1] # remove function name and '('
+      inst_str = inst_str.replace(')','')
+      inst_str = inst_str.replace(';','')
       var_str_list = inst_str.split(',')
       operator_var_dict[operator] = var_str_list
-    
     return operator_var_dict 
 
-  def return_operator_connect_list(self, operator_arg_dict, operator_var_dict, operator_width_dict):
+
+  # def return_operator_connect_list(self, operator_arg_dict, operator_var_dict):
+  #   connection_list = []
+  #   for key_a in operator_var_dict:
+  #     operator = key_a
+  #     src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
+  #     debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'debug_port')
+  #     map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'map_target')
+  #     if debug_exist:
+  #       src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
+  #       output_num = self.return_io_num('Output_', src_list)
+  #       tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port) 
+  #       connection_list.append(tmp_str)
+  #     for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
+  #       if var_value_a == 'Input_1': 
+  #         tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
+  #         connection_list.append(tmp_str)
+  #       if var_value_a == 'Input_2': 
+  #         tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
+  #         connection_list.append(tmp_str)
+  #       if var_value_a == 'Output_1': 
+  #         tmp_str=key_a+'.'+operator_arg_dict[key_a][i_a] + '->'+'DMA.Input_1' # not necessarily Output_1
+  #         # tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
+  #         connection_list.append(tmp_str)
+  #       for key_b in operator_var_dict:
+  #         for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
+  #           if var_value_a==var_value_b and key_a!=key_b:
+  #             if 'Input' in operator_arg_dict[key_a][i_a]:
+  #               tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
+  #             else:
+  #               tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]
+  #             connection_list.append(tmp_str)
+
+  #   #connection_list = []
+  #   #connection_list.append('DEBUG.Output_1->add1.Input_1')
+  #   #connection_list.append('add1.Output_1->DEBUG.Input_1')
+  #   #connection_list.append('add1.Output_2->DEBUG.Input_3')
+  #   #connection_list.append('add1.Output_3->DEBUG.Input_3')
+  #   #connection_list.append('add1.Output_5->DEBUG.Input_5')
+  #   connection_list = set(connection_list)
+  #   return connection_list
+
+
+  # e.g. operator_arg_dict: {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], ...}
+  # e.g. operator_var_dict: {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
+  # e.g. operator_width_dict: {'zculling_bot': ['ap_uint<32>', 'ap_uint<32>', 'ap_uint<32>'], ...}
+  # connection_list, e.g. [('coloringFB_bot_m.Output_1->coloringFB_top_m.Input_2', 128), ...
+  def return_operator_connect_tuple_list(self, operator_arg_dict, operator_var_dict, operator_width_dict):
     connection_list = []
     for key_a in operator_var_dict:
-      operator = key_a
-      src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'debug_port')
-      map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+key_a+'.h', 'map_target')
-      if debug_exist:
-        src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-        output_num = self.return_io_num('Output_', src_list)
-        tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port) 
-        connection_list.append(tmp_str)
+      # key_a is operator
       for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
         if var_value_a == 'Input_1': 
-          tmp_str='DMA.Output_1->'+key_a+'.Input_1->512' 
-          connection_list.append(tmp_str)
-        if var_value_a == 'Input_2': 
-          tmp_str='DMA2.Output_1->'+key_a+'.Input_1->512' 
-          connection_list.append(tmp_str)
+          dma_stream_in_name = operator_arg_dict[key_a][i_a]
+          # tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
+          tmp_str='DMA.Output_1->'+key_a+'.'+dma_stream_in_name
+          tmp_tup = (tmp_str, 256)
+          connection_list.append(tmp_tup)
         if var_value_a == 'Output_1': 
-          tmp_str=key_a+'.Output_1->'+'DMA.Input_1->512'
-          connection_list.append(tmp_str)
+          dma_stream_out_name = operator_arg_dict[key_a][i_a]
+          # tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
+          tmp_str=key_a+'.'+dma_stream_out_name+'->'+'DMA.Input_1'
+          tmp_tup = (tmp_str, 256)
+          connection_list.append(tmp_tup)
+
         for key_b in operator_var_dict:
           for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
             if var_value_a==var_value_b and key_a!=key_b:
-              if ('Input' in operator_arg_dict[key_a][i_a]):
-                tmp_str = operator_width_dict[key_b][i_b].replace('>','')
-                tmp_str = tmp_str.replace('ap_uint<','->')
-                tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]+tmp_str
+              if 'Input' in operator_arg_dict[key_a][i_a]:
+                key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
+                tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
               else:
-                tmp_str = operator_width_dict[key_b][i_b].replace('>','')
-                tmp_str = tmp_str.replace('ap_uint<','->')
-                tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]+tmp_str
-              connection_list.append(tmp_str)
+                key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
+                tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]
+              tmp_tup = (tmp_str, key_b_width) # key_b_width == key_a_width
+              connection_list.append(tmp_tup)
 
-    #connection_list = []
-    #connection_list.append('DEBUG.Output_1->add1.Input_1')
-    #connection_list.append('add1.Output_1->DEBUG.Input_1')
-    #connection_list.append('add1.Output_2->DEBUG.Input_3')
-    #connection_list.append('add1.Output_3->DEBUG.Input_3')
-    #connection_list.append('add1.Output_5->DEBUG.Input_5')
-    connection_list = set(connection_list)
+    connection_list = sorted(list(set(connection_list))) # sorted to be deterministic, debugging purpose
     return connection_list
 
-
-
-  
 
 
 class _tcl:

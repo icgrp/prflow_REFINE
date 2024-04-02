@@ -647,8 +647,10 @@ class syn(gen_basic):
                                                                                                           rpt_name='utilization.rpt', 
                                                                                                           frequency=frequency))
 
-    # extract the stream arguments and types (in/out and width) for all the operators
-    operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator)
+    # extract the stream arguments and types (in/out and width) for for this operator
+    operator_list = []
+    operator_list.append(operator)
+    operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator_list)
     # e.g. operator_arg_dict: {'zculling_bot': ['Input_1', 'Input_2', 'Output_1']}
     # e.g. operator_width_dict: {'zculling_bot': ['ap_uint<32>', 'ap_uint<32>', 'ap_uint<32>']}
     # in_width_list, out_width_list = self.dataflow.return_io_width(operator_width_dict[operator], operator_arg_dict[operator])

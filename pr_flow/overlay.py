@@ -28,17 +28,6 @@ class overlay(gen_basic):
 
   # create dummy directory for each empty block
   def create_place_holder(self, base_dir, operators):
-    # extract the stream arguments and types (in/out and width) for all the operators
-    operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operators)
-
-    # extract the variables used in top.cpp 
-    operator_var_dict = self.dataflow.return_operator_inst_dict(operators)
-   
-    # extract the how different operators are connected from top.cpp 
-    connection_list=self.dataflow.return_operator_connect_list(operator_arg_dict, operator_var_dict, operator_width_dict)
-
-    # # generate Verilog netlist for the dataflow graph
-    # mono_v_list = self.verilog.return_operator_inst_v_list(operator_arg_dict, connection_list, operator_var_dict, operator_width_dict)
 
     # Utilize hls class to prepare the high-level-synthesis work directory
     hls_inst = hls(self.prflow_params)

@@ -23,94 +23,25 @@ class page_assign(gen_basic):
     gen_basic.__init__(self, prflow_params)
 
 
-  # Stole from runtime.py
-  # find all the operators arguments order
-  # in case the user define the input and output arguments out of order 
-  def return_operator_io_argument_dict_local(self, operators_list):
-    operator_arg_dict = {}
-    for operator in operators_list:
-      if operator != 'DMA':
-        file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-        arguments_list = [] 
-        def_valid = False # Ture if function definition begins
-        def_str = ''
-        for line in file_list:
-          if '(' in line: def_valid = True
-          if def_valid: 
-            line_str=re.sub('\s+', '', line)
-            line_str=re.sub('\t+', '', line_str)
-            def_str=def_str+line_str
-          if ')' in line: def_valid = False
-
-        # a list for the stream arguments functions
-        arg_str_list = def_str.split(',')
-        for arg_str in arg_str_list:
-          input_str_list = re.findall(r"Input_\d+", arg_str)
-          output_str_list = re.findall(r"Output_\d+", arg_str)
-          input_str_list.extend(output_str_list)
-          io_str = input_str_list
-          arguments_list.append(io_str[0])
-         
-        operator_arg_dict[operator] = arguments_list
-    return operator_arg_dict 
-
-
-  # Stole from runtime.py
-  # find all the operators instantiation in the top function
-  def return_operator_inst_dict_local(self, operators_list):
-    operator_var_dict = {}
-    file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
-    for operator in operators_list:
-      if (operator != 'DMA'):
-        arguments_list = [] 
-        
-        # 1 when detect the start of operation instantiation
-        # 2 when detect the end of operation instantiation
-        inst_cnt = 0 
-        inst_str = ''
-        for line in file_list:
-          if operator+'(' in line: inst_cnt = inst_cnt + 1
-          if inst_cnt == 1: 
-            line_str=re.sub('\s+', '', line)
-            line_str=re.sub('\t+', '', line_str)
-            line_str=re.sub('//.*', '', line_str)
-            inst_str=inst_str+line_str
-          if (')' in line) and inst_cnt == 1: inst_cnt = 2
-        inst_str = inst_str.replace(operator+'(','')
-        inst_str = inst_str.replace(');','')
-        var_str_list = inst_str.split(',')
-        operator_var_dict[operator] = var_str_list
-    
-    return operator_var_dict 
-
-
-  # Stole from runtime.py
-  def return_operator_connect_list_local(self, operator_arg_dict, operator_var_dict, operators_list):
+  # Slightly different from return_operator_connect_tuple_list in gen_basic.py
+  # because of operator_list.. too lazy to modify gen_basic.py
+  def return_operator_connect_list_dma(self, operator_arg_dict, operator_var_dict, operator_list):
     connection_list = []
     for key_a in operator_var_dict:
-      operator = key_a
-      src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      debug_exist, debug_port = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+\
-                                                          '/operators/'+key_a+'.h', 'debug_port')
-      map_target_exist, map_target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+\
-                                                               '/operators/'+key_a+'.h', 'map_target')
-      if debug_exist:
-        src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-        output_num = self.return_io_num('Output_', src_list)
-        tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port) 
-        connection_list.append(tmp_str)
+      # key_a is operator
       for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
-        if 'DMA' in operators_list and var_value_a == 'Input_1': 
-          tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
+        if 'DMA' in operator_list and var_value_a == 'Input_1': 
+          dma_stream_in_name = operator_arg_dict[key_a][i_a]
+          # tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
+          tmp_str='DMA.Output_1->'+key_a+'.'+dma_stream_in_name
           connection_list.append(tmp_str)
-        if 'DMA' in operators_list and var_value_a == 'Input_2': 
-          tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
-          connection_list.append(tmp_str)
-        if 'DMA' in operators_list:
+        if 'DMA' in operator_list:
           if var_value_a == 'Output_1': 
-            tmp_str=key_a+'.'+operator_arg_dict[key_a][i_a] + '->'+'DMA.Input_1' # not necessarily Output_1
+            dma_stream_out_name = operator_arg_dict[key_a][i_a]
             # tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
+            tmp_str=key_a+'.'+dma_stream_out_name+'->'+'DMA.Input_1'
             connection_list.append(tmp_str)
+
         for key_b in operator_var_dict:
           for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
             if var_value_a==var_value_b and key_a!=key_b:
@@ -122,6 +53,7 @@ class page_assign(gen_basic):
 
     connection_list = set(connection_list)
     return connection_list
+
 
 
   ## New stuff begins
@@ -258,9 +190,9 @@ class page_assign(gen_basic):
       return min(pblock_ratio_dict, key=pblock_ratio_dict.get) # returns relaxed pblock        
 
 
-  def is_assigned_all(self, pblock_assign_dict, operators_list):
+  def is_assigned_all(self, pblock_assign_dict, operator_list):
     # Check all assigned
-    for pblock_op in operators_list:
+    for pblock_op in operator_list:
       if(pblock_op != 'DMA' and pblock_op not in pblock_assign_dict):
         return False
     # Check duplicate
@@ -332,19 +264,19 @@ class page_assign(gen_basic):
     return util_dict_subtree
 
 
-  def get_pblock_operators_list(self, project_name):
+  def get_pblock_operator_list(self, project_name):
     pblock_ops_dir = './input_src/' + project_name + '/operators'
     with open(pblock_ops_dir + '/specs.json', 'r') as infile:
       # specs_dict = json.load(infile)
       specs_dict = json.load(infile)
-    # return pblock_operators_list
+    # return pblock_operator_list
     return list(specs_dict.keys())
 
 
   # Returns operator's utilization and design analysis dict
-  def get_util_dict(self, operators_list):
+  def get_util_dict(self, operator_list):
     util_dict = {}
-    for op in operators_list:
+    for op in operator_list:
       with open(self.syn_dir + "/" + op + '/utilization.rpt', 'r') as file:
         for line in file:
           # if(line.startswith('| user_kernel')):
@@ -509,10 +441,10 @@ class page_assign(gen_basic):
       self.update_assignment(pblock_in_range_resource_dict, op, op_resource_dict, 
                                page_valid_dict, pblock_assign_dict, specs_dict, requirements)
 
-    operators_list = list(util_dict_selected.keys())
-    # print(operators_list)
+    operator_list = list(util_dict_selected.keys())
+    # print(operator_list)
     # print(pblock_assign_dict)
-    if(not self.is_assigned_all(pblock_assign_dict, operators_list)):
+    if(not self.is_assigned_all(pblock_assign_dict, operator_list)):
       raise Exception("Operators do not fit in any of the pre-generated NoC overlay")
     # print("## pblock_assign_dict with greedy algorithm")
     # print(pblock_assign_dict)
@@ -643,27 +575,29 @@ class page_assign(gen_basic):
   # Stole from runtime.py, originally "add_bft_config_to_host_cpp"
   # For input operators, this function generates graphfile from top.cpp
   # Also Generates _operators.txt and _nodes_w.txt(node weight dictionary)
-  def gen_graphfile(self, operators_list, node_w_dict, is_first_graph, graph_name):
+  def gen_graphfile(self, operator_list, node_w_dict, is_first_graph, graph_name):
 
-    operator_arg_dict = self.return_operator_io_argument_dict_local(operators_list)
+    operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator_list)
     print(operator_arg_dict)
     # operator_arg_dict, e.g. {'zculling_bot': ['Input_1', 'Input_2', 'Output_1'], 'rasterization2_m': .. }
 
-    operator_var_dict = self.return_operator_inst_dict_local(operators_list)
+    operator_var_dict = self.dataflow.return_operator_inst_dict(operator_list)
     print(operator_var_dict)
     # operator_var_dict, e.g. {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
 
     if(is_first_graph):
-      operators_dma = ["DMA"] + operators_list
+      operators_dma = ["DMA"] + operator_list
     else:
-      operators_dma = operators_list
+      operators_dma = operator_list
     print(operators_dma)
 
-    connection_list=self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict, operators_dma)
+    connection_list = self.return_operator_connect_list_dma(operator_arg_dict, operator_var_dict, operators_dma)
     # connection_list, e.g. set(['DMA.Output_1->data_transfer.Input_1', 'coloringFB_top_m->DMA.Input_2' ...
     connection_list = list(connection_list)
     connection_list.sort() # deterministic
+    print("connection_list:")
     print(connection_list)
+
     connection_list_new = []
     for connection in connection_list:
       sender, receiver = connection.split("->")
@@ -980,13 +914,13 @@ class page_assign(gen_basic):
 
   # Incremental, if previous assignment fits to the new netlist, use the previous assignment
   # If any of operator does not fit or new operator is introduced, perform new page assignment
-  def is_prev_map_works(self, operators_list, specs_dict, pblock_all_resource_dict, util_dict):
+  def is_prev_map_works(self, operator_list, specs_dict, pblock_all_resource_dict, util_dict):
     if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
       with open(self.syn_dir + '/pblock_assignment.json', 'r') as infile:
         pblock_assign_dict = json.load(infile)
 
       is_ops_all_fit = True
-      for op in operators_list:
+      for op in operator_list:
         frequency = specs_dict[op]['kernel_clk']
         with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
           leaf_interface_mapping_dict = json.load(infile)
@@ -1012,7 +946,7 @@ class page_assign(gen_basic):
         # IMPORTANT!, remove ops that are merged to other ops
         new_pblock_assign_dict = {}
         for op in pblock_assign_dict:
-          if op in operators_list:
+          if op in operator_list:
             with open(self.syn_dir + '/' + op + '/leaf_interface_mapping.json', 'r') as infile:
               # print(op)
               leaf_interface_mapping_dict = json.load(infile)
@@ -1025,7 +959,7 @@ class page_assign(gen_basic):
           json.dump(new_pblock_assign_dict, outfile, sort_keys=True, indent=4)
 
         # IMPORTANT!, write pblock.json only if the file doesn't exist (because it's newly generated and the syn directory was reset)
-        for op in operators_list:
+        for op in operator_list:
           pblock_name = pblock_assign_dict[op]["pblock"]
           page_num = pblock_assign_dict[op]["page_num"]
           if(not os.path.exists(self.syn_dir + '/' + op + '/pblock.json')):
@@ -1041,9 +975,9 @@ class page_assign(gen_basic):
       return False
 
 
-  # For ops in operators_list, increment the pblock size based on the previous mapping (pblock.json)
-  def increment_pblock_size(self, operators_list, requirements):
-    for op in operators_list:
+  # For ops in operator_list, increment the pblock size based on the previous mapping (pblock.json)
+  def increment_pblock_size(self, operator_list, requirements):
+    for op in operator_list:
       with open(self.syn_dir + '/' + op + '/pblock.json', 'r') as infile:
         old_pblock_dict = json.load(infile)
         pblock_name_old = old_pblock_dict['pblock']
@@ -1067,9 +1001,9 @@ class page_assign(gen_basic):
     with open('./input_src/' + self.prflow_params['benchmark_name'] + '/operators' + '/specs.json', 'r') as infile:
       specs_dict = json.load(infile)
 
-    operators_list = list(specs_dict.keys()) # operators_list is the full list of operators
+    operator_list = list(specs_dict.keys()) # operator_list is the full list of operators
 
-    util_dict = self.get_util_dict(operators_list)
+    util_dict = self.get_util_dict(operator_list)
     # print(util_dict)
     # e.g.: at this point, util_dict = {"coloringFB_bot_m": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ...}, 
     #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ...}, ... }
@@ -1087,7 +1021,7 @@ class page_assign(gen_basic):
       requirements = {}
 
     # Previous page assignment failed in implementation
-    if sorted(operators_tmp_list) != sorted(operators_list):
+    if sorted(operators_tmp_list) != sorted(operator_list):
       if operators_tmp_list == []:
         raise Exception("Which operators failed in previous implementation?")
 
@@ -1112,7 +1046,7 @@ class page_assign(gen_basic):
       # print(util_dict)
       # e.g.: at this point, util_dict = {"coloringFB_bot_m,": {'LUT': 1221', 'LUT_mem': 28', 'FF': 1836, ..., 'criteria': 0.049}, 
       #                                   "data_redir_m": {'LUT': 2579', 'LUT_mem': 36', 'FF': 2560, ..., 'criteria': 0.014}, ... }
-      if self.is_prev_map_works(operators_list, specs_dict, pblock_all_resource_dict, util_dict):
+      if self.is_prev_map_works(operator_list, specs_dict, pblock_all_resource_dict, util_dict):
         return # Finished
       if(os.path.exists(self.syn_dir + '/pblock_assignment.json')):
         os.system('rm ' + self.syn_dir + '/pblock_assignment.json')
@@ -1131,7 +1065,7 @@ class page_assign(gen_basic):
     # print(operators)
     graph_name = "top"
     is_first_graph = True
-    graphfile, operators_dma, _ = self.gen_graphfile(operators_list, node_w_dict, is_first_graph, graph_name)
+    graphfile, operators_dma, _ = self.gen_graphfile(operator_list, node_w_dict, is_first_graph, graph_name)
     # print(graphfile)
     os.system('gpmetis -ptype=rb ' + graphfile + " " + "3" + " >/dev/null") # call Metis
     partitioned_file = "./_graph_dir/" + self.prflow_params['benchmark_name'] + "/top_graphfile" + ".part.3"
@@ -1207,7 +1141,7 @@ class page_assign(gen_basic):
     print("")
     # assert(len(operators.split()) == len(pblock_assign_dict))
     # assert(len(operators.split()) == len(page_assign_dict))
-    if(not self.is_assigned_all(pblock_assign_dict, operators_list)):
+    if(not self.is_assigned_all(pblock_assign_dict, operator_list)):
       # Use old greedy page assignment
       node_w_dict, pblock_assign_dict = self.gen_greedy_node_weight_dict(util_dict, pblock_all_resource_dict, specs_dict, requirements)
       page_assign_dict = {}

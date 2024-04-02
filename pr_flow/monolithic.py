@@ -33,113 +33,113 @@ class monolithic(gen_basic):
     return max_num
  
   # find all the operators page num  
-  def return_page_num_dict_local(self, operators):
-    operator_list = operators.split()
-    page_num_dict = {'DMA':1, 'DMA2': 7, 'ARM':0, 'DEBUG':2}
-    for operator in operator_list:
-      HW_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
-      page_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'page_num')
-      #if HW_exist and target=='HW' and page_exist:
-      if page_exist:
-        page_num_dict[operator] = page_num
-    return page_num_dict 
+  # def return_page_num_dict_local(self, operators):
+  #   operator_list = operators.split()
+  #   page_num_dict = {'DMA':1, 'DMA2': 7, 'ARM':0, 'DEBUG':2}
+  #   for operator in operator_list:
+  #     HW_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
+  #     page_exist, page_num = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'page_num')
+  #     #if HW_exist and target=='HW' and page_exist:
+  #     if page_exist:
+  #       page_num_dict[operator] = page_num
+  #   return page_num_dict 
 
-  # find all the operators arguments order
-  # in case the user define the input and output arguments out of order 
-  def return_operator_io_argument_dict_local(self, operators):
-    operator_list = operators.split()
-    operator_arg_dict = {}
-    operator_width_dict = {}
-    for operator in operator_list:
-      file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      arguments_list = [] 
-      width_list = [] 
-      def_valid = False # Ture if function definition begins
-      def_str = ''
-      for line in file_list:
-        if '(' in line: def_valid = True
-        if def_valid: 
-          line_str=re.sub('\s+', '', line)
-          line_str=re.sub('\t+', '', line_str)
-          def_str=def_str+line_str
-        if ')' in line: def_valid = False
+  # # find all the operators arguments order
+  # # in case the user define the input and output arguments out of order 
+  # def return_operator_io_argument_dict_local(self, operators):
+  #   operator_list = operators.split()
+  #   operator_arg_dict = {}
+  #   operator_width_dict = {}
+  #   for operator in operator_list:
+  #     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
+  #     arguments_list = [] 
+  #     width_list = [] 
+  #     def_valid = False # Ture if function definition begins
+  #     def_str = ''
+  #     for line in file_list:
+  #       if '(' in line: def_valid = True
+  #       if def_valid: 
+  #         line_str=re.sub('\s+', '', line)
+  #         line_str=re.sub('\t+', '', line_str)
+  #         def_str=def_str+line_str
+  #       if ')' in line: def_valid = False
 
-      # a list for the stream arguments functions
-      arg_str_list = def_str.split(',')
-      for arg_str in arg_str_list:
-        input_str_list  = re.findall(r"Input_\d+", arg_str)
-        output_str_list = re.findall(r"Output_\d+", arg_str)
-        str_width_list = re.findall(r"ap_uint\<\d+\>", arg_str)
-        input_str_list.extend(output_str_list)
-        io_str = input_str_list
-        width_list.append(str_width_list[0]) 
-        arguments_list.append(io_str[0])
-      operator_arg_dict[operator] = arguments_list
-      operator_width_dict[operator] = width_list
-    return operator_arg_dict, operator_width_dict 
+  #     # a list for the stream arguments functions
+  #     arg_str_list = def_str.split(',')
+  #     for arg_str in arg_str_list:
+  #       input_str_list  = re.findall(r"Input_\d+", arg_str)
+  #       output_str_list = re.findall(r"Output_\d+", arg_str)
+  #       str_width_list = re.findall(r"ap_uint\<\d+\>", arg_str)
+  #       input_str_list.extend(output_str_list)
+  #       io_str = input_str_list
+  #       width_list.append(str_width_list[0]) 
+  #       arguments_list.append(io_str[0])
+  #     operator_arg_dict[operator] = arguments_list
+  #     operator_width_dict[operator] = width_list
+  #   return operator_arg_dict, operator_width_dict 
 
 
-  # find all the operators instantiation in the top function
-  def return_operator_inst_dict_local(self, operators):
-    operator_list = operators.split()
-    operator_var_dict = {}
-    file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
-    for operator in operator_list:
-      arguments_list = [] 
+  # # find all the operators instantiation in the top function
+  # def return_operator_inst_dict_local(self, operators):
+  #   operator_list = operators.split()
+  #   operator_var_dict = {}
+  #   file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
+  #   for operator in operator_list:
+  #     arguments_list = [] 
       
-      # 1 when detect the start of operation instantiation
-      # 2 when detect the end of operation instantiation
-      inst_cnt = 0 
-      inst_str = ''
-      for line in file_list:
-        if operator+'(' in line: inst_cnt = inst_cnt + 1
-        if inst_cnt == 1: 
-          line_str=re.sub('\s+', '', line)
-          line_str=re.sub('\t+', '', line_str)
-          line_str=re.sub('//.*', '', line_str)
-          inst_str=inst_str+line_str
-        if ')' in line and inst_cnt == 1: inst_cnt = 2
-      inst_str = inst_str.replace(operator+'(','')
-      inst_str = inst_str.replace(');','')
-      var_str_list = inst_str.split(',')
-      operator_var_dict[operator] = var_str_list
+  #     # 1 when detect the start of operation instantiation
+  #     # 2 when detect the end of operation instantiation
+  #     inst_cnt = 0 
+  #     inst_str = ''
+  #     for line in file_list:
+  #       if operator+'(' in line: inst_cnt = inst_cnt + 1
+  #       if inst_cnt == 1: 
+  #         line_str=re.sub('\s+', '', line)
+  #         line_str=re.sub('\t+', '', line_str)
+  #         line_str=re.sub('//.*', '', line_str)
+  #         inst_str=inst_str+line_str
+  #       if ')' in line and inst_cnt == 1: inst_cnt = 2
+  #     inst_str = inst_str.replace(operator+'(','')
+  #     inst_str = inst_str.replace(');','')
+  #     var_str_list = inst_str.split(',')
+  #     operator_var_dict[operator] = var_str_list
     
-    return operator_var_dict 
+  #   return operator_var_dict 
  
 
-  def return_operator_connect_list_local(self, operator_arg_dict, operator_var_dict, operator_width_dict):
-    connection_list = []
-    for key_a in operator_var_dict:
-      operator = key_a
+  # def return_operator_connect_tuple_list(self, operator_arg_dict, operator_var_dict, operator_width_dict):
+  #   connection_list = []
+  #   for key_a in operator_var_dict:
+  #     operator = key_a
 
-      for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
-        if var_value_a == 'Input_1': 
-          tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
-          tmp_tup = (tmp_str, 256)
-          connection_list.append(tmp_tup)
-        if var_value_a == 'Input_2': 
-          tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
-          tmp_tup = (tmp_str, 256)
-          connection_list.append(tmp_tup)
-        if var_value_a == 'Output_1': 
-          tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
-          tmp_tup = (tmp_str, 256)
-          connection_list.append(tmp_tup)
+  #     for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
+  #       if var_value_a == 'Input_1': 
+  #         tmp_str='DMA.Output_1->'+key_a+'.Input_1' 
+  #         tmp_tup = (tmp_str, 256)
+  #         connection_list.append(tmp_tup)
+  #       if var_value_a == 'Input_2': 
+  #         tmp_str='DMA2.Output_1->'+key_a+'.Input_1' 
+  #         tmp_tup = (tmp_str, 256)
+  #         connection_list.append(tmp_tup)
+  #       if var_value_a == 'Output_1': 
+  #         tmp_str=key_a+'.Output_1->'+'DMA.Input_1'
+  #         tmp_tup = (tmp_str, 256)
+  #         connection_list.append(tmp_tup)
 
-        for key_b in operator_var_dict:
-          for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
-            if var_value_a==var_value_b and key_a!=key_b:
-              if 'Input' in operator_arg_dict[key_a][i_a]:
-                key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
-                tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
-              else:
-                key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
-                tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]
-              tmp_tup = (tmp_str, key_b_width) # key_b_width == key_a_width
-              connection_list.append(tmp_tup)
+  #       for key_b in operator_var_dict:
+  #         for i_b, var_value_b in enumerate(operator_var_dict[key_b]):
+  #           if var_value_a==var_value_b and key_a!=key_b:
+  #             if 'Input' in operator_arg_dict[key_a][i_a]:
+  #               key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
+  #               tmp_str = key_b+'.'+operator_arg_dict[key_b][i_b]+'->'+key_a+'.'+operator_arg_dict[key_a][i_a]
+  #             else:
+  #               key_b_width = int(operator_width_dict[key_b][i_b].replace('ap_uint<','').replace('>',''))
+  #               tmp_str = key_a+'.'+operator_arg_dict[key_a][i_a]+'->'+key_b+'.'+operator_arg_dict[key_b][i_b]
+  #             tmp_tup = (tmp_str, key_b_width) # key_b_width == key_a_width
+  #             connection_list.append(tmp_tup)
 
-    connection_list = sorted(list(set(connection_list))) # sorted to be deterministic, debugging purpose
-    return connection_list
+  #   connection_list = sorted(list(set(connection_list))) # sorted to be deterministic, debugging purpose
+  #   return connection_list
 
 
   def return_operator_inst_v_list(self, operator_arg_dict, connection_list, operator_var_dict, operator_width_dict, output_size, specs_dict):
@@ -720,7 +720,7 @@ class monolithic(gen_basic):
     return out_list, mono_counter_idx_dict
 
 
-  def update_cad_path(self, base_dir, operators, overlay_freq, is_mono):
+  def update_cad_path(self, base_dir, overlay_freq, is_mono):
     if not is_mono:
       sub_dir = overlay_freq + 'MHz'
     else:
@@ -772,7 +772,7 @@ class monolithic(gen_basic):
 
     self.shell.write_lines(self.mono_dir + '/main.sh', self.return_main_sh_list_local(['./run.sh']), True)
 
-    self.update_cad_path(self.mono_dir, operators, overlay_freq, is_mono=True)
+    self.update_cad_path(self.mono_dir, overlay_freq, is_mono=True)
     # self.update_build_sh(frequency) 
 
     # Copy hls results for synthesis
@@ -806,19 +806,21 @@ class monolithic(gen_basic):
       outfile.write(filedata)
 
 
+    operator_list = operators.split()
+
     # Generate mono.v for synthesis
-    operator_arg_dict, operator_width_dict = self.return_operator_io_argument_dict_local(operators)
+    operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator_list)
     # print(operator_arg_dict)
     # print(operator_width_dict)
     # e.g. operator_arg_dict: {'zculling_bot': ['Input_1', 'Input_2', 'Output_1']}
     # e.g. operator_width_dict: {'zculling_bot': ['ap_uint<32>', 'ap_uint<32>', 'ap_uint<32>']}
 
-    operator_var_dict = self.return_operator_inst_dict_local(operators)
+    operator_var_dict = self.dataflow.return_operator_inst_dict(operator_list)
     # operator_var_dict, e.g. {'rasterization2_m': ['Output_redir_odd', 'Output_r2_odd_top', 'Output_r2_odd_bot' ...
     # print(operator_var_dict)
 
-    connection_list = self.return_operator_connect_list_local(operator_arg_dict, operator_var_dict, operator_width_dict)
-    # connection_list, e.g. {('coloringFB_bot_m.Output_1->coloringFB_top_m.Input_2', 128), ...
+    connection_list = self.dataflow.return_operator_connect_tuple_list(operator_arg_dict, operator_var_dict, operator_width_dict)
+    # connection_list, e.g. [('coloringFB_bot_m.Output_1->coloringFB_top_m.Input_2', 128), ...
     # link, link_width
     # print(connection_list)
 
