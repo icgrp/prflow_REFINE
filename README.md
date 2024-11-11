@@ -225,7 +225,21 @@ We modified the source codes a little so that FINN generates HLS source codes an
 You first need to git clone this modified FINN framework to your local.
 Then, you need to adjust variables like `PRJ_DIR`,`FINN_HOST_BUILD_DIR`, `FINN_V22_DIR`, etc in 
 [./input_src/finn_cnn1/build_dataflow.sh](./input_src/finn_cnn1/build_dataflow.sh).
-
+If you take a look at 
+[./input_src/finn_cnn1/_finn_gen_dir/finn_cnn_gen.py](./input_src/finn_cnn1/_finn_gen_dir/finn_cnn_gen.py),
+you know that we are using pre-trained models.
+Pre-trained models are generated from
+[brevitas](https://github.com/Xilinx/brevitas/tree/master/src/brevitas_examples/bnn_pynq).
+For simplicity, just replace /finn_v22.1/deps/brevitas/src/brevitas_examples/bnn_pynq with
+[this bnn_pynq](https://drive.google.com/drive/folders/1NBde-Rsznis0X0e2bSfH-GJ6HofCAnW5?usp=drive_link).
+Basically, you can train a new model in 
+[brevitas](https://github.com/Xilinx/brevitas/tree/master/src/brevitas_examples/bnn_pynq). For example,
+we slightly modify models/CNV.py file to make the CNN size smaller. Then, run 
+```
+python bnn_pynq_train.py --network CNV_1W1A --experiments ./_test
+```
+Copy `_test` to /finn_v22.1/deps/brevitas/src/brevitas_examples/bnn_pynq/.
+We provide pre-trained cnv_1w1a and cnv_1w2a.
 
 <a name="known_issues"></a>
 ## Appendix 4: Known issues
