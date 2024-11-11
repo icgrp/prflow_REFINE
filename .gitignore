@@ -7,8 +7,8 @@ __pycache__/
 workspace
 
 _graph_dir
-_finn_gen_dir
-classifier/
+maybe_trash
+
 
 vivad*.jou
 vivad*.log
